@@ -1,6 +1,5 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
+import { supabase } from '@/integrations/supabase/client';
 
 export const objectAdderAdapter: ImageEditAdapter = {
   key: "replicate.object-add",
@@ -30,32 +29,35 @@ export const objectAdderAdapter: ImageEditAdapter = {
       throw new Error("No target region provided. Paint a mask or click to place.");
     }
 
+    // Call Supabase edge function for Replicate
     const body = {
-      provider: "replicate",
-      model: "flux-inpaint",          // good for additive edits
-      imageUrl: asset.src,
-      instruction,
-      maskDataUrl
+      model: "black-forest-labs/flux.1-dev",
+      operation: "add-object",
+      input: {
+        image: asset.src,
+        prompt: instruction,
+        mask: maskDataUrl,
+        strength: 0.8,
+        guidance_scale: 3.5,
+        num_inference_steps: 28
+      }
     };
 
-    const res = await fetch(`${API_BASE}/api/image/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    const { data: result, error } = await supabase.functions.invoke('replicate', {
+      body
     });
 
-    if (!res.ok) throw new Error(`Edit failed: ${res.status} ${res.statusText}`);
-    const result = await res.json();
-    if (!result?.asset?.src) throw new Error(result?.message || "Edit failed");
+    if (error) throw new Error(`Edit failed: ${error.message}`);
+    if (!result?.output?.[0]) throw new Error("Edit failed - no output");
 
     const newAsset: Asset = {
-      id: result.asset.id ?? crypto.randomUUID(),
+      id: crypto.randomUUID(),
       type: 'image',
-      name: result.asset.name ?? `${asset.name || 'image'} - object added`,
-      src: result.asset.src,
+      name: `${asset.name || 'image'} - object added`,
+      src: Array.isArray(result.output) ? result.output[0] : result.output,
       meta: {
         ...asset.meta,
-        provider: result.asset.meta?.provider ?? 'replicate.flux-inpaint',
+        provider: 'replicate.object-add',
         originalAsset: asset.id,
         editType: 'object-addition',
         instruction

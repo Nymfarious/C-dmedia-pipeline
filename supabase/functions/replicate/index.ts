@@ -78,25 +78,27 @@ serve(async (req) => {
         }
       });
     } else if (body.operation === 'object-removal') {
-      // Use a working object removal model - alternative to SeedEdit
-      console.log('Running object removal')
+      // Use a working object removal model
+      console.log('Running object removal with mask')
       output = await replicate.run("andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab", {
         input: {
           image: body.input.image,
-          mask_instruction: body.input.editing_instruction || body.input.prompt
+          mask_instruction: body.input.mask_instruction || body.input.prompt,
+          mask: body.input.mask
         }
       });
     } else if (body.operation === 'add-object') {
-      // Use FLUX.1 for object addition/inpainting
-      console.log('Running object addition with FLUX.1')
+      // Use FLUX.1 for object addition/inpainting with mask
+      console.log('Running object addition with FLUX.1 and mask')
       output = await replicate.run("black-forest-labs/flux.1-dev", {
         input: {
           image: body.input.image,
+          mask: body.input.mask,
           prompt: body.input.prompt,
           negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, unnatural placement",
           guidance_scale: body.input.guidance_scale || 3.5,
           num_inference_steps: body.input.num_inference_steps || 28,
-          strength: body.input.strength || 0.6,
+          strength: body.input.strength || 0.8,
           num_outputs: body.input.num_outputs || 1
         }
       });

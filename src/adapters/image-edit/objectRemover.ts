@@ -1,6 +1,5 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
+import { supabase } from '@/integrations/supabase/client';
 
 export const objectRemoverAdapter: ImageEditAdapter = {
   key: "replicate.object-remove",
@@ -11,35 +10,33 @@ export const objectRemoverAdapter: ImageEditAdapter = {
     }
     const instruction = params.removeObjectInstruction || params.instruction || "Remove the marked objects cleanly";
 
-    // Upload the mask (data URL or Blob) to the server; simplest: send as data URL
+    // Call Supabase edge function for Replicate
     const body = {
-      provider: "replicate",              // or "gemini" later
-      model: "seededit-3",                // or "flux-inpaint"
-      imageUrl: asset.src,                // ensure this is a public URL or your server can fetch blobs
-      instruction,
-      // prefer dataUrl for simplicity; your server can accept either
-      maskDataUrl: params.maskPngDataUrl ?? null
+      model: "andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab",
+      operation: "object-removal",
+      input: {
+        image: asset.src,
+        mask_instruction: instruction,
+        mask: params.maskPngDataUrl
+      }
     };
 
-    const res = await fetch(`${API_BASE}/api/image/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    const { data: result, error } = await supabase.functions.invoke('replicate', {
+      body
     });
 
-    if (!res.ok) throw new Error(`Edit failed: ${res.status} ${res.statusText}`);
-    const result = await res.json();
-    if (!result?.asset?.src) throw new Error(result?.message || "Edit failed");
+    if (error) throw new Error(`Edit failed: ${error.message}`);
+    if (!result?.output?.[0]) throw new Error("Edit failed - no output");
 
     // Normalize to Asset
     const newAsset: Asset = {
-      id: result.asset.id ?? crypto.randomUUID(),
+      id: crypto.randomUUID(),
       type: 'image',
-      name: result.asset.name ?? `${asset.name || 'image'} - object removed`,
-      src: result.asset.src,
+      name: `${asset.name || 'image'} - object removed`,
+      src: Array.isArray(result.output) ? result.output[0] : result.output,
       meta: {
         ...asset.meta,
-        provider: result.asset.meta?.provider ?? 'replicate.seededit',
+        provider: 'replicate.object-remove',
         originalAsset: asset.id,
         editType: 'object-removal',
         instruction
