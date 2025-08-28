@@ -29,7 +29,7 @@ import { ColorAdjustmentPanel } from './ColorAdjustmentPanel';
 import { StyleFilterGallery } from './StyleFilterGallery';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
 import { colorEnhancerAdapter } from '@/adapters/image-edit/colorEnhancer';
-import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler';
+import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler'; // Enhanced upscaler with face restoration
 
 interface ImageCanvasProps {
   asset?: Asset;
