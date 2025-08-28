@@ -1,99 +1,69 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
 export const objectAdderAdapter: ImageEditAdapter = {
   key: "replicate.object-add",
-  
+
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
-    const instruction = params.addObjectInstruction || params.instruction || "Add object to the image";
-    
-    // Enhanced instruction with position context
-    let enhancedInstruction = instruction;
-    if (params.clickPosition) {
-      enhancedInstruction = `${instruction} at position x:${Math.round(params.clickPosition.x)}, y:${Math.round(params.clickPosition.y)}`;
+    const instruction = params.addObjectInstruction || params.instruction || "Add the described object inside the masked region";
+
+    // If user didn't paint a mask but clicked somewhere, synthesize a small circular mask
+    let maskDataUrl = params.maskPngDataUrl ?? null;
+
+    if (!maskDataUrl && params.clickPosition && params.sourceImageSize) {
+      // Build a small mask around click (client-side)
+      const { width, height } = params.sourceImageSize; // px of the source image
+      const radius = Math.max(24, Math.floor(Math.min(width, height) * 0.05));
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,width,height);
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(params.clickPosition.x, params.clickPosition.y, radius, 0, Math.PI*2);
+      ctx.fill();
+      maskDataUrl = canvas.toDataURL('image/png');
     }
 
-    // Use FLUX.1 inpainting for object addition
-    const { data, error } = await supabase.functions.invoke('replicate', {
-      body: {
-        model: "black-forest-labs/flux.1-dev",
-        operation: 'add-object',
-        input: {
-          image: asset.src,
-          prompt: enhancedInstruction,
-          negative_prompt: "blurred, distorted, artifacts, unnatural placement, bad composition",
-          guidance_scale: 3.5,
-          num_inference_steps: 28,
-          strength: 0.6,
-          num_outputs: 1
-        }
-      }
+    if (!maskDataUrl) {
+      throw new Error("No target region provided. Paint a mask or click to place.");
+    }
+
+    const body = {
+      provider: "replicate",
+      model: "flux-inpaint",          // good for additive edits
+      imageUrl: asset.src,
+      instruction,
+      maskDataUrl
+    };
+
+    const res = await fetch(`${API_BASE}/api/image/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
 
-    if (error) {
-      console.error('FLUX inpainting failed, trying Nano Banana:', error);
-      
-      // Fallback to Nano Banana for object addition
-      const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('replicate', {
-        body: {
-          model: "google/nano-banana",
-          operation: 'nano-banana-edit',
-          input: {
-            image: asset.src,
-            instruction: enhancedInstruction,
-            negative_prompt: "blurred, distorted, artifacts, unnatural placement",
-            guidance_scale: 7.5,
-            num_inference_steps: 20,
-            strength: 0.6
-          }
-        }
-      });
-      
-      if (fallbackError || !fallbackData?.output) {
-        throw new Error(`Object addition failed: ${fallbackError?.message || 'No output received'}`);
-      }
-      
-      // Create asset from fallback
-      return {
-        id: crypto.randomUUID(),
-        type: asset.type,
-        name: `${asset.name} (Object Added)`,
-        src: Array.isArray(fallbackData.output) ? fallbackData.output[0] : fallbackData.output,
-        meta: {
-          ...asset.meta,
-          provider: 'replicate.nano-banana',
-          originalAsset: asset.id,
-          editType: 'object-addition',
-          instruction: enhancedInstruction
-        },
-        createdAt: Date.now(),
-        derivedFrom: asset.id,
-        category: 'edited',
-        subcategory: 'Enhanced'
-      };
-    }
+    if (!res.ok) throw new Error(`Edit failed: ${res.status} ${res.statusText}`);
+    const result = await res.json();
+    if (!result?.asset?.src) throw new Error(result?.message || "Edit failed");
 
-    if (!data?.output) {
-      throw new Error('No output received from object addition');
-    }
-
-    // Create new asset
     const newAsset: Asset = {
-      id: crypto.randomUUID(),
-      type: asset.type,
-      name: `${asset.name} (Object Added)`,
-      src: Array.isArray(data.output) ? data.output[0] : data.output,
+      id: result.asset.id ?? crypto.randomUUID(),
+      type: 'image',
+      name: result.asset.name ?? `${asset.name || 'image'} - object added`,
+      src: result.asset.src,
       meta: {
         ...asset.meta,
-        provider: 'replicate.flux-inpaint',
+        provider: result.asset.meta?.provider ?? 'replicate.flux-inpaint',
         originalAsset: asset.id,
         editType: 'object-addition',
-        instruction: enhancedInstruction
+        instruction
       },
       createdAt: Date.now(),
       derivedFrom: asset.id,
       category: 'edited',
-      subcategory: 'Enhanced'
+      subcategory: 'Additive'
     };
 
     return newAsset;

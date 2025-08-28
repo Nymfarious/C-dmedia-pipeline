@@ -1,105 +1,45 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
 export const objectRemoverAdapter: ImageEditAdapter = {
   key: "replicate.object-remove",
-  
-  async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
-    const instruction = params.removeObjectInstruction || params.instruction || "Remove the marked objects cleanly";
-    
-    // Use Nano Banana as primary with smart instruction generation
-    let modelInput;
-    
-    if (params.brushMask && params.brushMask.length > 0) {
-      // Enhanced instruction with brush context
-      const enhancedInstruction = `${instruction}. Remove the objects marked by ${params.brushMask.length} brush strokes`;
-      modelInput = {
-        model: "google/nano-banana",
-        operation: 'nano-banana-edit',
-        input: {
-          image: asset.src,
-          instruction: enhancedInstruction,
-          negative_prompt: "blurred, distorted, artifacts, incomplete removal",
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
-          strength: 0.8
-        }
-      };
-    } else {
-      // Pure text-based removal
-      modelInput = {
-        model: "google/nano-banana", 
-        operation: 'nano-banana-edit',
-        input: {
-          image: asset.src,
-          instruction,
-          negative_prompt: "blurred, distorted, artifacts",
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
-          strength: 0.7
-        }
-      };
-    }
 
-    const { data, error } = await supabase.functions.invoke('replicate', {
-      body: modelInput
+  async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
+    if (!params.maskPngDataUrl && !params.maskBlob) {
+      throw new Error("No mask provided. Paint an area to remove first.");
+    }
+    const instruction = params.removeObjectInstruction || params.instruction || "Remove the marked objects cleanly";
+
+    // Upload the mask (data URL or Blob) to the server; simplest: send as data URL
+    const body = {
+      provider: "replicate",              // or "gemini" later
+      model: "seededit-3",                // or "flux-inpaint"
+      imageUrl: asset.src,                // ensure this is a public URL or your server can fetch blobs
+      instruction,
+      // prefer dataUrl for simplicity; your server can accept either
+      maskDataUrl: params.maskPngDataUrl ?? null
+    };
+
+    const res = await fetch(`${API_BASE}/api/image/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
 
-    if (error) {
-      console.error('Nano Banana removal failed, trying fallback:', error);
-      
-      // Fallback to andreasjansson/remove-object if Nano Banana fails
-      const fallbackInput = {
-        model: "andreasjansson/remove-object",
-        operation: 'object-removal',
-        input: {
-          image: asset.src,
-          prompt: instruction,
-          negative_prompt: "blurred, distorted, artifacts"
-        }
-      };
-      
-      const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('replicate', {
-        body: fallbackInput
-      });
-      
-      if (fallbackError || !fallbackData?.output) {
-        throw new Error(`Object removal failed: ${fallbackError?.message || 'No output received'}`);
-      }
-      
-      // Create asset from fallback
-      return {
-        id: crypto.randomUUID(),
-        type: asset.type,
-        name: `${asset.name} (Objects Removed)`,
-        src: Array.isArray(fallbackData.output) ? fallbackData.output[0] : fallbackData.output,
-        meta: {
-          ...asset.meta,
-          provider: 'replicate.object-remove-fallback',
-          originalAsset: asset.id,
-          editType: 'object-removal',
-          instruction
-        },
-        createdAt: Date.now(),
-        derivedFrom: asset.id,
-        category: 'edited',
-        subcategory: 'Enhanced'
-      };
-    }
+    if (!res.ok) throw new Error(`Edit failed: ${res.status} ${res.statusText}`);
+    const result = await res.json();
+    if (!result?.asset?.src) throw new Error(result?.message || "Edit failed");
 
-    if (!data?.output) {
-      throw new Error('No output received from object removal');
-    }
-
-    // Create new asset from primary result
+    // Normalize to Asset
     const newAsset: Asset = {
-      id: crypto.randomUUID(),
-      type: asset.type,
-      name: `${asset.name} (Objects Removed)`,
-      src: Array.isArray(data.output) ? data.output[0] : data.output,
+      id: result.asset.id ?? crypto.randomUUID(),
+      type: 'image',
+      name: result.asset.name ?? `${asset.name || 'image'} - object removed`,
+      src: result.asset.src,
       meta: {
         ...asset.meta,
-        provider: 'replicate.nano-banana',
+        provider: result.asset.meta?.provider ?? 'replicate.seededit',
         originalAsset: asset.id,
         editType: 'object-removal',
         instruction
@@ -107,7 +47,7 @@ export const objectRemoverAdapter: ImageEditAdapter = {
       createdAt: Date.now(),
       derivedFrom: asset.id,
       category: 'edited',
-      subcategory: 'Enhanced'
+      subcategory: 'Cleanup'
     };
 
     return newAsset;

@@ -59,6 +59,10 @@ export interface ImageEditParams {
   clickPosition?: { x: number; y: number };
   addObjectInstruction?: string;
   removeObjectInstruction?: string;
+  // Mask generation support
+  maskPngDataUrl?: string;
+  maskBlob?: Blob;
+  sourceImageSize?: { width: number; height: number };
   colorAdjustments?: {
     brightness?: number;
     contrast?: number; 

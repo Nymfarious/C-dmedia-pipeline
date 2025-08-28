@@ -1,153 +1,120 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Eraser, Undo } from 'lucide-react';
 
+type Stroke = { x: number; y: number; r: number };
+
 interface BrushToolProps {
-  onMaskComplete: (mask: { x: number; y: number; radius: number }[]) => void;
-  imageUrl: string;
+  imageUrl: string;                 // original image to align mask with
+  onExportMask: (mask: { dataUrl: string; blob: Blob }) => void;
+  initialBrush?: number;
   className?: string;
 }
 
-export function BrushTool({ onMaskComplete, imageUrl, className }: BrushToolProps) {
+export function BrushTool({ imageUrl, onExportMask, initialBrush = 24, className }: BrushToolProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [ready, setReady] = useState(false);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [brush, setBrush] = useState([initialBrush]);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [brushSize, setBrushSize] = useState([20]);
-  const [maskStrokes, setMaskStrokes] = useState<{ x: number; y: number; radius: number }[]>([]);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
+  // load base image to size canvas
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
+      imgRef.current = img;
+      const canvas = canvasRef.current!;
       canvas.width = img.width;
       canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      setImageLoaded(true);
+      setReady(true);
+      redraw(); // init clear
     };
     img.src = imageUrl;
   }, [imageUrl]);
 
-  const getMousePos = useCallback((canvas: HTMLCanvasElement, e: React.MouseEvent) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    };
-  }, []);
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    // Mask expected by most inpainting: white = keep, black = edit region
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const startDrawing = useCallback((e: React.MouseEvent) => {
-    if (!imageLoaded) return;
+    ctx.fillStyle = '#000000';
+    for (const s of strokes) {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }, [strokes]);
+
+  useEffect(() => { redraw(); }, [redraw]);
+
+  const getPos = (e: React.MouseEvent) => {
+    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvasRef.current!.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvasRef.current!.height / rect.height);
+    return { x, y };
+  };
+
+  const onDown = (e: React.MouseEvent) => {
+    if (!ready) return;
     setIsDrawing(true);
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const pos = getMousePos(canvas, e);
-    const newStroke = { x: pos.x, y: pos.y, radius: brushSize[0] };
-    setMaskStrokes(prev => [...prev, newStroke]);
-    
-    drawBrushStroke(pos.x, pos.y, brushSize[0]);
-  }, [imageLoaded, brushSize, getMousePos]);
+    const { x, y } = getPos(e);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
 
-  const draw = useCallback((e: React.MouseEvent) => {
-    if (!isDrawing || !imageLoaded) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const pos = getMousePos(canvas, e);
-    const newStroke = { x: pos.x, y: pos.y, radius: brushSize[0] };
-    setMaskStrokes(prev => [...prev, newStroke]);
-    
-    drawBrushStroke(pos.x, pos.y, brushSize[0]);
-  }, [isDrawing, imageLoaded, brushSize, getMousePos]);
+  const onMove = (e: React.MouseEvent) => {
+    if (!ready || !isDrawing) return;
+    const { x, y } = getPos(e);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
 
-  const stopDrawing = useCallback(() => {
-    setIsDrawing(false);
-  }, []);
+  const onUp = () => setIsDrawing(false);
+  const undo = () => setStrokes(prev => prev.slice(0, -1));
+  const clear = () => setStrokes([]);
 
-  const drawBrushStroke = useCallback((x: number, y: number, radius: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2 * Math.PI);
-    ctx.fill();
-  }, []);
-
-  const clearMask = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    setMaskStrokes([]);
-    
-    // Redraw original image
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const img = new Image();
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = imageUrl;
-  }, [imageUrl]);
-
-  const applyMask = useCallback(() => {
-    onMaskComplete(maskStrokes);
-  }, [maskStrokes, onMaskComplete]);
+  const exportMask = async () => {
+    const canvas = canvasRef.current!;
+    const dataUrl = canvas.toDataURL('image/png');
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    onExportMask({ dataUrl, blob });
+  };
 
   return (
     <div className={className}>
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Eraser className="h-4 w-4" />
-            <span className="text-sm">Brush Size:</span>
-          </div>
-          <Slider
-            value={brushSize}
-            onValueChange={setBrushSize}
-            max={50}
-            min={5}
-            step={1}
-            className="w-32"
+      <div className="flex items-center gap-3 mb-2">
+        <span className="text-sm">Brush</span>
+        <Slider min={4} max={120} step={1} value={brush} onValueChange={setBrush} className="w-48" />
+        <Button variant="outline" size="sm" onClick={undo} title="Undo">
+          <Undo className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={clear} title="Clear">
+          <Eraser className="h-4 w-4" />
+        </Button>
+        <Button size="sm" onClick={exportMask}>Use this mask</Button>
+      </div>
+
+      <div className="border rounded-lg overflow-auto max-h-[70vh]">
+        {/* optional: show base image underneath as reference */}
+        <div className="relative inline-block">
+          {ready && <img alt="" src={imageUrl} style={{ width: '100%', display: 'block' }} />}
+          <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0"
+            style={{ width: '100%', height: '100%', cursor: 'crosshair' }}
+            onMouseDown={onDown}
+            onMouseMove={onMove}
+            onMouseUp={onUp}
+            onMouseLeave={onUp}
           />
-          <span className="text-sm w-8">{brushSize[0]}</span>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={clearMask}>
-            <Undo className="h-4 w-4 mr-2" />
-            Clear
-          </Button>
-          <Button size="sm" onClick={applyMask} disabled={maskStrokes.length === 0}>
-            Apply Mask
-          </Button>
         </div>
       </div>
-      
-      <canvas
-        ref={canvasRef}
-        className="border rounded-lg cursor-crosshair max-w-full max-h-96 object-contain"
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-      />
     </div>
   );
 }
