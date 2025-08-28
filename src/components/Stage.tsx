@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ZoomIn, ZoomOut, RotateCcw, Grid3x3, Maximize, Play } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ZoomIn, ZoomOut, RotateCcw, Grid3x3, Maximize, Play, Download } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { cn } from '@/lib/utils';
+import { downloadBlob, getFileExtensionFromBlob } from '@/lib/download';
+import { toast } from 'sonner';
 
 export function Stage() {
-  const { assets, selectedAssetIds, steps } = useAppStore();
+  const { assets, selectedAssetIds, steps, exportAssets } = useAppStore();
   const [zoom, setZoom] = useState(100);
   const [showGrid, setShowGrid] = useState(false);
 
@@ -35,6 +38,23 @@ export function Stage() {
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 25));
   const handleResetZoom = () => setZoom(100);
 
+  const handleExportFocused = async () => {
+    if (!focusedAsset) return;
+    
+    try {
+      const exports = await exportAssets([focusedAsset.id]);
+      if (exports.length > 0) {
+        const { name, blob } = exports[0];
+        const extension = getFileExtensionFromBlob(blob);
+        downloadBlob(blob, `${name}.${extension}`);
+        toast.success('Asset exported successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to export asset');
+      console.error('Export error:', error);
+    }
+  };
+
   return (
     <div className="h-full bg-stage-bg flex flex-col">
       {/* Stage Header */}
@@ -51,6 +71,23 @@ export function Stage() {
           
           {/* Stage Controls */}
           <div className="flex items-center gap-2">
+            {focusedAsset && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleExportFocused}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Asset
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             <Button
               variant="outline"
               size="sm"
@@ -110,7 +147,7 @@ export function Stage() {
                   >
                     <img
                       src={focusedAsset.src}
-                      alt={focusedAsset.name}
+                      alt={focusedAsset.name || 'Focused asset'}
                       className="max-w-full max-h-[70vh] object-contain"
                     />
                     

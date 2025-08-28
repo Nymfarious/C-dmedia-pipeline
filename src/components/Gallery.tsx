@@ -1,18 +1,47 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, Search, Image, Music, Film, Check } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Upload, Search, Image, Music, Film, Check, CheckSquare, Square, Download } from 'lucide-react';
 import useAppStore from '@/store/appStore';
-import { MediaType } from '@/types/media';
+import { MediaType, Asset } from '@/types/media';
 import { cn } from '@/lib/utils';
+import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
+import { toast } from 'sonner';
+
+// Helper functions
+function getAssetTypeFromFile(file: File): MediaType {
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type.startsWith('audio/')) return 'audio';
+  if (file.type.startsWith('video/')) return 'animation';
+  return 'image'; // Default fallback
+}
+
+async function getImageDimensions(file: File): Promise<{ width: number; height: number } | {}> {
+  if (!file.type.startsWith('image/')) return {};
+  
+  return new Promise((resolve) => {
+    const img = document.createElement('img');
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => {
+      resolve({});
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 export function Gallery() {
-  const { assets, selectedAssetIds, setSelected } = useAppStore();
+  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const assetArray = Object.values(assets);
   
@@ -29,6 +58,67 @@ export function Gallery() {
       setSelected(selectedAssetIds.filter(id => id !== assetId));
     } else {
       setSelected([...selectedAssetIds, assetId]);
+    }
+  };
+
+  const handleUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    const newAssets: Asset[] = [];
+
+    for (const file of files) {
+      const asset: Asset = {
+        id: crypto.randomUUID(),
+        type: getAssetTypeFromFile(file),
+        name: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+        src: URL.createObjectURL(file),
+        meta: {
+          size: file.size,
+          mimeType: file.type,
+          ...(file.type.startsWith('image/') && await getImageDimensions(file))
+        },
+        createdAt: Date.now(),
+      };
+      
+      newAssets.push(asset);
+    }
+
+    addAssets(newAssets);
+    toast.success(`Uploaded ${newAssets.length} asset${newAssets.length > 1 ? 's' : ''}`);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filteredAssets.map(asset => asset.id);
+    setSelected(allFilteredIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelected([]);
+  };
+
+  const handleBatchExport = async () => {
+    if (selectedAssetIds.length === 0) return;
+    
+    try {
+      const exports = await exportAssets(selectedAssetIds);
+      for (const { name, blob } of exports) {
+        const extension = getFileExtensionFromBlob(blob);
+        downloadBlob(blob, `${name}.${extension}`);
+      }
+      toast.success(`Exported ${exports.length} asset${exports.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      toast.error('Failed to export assets');
+      console.error('Export error:', error);
     }
   };
 
@@ -49,15 +139,43 @@ export function Gallery() {
   };
 
   return (
-    <div className="h-full bg-gallery-bg border-r border-border flex flex-col">
+    <div className="h-full bg-gallery-bg border-r border-border flex flex-col" data-gallery>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,audio/*,video/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground">Gallery</h2>
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4" />
-            Upload
-          </Button>
+          <div className="flex items-center gap-2">
+            {selectedAssetIds.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={handleBatchExport}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Selected ({selectedAssetIds.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button variant="outline" size="sm" onClick={handleUpload}>
+              <Upload className="h-4 w-4" />
+              Upload
+            </Button>
+          </div>
         </div>
         
         {/* Search */}
@@ -81,9 +199,33 @@ export function Gallery() {
           </TabsList>
         </Tabs>
 
+        {/* Selection Controls */}
+        {Object.keys(assets).length > 0 && (
+          <div className="mt-4 flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSelectAll}
+              className="text-xs"
+            >
+              <CheckSquare className="h-3 w-3 mr-1" />
+              Select All
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleClearSelection}
+              className="text-xs"
+            >
+              <Square className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          </div>
+        )}
+
         {/* Selection Info */}
         {selectedAssetIds.length > 0 && (
-          <div className="mt-4 p-2 bg-primary/10 rounded-lg border border-primary/20">
+          <div className="mt-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
             <p className="text-sm text-primary font-medium">
               {selectedAssetIds.length} asset{selectedAssetIds.length > 1 ? 's' : ''} selected
             </p>
@@ -128,7 +270,7 @@ export function Gallery() {
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-3 relative group">
                   <img
                     src={asset.src}
-                    alt={asset.name}
+                    alt={asset.name || 'Asset preview'}
                     className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
                   />
                   

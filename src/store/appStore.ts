@@ -11,12 +11,16 @@ interface AppState {
   currentStepKind: PipelineStep["kind"];
   currentProviderKey: string;
   params: Record<string, any>;
+  paramsByKey: Record<string, Record<string, any>>;
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
   runStep(stepId: string): Promise<void>;
   setSelected(ids: string[]): void;
   addAsset(a: Asset): void;
+  addAssets(assets: Asset[]): void;
+  deleteAssets(ids: string[]): void;
+  exportAssets(ids: string[]): Promise<{ name: string; blob: Blob }[]>;
   setCurrentStepKind(kind: PipelineStep["kind"]): void;
   setCurrentProviderKey(key: string): void;
   setParams(params: Record<string, any>): void;
@@ -31,6 +35,7 @@ const useAppStore = create<AppState>((set, get) => ({
   currentStepKind: "GENERATE",
   currentProviderKey: "replicate.sd",
   params: {},
+  paramsByKey: {},
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -145,17 +150,112 @@ const useAppStore = create<AppState>((set, get) => ({
     assets: { ...state.assets, [asset.id]: asset }
   })),
 
-  setCurrentStepKind: (kind) => set({ currentStepKind: kind }),
+  addAssets: (assets) => set((state) => {
+    const newAssets = { ...state.assets };
+    assets.forEach(asset => {
+      newAssets[asset.id] = asset;
+    });
+    return { assets: newAssets };
+  }),
+
+  deleteAssets: (ids) => set((state) => {
+    const newAssets = { ...state.assets };
+    const newSelected = state.selectedAssetIds.filter(id => !ids.includes(id));
+    
+    // Revoke blob URLs to prevent memory leaks
+    ids.forEach(id => {
+      const asset = state.assets[id];
+      if (asset && asset.src.startsWith('blob:')) {
+        URL.revokeObjectURL(asset.src);
+      }
+      delete newAssets[id];
+    });
+
+    return { 
+      assets: newAssets,
+      selectedAssetIds: newSelected
+    };
+  }),
+
+  exportAssets: async (ids) => {
+    const state = get();
+    const exports: { name: string; blob: Blob }[] = [];
+    
+    for (const id of ids) {
+      const asset = state.assets[id];
+      if (!asset) continue;
+      
+      try {
+        let blob: Blob;
+        if (asset.src.startsWith('blob:')) {
+          const response = await fetch(asset.src);
+          blob = await response.blob();
+        } else {
+          const response = await fetch(asset.src);
+          blob = await response.blob();
+        }
+        
+        exports.push({
+          name: asset.name || `asset-${id}`,
+          blob
+        });
+      } catch (error) {
+        console.error(`Failed to export asset ${id}:`, error);
+      }
+    }
+    
+    return exports;
+  },
+
+  setCurrentStepKind: (kind) => {
+    const state = get();
+    // Save current params before switching
+    const currentKey = `${state.currentStepKind}::${state.currentProviderKey}`;
+    const newParamsByKey = { ...state.paramsByKey, [currentKey]: state.params };
+    
+    // Load params for new step/provider combo
+    const newKey = `${kind}::${state.currentProviderKey}`;
+    const newParams = newParamsByKey[newKey] || {};
+    
+    set({ 
+      currentStepKind: kind, 
+      params: newParams,
+      paramsByKey: newParamsByKey
+    });
+  },
   
-  setCurrentProviderKey: (key) => set({ currentProviderKey: key }),
+  setCurrentProviderKey: (key) => {
+    const state = get();
+    // Save current params before switching
+    const currentKey = `${state.currentStepKind}::${state.currentProviderKey}`;
+    const newParamsByKey = { ...state.paramsByKey, [currentKey]: state.params };
+    
+    // Load params for new step/provider combo
+    const newKey = `${state.currentStepKind}::${key}`;
+    const newParams = newParamsByKey[newKey] || {};
+    
+    set({ 
+      currentProviderKey: key, 
+      params: newParams,
+      paramsByKey: newParamsByKey
+    });
+  },
   
-  setParams: (params) => set({ params }),
+  setParams: (params) => {
+    const state = get();
+    const key = `${state.currentStepKind}::${state.currentProviderKey}`;
+    set({ 
+      params,
+      paramsByKey: { ...state.paramsByKey, [key]: params }
+    });
+  },
 
   persist: async () => {
     const state = get();
     await idbSet('app-state', {
       assets: state.assets,
       steps: state.steps,
+      paramsByKey: state.paramsByKey,
     });
   },
 
@@ -166,6 +266,7 @@ const useAppStore = create<AppState>((set, get) => ({
         set({
           assets: stored.assets || {},
           steps: stored.steps || {},
+          paramsByKey: stored.paramsByKey || {},
         });
       }
       

@@ -19,7 +19,8 @@ import {
   CheckCircle, 
   XCircle, 
   Loader2,
-  Settings
+  Settings,
+  RotateCcw
 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { PipelineStep } from '@/types/media';
@@ -117,6 +118,15 @@ export function Pipeline() {
 
   const handleParamChange = (field: string, value: any) => {
     setParams({ ...params, [field]: value });
+  };
+
+  const handleRetryStep = async (stepId: string) => {
+    setIsRunning(true);
+    try {
+      await runStep(stepId);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const getStepStatusIcon = (status: PipelineStep['status']) => {
@@ -334,8 +344,20 @@ export function Pipeline() {
                   </div>
                   
                   {step.error && (
-                    <div className="mt-2 text-xs text-destructive">
-                      Error: {step.error}
+                    <div className="mt-2 space-y-2">
+                      <div className="text-xs text-destructive">
+                        Error: {step.error}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRetryStep(step.id)}
+                        disabled={isRunning}
+                        className="h-6 text-xs"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-1" />
+                        Retry
+                      </Button>
                     </div>
                   )}
                 </Card>
