@@ -54,8 +54,11 @@ export interface ImageGenParams {
 export interface ImageEditParams { 
   instruction?: string; 
   maskAssetId?: string;
-  operation?: "remove-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit";
+  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit";
   brushMask?: { x: number; y: number; radius: number }[];
+  clickPosition?: { x: number; y: number };
+  addObjectInstruction?: string;
+  removeObjectInstruction?: string;
   colorAdjustments?: {
     brightness?: number;
     contrast?: number; 

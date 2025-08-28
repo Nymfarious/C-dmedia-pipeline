@@ -86,6 +86,20 @@ serve(async (req) => {
           mask_instruction: body.input.editing_instruction || body.input.prompt
         }
       });
+    } else if (body.operation === 'add-object') {
+      // Use FLUX.1 for object addition/inpainting
+      console.log('Running object addition with FLUX.1')
+      output = await replicate.run("black-forest-labs/flux.1-dev", {
+        input: {
+          image: body.input.image,
+          prompt: body.input.prompt,
+          negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, unnatural placement",
+          guidance_scale: body.input.guidance_scale || 3.5,
+          num_inference_steps: body.input.num_inference_steps || 28,
+          strength: body.input.strength || 0.6,
+          num_outputs: body.input.num_outputs || 1
+        }
+      });
     } else if (body.operation === 'color-enhance') {
       // Use Nano Banana for color enhancement
       console.log('Running color enhancement with Nano Banana')
