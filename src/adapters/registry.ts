@@ -19,7 +19,7 @@ export const providers = {
     "replicate.sd": replicateStable
   },
   imageEdit: { 
-    "gemini.nano": geminiNanoAdapter,
+    "replicate.nano-banana": geminiNanoAdapter,
     "replicate.rembg": backgroundRemoverAdapter,
     "replicate.upscale": upscalerAdapter,
     "replicate.object-remove": objectRemoverAdapter,

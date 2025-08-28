@@ -24,6 +24,7 @@ serve(async (req) => {
     })
 
     const body = await req.json()
+    console.log("Replicate request:", JSON.stringify(body, null, 2))
 
     // If it's a status check request
     if (body.predictionId) {
@@ -35,10 +36,8 @@ serve(async (req) => {
       })
     }
 
-    // Handle different model types
-    const { model, input, operation } = body
-
-    if (!model || !input) {
+    // Validate required fields
+    if (!body.model || !body.input) {
       return new Response(
         JSON.stringify({ 
           error: "Missing required fields: model and input are required" 
@@ -49,19 +48,64 @@ serve(async (req) => {
       )
     }
 
-    // Handle special cases for enhanced operations
-    if (operation === 'face-enhance-upscale' && model.includes('gfpgan')) {
+    console.log(`Running model: ${body.model}`)
+    console.log(`Operation: ${body.operation}`)
+
+    // Handle different operations
+    let output;
+    
+    if (body.operation === 'nano-banana-edit') {
+      // Use Google's Nano Banana model for image editing
+      console.log('Running Nano Banana image editing')
+      output = await replicate.run("google/nano-banana", {
+        input: {
+          image: body.input.image,
+          instruction: body.input.instruction,
+          negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
+          guidance_scale: body.input.guidance_scale || 7.5,
+          num_inference_steps: body.input.num_inference_steps || 20,
+          strength: body.input.strength || 0.8
+        }
+      });
+    } else if (body.operation === 'face-enhance-upscale') {
+      // Enhanced upscaling with face restoration
       console.log('Running face enhancement with upscaling')
-    } else if (operation === 'object-removal' && model.includes('seededit')) {
-      console.log('Running object removal with SeedEdit')
-    } else if (operation === 'color-enhance' && model.includes('seededit')) {
-      console.log('Running color enhancement with SeedEdit')
+      output = await replicate.run("tencentarc/gfpgan:9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3", {
+        input: {
+          img: body.input.image,
+          version: "v1.4",
+          scale: body.input.upscale_factor || 2
+        }
+      });
+    } else if (body.operation === 'object-removal') {
+      // Use a working object removal model - alternative to SeedEdit
+      console.log('Running object removal')
+      output = await replicate.run("andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab", {
+        input: {
+          image: body.input.image,
+          mask_instruction: body.input.editing_instruction || body.input.prompt
+        }
+      });
+    } else if (body.operation === 'color-enhance') {
+      // Use Nano Banana for color enhancement
+      console.log('Running color enhancement with Nano Banana')
+      output = await replicate.run("google/nano-banana", {
+        input: {
+          image: body.input.image,
+          instruction: body.input.prompt || "Enhance colors and improve image quality",
+          negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts",
+          guidance_scale: 7.5,
+          num_inference_steps: 20,
+          strength: 0.6
+        }
+      });
+    } else {
+      // Default generation or other operations
+      console.log(`Running default operation with model: ${body.model}`)
+      output = await replicate.run(body.model, {
+        input: body.input
+      });
     }
-
-    console.log(`Running ${operation || 'generation'} with model:`, model)
-    console.log("Input:", input)
-
-    const output = await replicate.run(model, { input })
 
     console.log("Generation response:", output)
     return new Response(JSON.stringify({ output }), {
