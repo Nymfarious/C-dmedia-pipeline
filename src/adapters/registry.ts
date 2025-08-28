@@ -1,4 +1,5 @@
 import { replicateStable } from './image-gen/replicateStable';
+import { replicateAdapter } from './image-gen/replicateAdapter';
 import { geminiGen } from './image-gen/gemini';
 import { fluxProAdapter } from './image-gen/fluxPro';
 import { fluxUltraAdapter } from './image-gen/fluxUltra';
@@ -12,6 +13,7 @@ import { localTTS } from './sound/ttsLocal';
 
 export const providers = {
   imageGen: { 
+    "replicate.flux": replicateAdapter,
     "replicate.sd": replicateStable, 
     "gemini.img": geminiGen,
     "flux.pro": fluxProAdapter,

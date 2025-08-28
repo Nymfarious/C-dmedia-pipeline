@@ -1,7 +1,7 @@
-import { MediaPipelineApp } from '@/components/MediaPipelineApp';
+import { Dashboard } from '@/components/Dashboard';
 
 const Index = () => {
-  return <MediaPipelineApp />;
+  return <Dashboard />;
 };
 
 export default Index;

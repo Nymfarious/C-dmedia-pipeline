@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ApiKeySettings } from '@/components/Settings/ApiKeySettings';
 import { 
   Wand2, 
   Edit3, 
@@ -197,9 +198,13 @@ export function Pipeline() {
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground">Pipeline</h2>
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4" />
-          </Button>
+          <ApiKeySettings 
+            trigger={
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4" />
+              </Button>
+            }
+          />
         </div>
 
         {/* Step Selector */}
