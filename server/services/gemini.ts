@@ -1,0 +1,178 @@
+import { 
+  UnifiedImageGenRequest, 
+  UnifiedImageEditRequest,
+  AssetResponse,
+  GEMINI_MODELS 
+} from '../types.js';
+
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text?: string;
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
+      }>;
+    };
+  }>;
+}
+
+class GeminiService {
+  private apiKey: string;
+
+  constructor() {
+    this.apiKey = process.env.GEMINI_API_KEY || '';
+    if (!this.apiKey) {
+      console.warn('GEMINI_API_KEY not set - using stub responses');
+    }
+  }
+
+  private async makeRequest(endpoint: string, data: any): Promise<GeminiResponse> {
+    if (!this.apiKey) {
+      // Return stub response for development
+      return {
+        candidates: [{
+          content: {
+            parts: [{
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'stub-base64-data'
+              }
+            }]
+          }
+        }]
+      };
+    }
+
+    const response = await fetch(`${GEMINI_API_BASE}${endpoint}?key=${this.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  private getModelName(model?: string): string {
+    if (!model) {
+      return GEMINI_MODELS['gemini-2.5-flash-image'];
+    }
+    return GEMINI_MODELS[model as keyof typeof GEMINI_MODELS] || model;
+  }
+
+  private createAssetFromResponse(response: GeminiResponse, request: any, type: 'image'): AssetResponse {
+    const candidate = response.candidates[0];
+    const imagePart = candidate.content.parts.find(part => part.inlineData);
+    
+    if (!imagePart?.inlineData) {
+      throw new Error('No image data in Gemini response');
+    }
+
+    // Convert base64 to blob URL for consistent handling
+    const base64Data = imagePart.inlineData.data;
+    const mimeType = imagePart.inlineData.mimeType;
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const blob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    
+    return {
+      id: crypto.randomUUID(),
+      type,
+      name: this.generateAssetName(request, type),
+      src: url,
+      meta: {
+        provider: 'gemini',
+        model: request.model || 'gemini-2.5-flash-image',
+        prompt: request.prompt || request.instruction,
+        createdAt: Date.now(),
+      },
+      createdAt: Date.now(),
+    };
+  }
+
+  private generateAssetName(request: any, type: string): string {
+    const prompt = request.prompt || request.instruction || 'Generated';
+    const truncated = prompt.slice(0, 30);
+    const timestamp = new Date().toLocaleTimeString();
+    return `${type}_gemini_${truncated}_${timestamp}`;
+  }
+
+  async generateImage(request: UnifiedImageGenRequest): Promise<AssetResponse> {
+    const modelName = this.getModelName(request.model);
+    
+    const parts = [
+      {
+        text: `Generate an image: ${request.prompt}${request.negativePrompt ? ` Avoid: ${request.negativePrompt}` : ''}`
+      }
+    ];
+
+    const response = await this.makeRequest(`/models/${modelName}:generateContent`, {
+      contents: [{
+        parts
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4096,
+      }
+    });
+
+    return this.createAssetFromResponse(response, request, 'image');
+  }
+
+  async editImage(request: UnifiedImageEditRequest): Promise<AssetResponse> {
+    const modelName = this.getModelName(request.model);
+    
+    // Fetch the source image to include in the request
+    const imageResponse = await fetch(request.imageUrl);
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+    const parts = [
+      {
+        text: `Edit this image: ${request.instruction}`
+      },
+      {
+        inlineData: {
+          mimeType,
+          data: base64Image
+        }
+      }
+    ];
+
+    const response = await this.makeRequest(`/models/${modelName}:generateContent`, {
+      contents: [{
+        parts
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4096,
+      }
+    });
+
+    return this.createAssetFromResponse(response, request, 'image');
+  }
+
+  async img2img(request: UnifiedImageEditRequest): Promise<AssetResponse> {
+    // Gemini handles img2img similar to image editing
+    return this.editImage(request);
+  }
+}
+
+export const geminiService = new GeminiService();

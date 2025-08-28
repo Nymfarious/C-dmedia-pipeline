@@ -1,6 +1,6 @@
 # Frame Fuser - Media Pipeline Studio
 
-Phase 1 implementation complete with upload, export, error boundaries, keyboard shortcuts, parameter persistence, and server stubs.
+Complete AI-powered media processing pipeline with real provider integration.
 
 ## Quick Start
 
@@ -11,25 +11,28 @@ npm run dev:full  # Starts both client and server
 
 ## Features ✅
 
+- **Real AI Integration**: FLUX 1.1, Gemini 2.5 Flash, SeedEdit 3.0, and more
+- **Unified API**: Provider-agnostic endpoints with automatic fallbacks  
 - **File Upload**: Multi-file upload with drag support
-- **Export**: Single asset and batch export functionality  
+- **Export**: Single asset and batch export functionality
 - **Error Boundaries**: Robust error handling with retry buttons
 - **Keyboard Shortcuts**: Ctrl+Enter (run), G (search), A (select all), Esc (clear)
 - **Parameter Persistence**: Settings saved per step/provider combination
-- **Server Stubs**: Express API ready for Replicate integration
 
-## Architecture
+## AI Providers
 
-- Frontend: Vite + React + TypeScript + Tailwind + shadcn/ui
-- State: Zustand with IndexedDB persistence
-- Backend: Express server with typed routes (stubs)
-- Memory Management: Automatic blob URL cleanup
+**Image Generation**: FLUX Pro/Ultra, Gemini Nano Banana, SDXL
+**Image Editing**: SeedEdit 3.0, Gemini Edit
+**Enhancement**: Real-ESRGAN, GFPGAN upscaling
+**Animation**: I2VGen-XL image-to-video
+**Audio**: XTTS-v2 voice synthesis
 
-## API Endpoints (Stubs)
+## Environment Setup
 
-- `POST /api/replicate/flux/txt2img` - Text to image
-- `POST /api/replicate/seededit/edit` - Image editing  
-- `POST /api/replicate/upscale` - Image upscaling
-- And more... see server/routes/replicate.ts
+```bash
+# Copy server/.env.example to server/.env and add:
+REPLICATE_API_TOKEN=your_token
+GEMINI_API_KEY=your_key
+```
 
-Ready for real Replicate integration!
+Works with fallback responses if no API keys provided.

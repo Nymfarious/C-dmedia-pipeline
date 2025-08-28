@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import replicateRoutes from './routes/replicate.js';
+import unifiedRoutes from './routes/unified.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
 app.use('/api/replicate', replicateRoutes);
+app.use('/api/image', unifiedRoutes);
+app.use('/api/video', unifiedRoutes);
+app.use('/api/audio', unifiedRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
