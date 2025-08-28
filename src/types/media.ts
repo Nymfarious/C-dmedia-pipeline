@@ -52,8 +52,19 @@ export interface ImageGenParams {
 }
 
 export interface ImageEditParams { 
-  instruction: string; 
-  maskAssetId?: string; 
+  instruction?: string; 
+  maskAssetId?: string;
+  operation?: "remove-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit";
+  brushMask?: { x: number; y: number; radius: number }[];
+  colorAdjustments?: {
+    brightness?: number;
+    contrast?: number; 
+    saturation?: number;
+    warmth?: number;
+  };
+  stylePreset?: "film" | "pop-art" | "vintage" | "black-white" | "vivid";
+  enhanceFaces?: boolean;
+  upscaleFactor?: number;
 }
 
 export interface TextOverlayParams { 

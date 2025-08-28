@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { 
   Undo2, 
   Redo2, 
@@ -18,11 +19,17 @@ import {
   Import,
   Upload
 } from 'lucide-react';
-import { Asset } from '@/types/media';
+import { Asset, ImageEditParams } from '@/types/media';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
 import useAppStore from '@/store/appStore';
 import { AssetImportModal } from "../AssetImportModal";
+import { BrushTool } from './BrushTool';
+import { ColorAdjustmentPanel } from './ColorAdjustmentPanel';
+import { StyleFilterGallery } from './StyleFilterGallery';
+import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
+import { colorEnhancerAdapter } from '@/adapters/image-edit/colorEnhancer';
+import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler';
 
 interface ImageCanvasProps {
   asset?: Asset;
@@ -36,12 +43,19 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [generatePrompt, setGeneratePrompt] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('replicate.flux');
+  const [showBrushTool, setShowBrushTool] = useState(false);
+  const [showColorPanel, setShowColorPanel] = useState(false);
+  const [showStyleGallery, setShowStyleGallery] = useState(false);
+  const [enhanceFaces, setEnhanceFaces] = useState(false);
+  const [upscaleFactor, setUpscaleFactor] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { enqueueStep, runStep, generateDirectly, assets } = useAppStore();
+  const { enqueueStep, runStep, generateDirectly, assets, addAsset } = useAppStore();
 
   const tools = [
     { id: 'background-remove', label: 'Remove Background', icon: Eraser },
-    { id: 'upscale', label: 'Upscale', icon: ZoomIn },
+    { id: 'object-remove', label: 'Remove Object', icon: Scissors },
+    { id: 'upscale', label: 'Enhanced Upscale', icon: ZoomIn },
+    { id: 'color-adjust', label: 'Color & Style', icon: Sparkles },
     { id: 'rotate', label: 'Rotate', icon: RotateCw },
     { id: 'import', label: 'Import Asset', icon: Import }
   ];
@@ -92,8 +106,15 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
         case 'background-remove':
           await handleBackgroundRemoval();
           break;
+        case 'object-remove':
+          setShowBrushTool(true);
+          break;
         case 'upscale':
-          await handleUpscale();
+          await handleEnhancedUpscale();
+          break;
+        case 'color-adjust':
+          setShowColorPanel(true);
+          setShowStyleGallery(true);
           break;
         case 'rotate':
           await handleRotate();
@@ -154,16 +175,86 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   };
 
-  const handleUpscale = async () => {
+  const handleEnhancedUpscale = async () => {
     if (!asset) return;
     
     try {
-      const stepId = enqueueStep('UPSCALE', [asset.id], {}, 'replicate.upscale');
-      await runStep(stepId);
-      toast.success('Image upscaled successfully!');
+      const params: ImageEditParams = {
+        operation: 'general-edit',
+        upscaleFactor: upscaleFactor,
+        enhanceFaces: enhanceFaces
+      };
+      
+      const newAsset = await enhancedUpscalerAdapter.edit(asset, params);
+      addAsset(newAsset);
+      onAssetUpdate?.(newAsset);
+      addToHistory(newAsset);
+      toast.success(`Image upscaled ${upscaleFactor}x successfully!`);
     } catch (error) {
-      console.error('Upscale error:', error);
+      console.error('Enhanced upscale error:', error);
       toast.error('Failed to upscale image');
+    }
+  };
+
+  const handleObjectRemoval = async (brushMask: { x: number; y: number; radius: number }[]) => {
+    if (!asset) return;
+    
+    try {
+      const params: ImageEditParams = {
+        operation: 'remove-object',
+        brushMask: brushMask,
+        instruction: 'Remove the marked objects cleanly'
+      };
+      
+      const newAsset = await objectRemoverAdapter.edit(asset, params);
+      addAsset(newAsset);
+      onAssetUpdate?.(newAsset);
+      addToHistory(newAsset);
+      setShowBrushTool(false);
+      toast.success('Objects removed successfully!');
+    } catch (error) {
+      console.error('Object removal error:', error);
+      toast.error('Failed to remove objects');
+    }
+  };
+
+  const handleColorAdjustment = async (adjustments: any) => {
+    if (!asset) return;
+    
+    try {
+      const params: ImageEditParams = {
+        operation: 'enhance-colors',
+        colorAdjustments: adjustments
+      };
+      
+      const newAsset = await colorEnhancerAdapter.edit(asset, params);
+      addAsset(newAsset);
+      onAssetUpdate?.(newAsset);
+      addToHistory(newAsset);
+      toast.success('Colors adjusted successfully!');
+    } catch (error) {
+      console.error('Color adjustment error:', error);
+      toast.error('Failed to adjust colors');
+    }
+  };
+
+  const handleStyleFilter = async (stylePreset: string) => {
+    if (!asset) return;
+    
+    try {
+      const params: ImageEditParams = {
+        operation: 'style-transfer',
+        stylePreset: stylePreset as any
+      };
+      
+      const newAsset = await colorEnhancerAdapter.edit(asset, params);
+      addAsset(newAsset);
+      onAssetUpdate?.(newAsset);
+      addToHistory(newAsset);
+      toast.success(`${stylePreset} style applied successfully!`);
+    } catch (error) {
+      console.error('Style filter error:', error);
+      toast.error('Failed to apply style filter');
     }
   };
 
@@ -278,10 +369,68 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
               );
             })}
           </div>
+          
+          {/* Enhanced Upscale Options */}
+          {selectedTool === 'upscale' && (
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">Scale:</span>
+                  <Select value={upscaleFactor.toString()} onValueChange={(v) => setUpscaleFactor(Number(v))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2x</SelectItem>
+                      <SelectItem value="4">4x</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={enhanceFaces}
+                    onCheckedChange={setEnhanceFaces}
+                  />
+                  <span className="text-sm">Enhance Faces</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {asset ? (
           <div className="space-y-6">
+            {/* Editing Tools */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {showBrushTool && (
+                <div className="lg:col-span-1">
+                  <BrushTool
+                    imageUrl={asset.src}
+                    onMaskComplete={handleObjectRemoval}
+                    className="w-full"
+                  />
+                </div>
+              )}
+              
+              {showColorPanel && (
+                <div className="lg:col-span-1">
+                  <ColorAdjustmentPanel
+                    onAdjustment={handleColorAdjustment}
+                    className="w-full"
+                  />
+                </div>
+              )}
+              
+              {showStyleGallery && (
+                <div className="lg:col-span-1">
+                  <StyleFilterGallery
+                    onStyleApply={handleStyleFilter}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+            
             {/* Canvas Container */}
             <div className="relative bg-canvas-surface rounded-lg border border-border">
               <div className="relative bg-checkered min-h-[400px] rounded-lg overflow-hidden">

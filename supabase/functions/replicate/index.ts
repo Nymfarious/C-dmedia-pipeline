@@ -49,6 +49,15 @@ serve(async (req) => {
       )
     }
 
+    // Handle special cases for enhanced operations
+    if (operation === 'face-enhance-upscale' && model.includes('gfpgan')) {
+      console.log('Running face enhancement with upscaling')
+    } else if (operation === 'object-removal' && model.includes('seededit')) {
+      console.log('Running object removal with SeedEdit')
+    } else if (operation === 'color-enhance' && model.includes('seededit')) {
+      console.log('Running color enhancement with SeedEdit')
+    }
+
     console.log(`Running ${operation || 'generation'} with model:`, model)
     console.log("Input:", input)
 
