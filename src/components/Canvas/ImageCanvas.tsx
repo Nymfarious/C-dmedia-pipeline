@@ -24,14 +24,17 @@ import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/
 import { toast } from 'sonner';
 import useAppStore from '@/store/appStore';
 import { AssetImportModal } from "../AssetImportModal";
-import { BrushTool } from './BrushTool';
+import { ObjectEditTool } from './ObjectEditTool';
 import { ColorAdjustmentPanel } from './ColorAdjustmentPanel';
 import { StyleFilterGallery } from './StyleFilterGallery';
 import { PoseEditor } from './PoseEditor';
 import { CropTool } from './CropTool';
 import { FaceSwapTool } from './FaceSwapTool';
+import { ProjectSaveLoad } from '../ProjectSaveLoad';
 import { geminiNanoAdapter } from '@/adapters/image-edit/geminiNano';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
+import { objectAdderAdapter } from '@/adapters/image-edit/objectAdder';
+import { saveCurrentSession } from '@/lib/localStorage';
 import { colorEnhancerAdapter } from '@/adapters/image-edit/colorEnhancer';
 import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler';
 import { poseAdjustmentAdapter } from '@/adapters/image-edit/poseAdjustment';
@@ -50,7 +53,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [generatePrompt, setGeneratePrompt] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState('replicate.flux');
-  const [showBrushTool, setShowBrushTool] = useState(false);
+  const [showObjectEditTool, setShowObjectEditTool] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showStyleGallery, setShowStyleGallery] = useState(false);
   const [showPoseEditor, setShowPoseEditor] = useState(false);
@@ -64,6 +67,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const tools = [
     { id: 'background-remove', label: 'Remove Background', icon: Eraser },
     { id: 'object-remove', label: 'Remove Object', icon: Scissors },
+    { id: 'object-add', label: 'Add Object', icon: Upload },
     { id: 'upscale', label: 'Enhanced Upscale', icon: ZoomIn },
     { id: 'color-adjust', label: 'Color & Style', icon: Sparkles },
     { id: 'rotate', label: 'Rotate', icon: RotateCw },
@@ -117,7 +121,8 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           await handleBackgroundRemoval();
           break;
         case 'object-remove':
-          setShowBrushTool(true);
+        case 'object-add':
+          setShowObjectEditTool(true);
           break;
         case 'upscale':
           await handleEnhancedUpscale();
@@ -206,25 +211,32 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   };
 
-  const handleObjectRemoval = async (brushMask: { x: number; y: number; radius: number }[]) => {
+  const handleObjectEdit = async (params: ImageEditParams) => {
     if (!asset) return;
     
     try {
-      const params: ImageEditParams = {
-        operation: 'remove-object',
-        brushMask: brushMask,
-        instruction: 'Remove the marked objects cleanly'
-      };
+      let newAsset: Asset;
       
-      const newAsset = await objectRemoverAdapter.edit(asset, params);
+      if (params.operation === 'remove-object') {
+        newAsset = await objectRemoverAdapter.edit(asset, params);
+        toast.success('Objects removed successfully!');
+      } else if (params.operation === 'add-object') {
+        newAsset = await objectAdderAdapter.edit(asset, params);
+        toast.success('Objects added successfully!');
+      } else {
+        throw new Error('Unknown object edit operation');
+      }
+      
       addAsset(newAsset);
       onAssetUpdate?.(newAsset);
       addToHistory(newAsset);
-      setShowBrushTool(false);
-      toast.success('Objects removed successfully!');
+      setShowObjectEditTool(false);
+      
+      // Auto-save session
+      await saveCurrentSession({ ...assets, [newAsset.id]: newAsset }, newAsset.id);
     } catch (error) {
-      console.error('Object removal error:', error);
-      toast.error('Failed to remove objects');
+      console.error('Object edit error:', error);
+      toast.error(`Failed to ${params.operation === 'remove-object' ? 'remove' : 'add'} objects`);
     }
   };
 
@@ -293,6 +305,17 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-foreground">Image Canvas</CardTitle>
           <div className="flex items-center gap-2">
+            <ProjectSaveLoad 
+              currentAsset={asset} 
+              onProjectLoad={(loadedAssets, currentAssetId) => {
+                Object.values(loadedAssets).forEach(addAsset);
+                if (currentAssetId && loadedAssets[currentAssetId]) {
+                  onAssetUpdate?.(loadedAssets[currentAssetId]);
+                  addToHistory(loadedAssets[currentAssetId]);
+                }
+              }} 
+            />
+            <Separator orientation="vertical" className="h-6" />
             <Button
               variant="outline"
               size="sm"
@@ -412,11 +435,11 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           <div className="space-y-6">
             {/* Editing Tools */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {showBrushTool && (
-                <div className="lg:col-span-1">
-                  <BrushTool
+              {showObjectEditTool && (
+                <div className="lg:col-span-2">
+                  <ObjectEditTool
                     imageUrl={asset.src}
-                    onMaskComplete={handleObjectRemoval}
+                    onEditComplete={handleObjectEdit}
                     className="w-full"
                   />
                 </div>

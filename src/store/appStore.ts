@@ -190,9 +190,13 @@ const useAppStore = create<AppState>((set, get) => ({
 
   setSelected: (ids) => set({ selectedAssetIds: ids }),
   
-  addAsset: (asset) => set((state) => ({
-    assets: { ...state.assets, [asset.id]: asset }
-  })),
+  addAsset: (asset) => {
+    set((state) => ({
+      assets: { ...state.assets, [asset.id]: asset }
+    }));
+    // Auto-persist after adding asset
+    get().persist();
+  },
 
   addAssets: (assets) => set((state) => {
     const newAssets = { ...state.assets };
