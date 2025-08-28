@@ -27,9 +27,16 @@ import { AssetImportModal } from "../AssetImportModal";
 import { BrushTool } from './BrushTool';
 import { ColorAdjustmentPanel } from './ColorAdjustmentPanel';
 import { StyleFilterGallery } from './StyleFilterGallery';
+import { PoseEditor } from './PoseEditor';
+import { CropTool } from './CropTool';
+import { FaceSwapTool } from './FaceSwapTool';
+import { geminiNanoAdapter } from '@/adapters/image-edit/geminiNano';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
 import { colorEnhancerAdapter } from '@/adapters/image-edit/colorEnhancer';
-import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler'; // Enhanced upscaler with face restoration
+import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler';
+import { poseAdjustmentAdapter } from '@/adapters/image-edit/poseAdjustment';
+import { smartCropAdapter } from '@/adapters/image-edit/smartCrop';
+import { faceConsistencyAdapter } from '@/adapters/image-edit/faceConsistency';
 
 interface ImageCanvasProps {
   asset?: Asset;
@@ -46,6 +53,9 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [showBrushTool, setShowBrushTool] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showStyleGallery, setShowStyleGallery] = useState(false);
+  const [showPoseEditor, setShowPoseEditor] = useState(false);
+  const [showCropTool, setShowCropTool] = useState(false);
+  const [showFaceSwapTool, setShowFaceSwapTool] = useState(false);
   const [enhanceFaces, setEnhanceFaces] = useState(false);
   const [upscaleFactor, setUpscaleFactor] = useState(2);
   const canvasRef = useRef<HTMLCanvasElement>(null);

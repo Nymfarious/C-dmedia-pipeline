@@ -65,6 +65,17 @@ export interface ImageEditParams {
   stylePreset?: "film" | "pop-art" | "vintage" | "black-white" | "vivid";
   enhanceFaces?: boolean;
   upscaleFactor?: number;
+  poseAdjustments?: Array<{ x: number; y: number; id: string; label: string }>;
+  cropSettings?: {
+    aspectRatio: string;
+    preset: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  targetImageUrl?: string;
+  referenceImageUrl?: string;
 }
 
 export interface TextOverlayParams { 
