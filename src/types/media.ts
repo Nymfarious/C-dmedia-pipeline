@@ -9,11 +9,14 @@ export interface Asset {
   meta?: Record<string, any>; // e.g., width/height, duration, provider info
   createdAt: number;
   derivedFrom?: string; // parent asset id
+  category?: string;    // main category like "Generated", "Uploaded", "Edited"
+  subcategory?: string; // subcategory like "Portraits", "Landscapes", "Characters"
+  tags?: string[];      // searchable tags
 }
 
 export interface PipelineStep {
   id: string;
-  kind: "GENERATE" | "EDIT" | "ADD_TEXT" | "ANIMATE" | "ADD_SOUND";
+  kind: "GENERATE" | "EDIT" | "ADD_TEXT" | "ANIMATE" | "ADD_SOUND" | "UPSCALE" | "REMOVE_BG";
   inputAssetIds: string[];   // can be empty for GENERATE
   outputAssetId?: string;
   params: Record<string, any>;
@@ -23,6 +26,21 @@ export interface PipelineStep {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface CategoryInfo {
+  id: string;
+  name: string;
+  subcategories: string[];
+  icon?: string;
+  color?: string;
+}
+
+export const DEFAULT_CATEGORIES: CategoryInfo[] = [
+  { id: 'generated', name: 'Generated', subcategories: ['Portraits', 'Landscapes', 'Characters', 'Objects', 'Abstract'], icon: 'Sparkles', color: 'hsl(var(--primary))' },
+  { id: 'uploaded', name: 'Uploaded', subcategories: ['Photos', 'Graphics', 'Assets', 'References'], icon: 'Upload', color: 'hsl(var(--secondary))' },
+  { id: 'edited', name: 'Edited', subcategories: ['Enhanced', 'Upscaled', 'Background Removed', 'Retouched'], icon: 'Edit', color: 'hsl(var(--accent))' },
+  { id: 'animated', name: 'Animated', subcategories: ['Sprites', 'Gifs', 'Videos'], icon: 'Film', color: 'hsl(var(--destructive))' }
+];
 
 // Provider-agnostic adapter contracts
 export interface ImageGenParams { 

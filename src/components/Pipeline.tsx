@@ -287,8 +287,8 @@ export function Pipeline() {
               {Object.entries(currentConfig.fields).map(([fieldName, fieldConfig]) => (
                 <div key={fieldName} className="space-y-2">
                   <Label htmlFor={fieldName} className="text-xs">
-                    {fieldConfig.label}
-                    {fieldConfig.required && <span className="text-destructive ml-1">*</span>}
+                    {(fieldConfig as any).label}
+                    {(fieldConfig as any).required && <span className="text-destructive ml-1">*</span>}
                   </Label>
                   {renderField(fieldName, fieldConfig)}
                 </div>

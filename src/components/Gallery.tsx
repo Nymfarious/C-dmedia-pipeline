@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Upload, Search, Image, Music, Film, Check, CheckSquare, Square, Download } from 'lucide-react';
+import { Upload, Search, Image, Music, Film, Check, CheckSquare, Square, Download, FolderPlus, Sparkles, Edit, MoreVertical } from 'lucide-react';
 import useAppStore from '@/store/appStore';
-import { MediaType, Asset } from '@/types/media';
+import { MediaType, Asset, DEFAULT_CATEGORIES } from '@/types/media';
 import { cn } from '@/lib/utils';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
@@ -38,9 +39,11 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export function Gallery() {
-  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets } = useAppStore();
+  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const assetArray = Object.values(assets);
@@ -48,10 +51,16 @@ export function Gallery() {
   const filteredAssets = assetArray
     .filter(asset => {
       if (filterType !== 'all' && asset.type !== filterType) return false;
+      if (categoryFilter !== 'all' && asset.category !== categoryFilter) return false;
+      if (subcategoryFilter !== 'all' && asset.subcategory !== subcategoryFilter) return false;
       if (searchQuery && !asset.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     })
     .sort((a, b) => b.createdAt - a.createdAt);
+
+  const availableSubcategories = categoryFilter === 'all' 
+    ? []
+    : DEFAULT_CATEGORIES.find(cat => cat.id === categoryFilter)?.subcategories || [];
 
   const handleAssetClick = (assetId: string) => {
     if (selectedAssetIds.includes(assetId)) {
@@ -83,6 +92,8 @@ export function Gallery() {
           ...(file.type.startsWith('image/') && await getImageDimensions(file))
         },
         createdAt: Date.now(),
+        category: 'uploaded',
+        subcategory: file.type.startsWith('image/') ? 'Photos' : 'Assets',
       };
       
       newAssets.push(asset);
@@ -199,6 +210,44 @@ export function Gallery() {
           </TabsList>
         </Tabs>
 
+        {/* Category Filters */}
+        <div className="mt-4 space-y-3">
+          <div className="flex gap-2">
+            <Select value={categoryFilter} onValueChange={(value) => {
+              setCategoryFilter(value);
+              setSubcategoryFilter('all');
+            }}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {DEFAULT_CATEGORIES.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {availableSubcategories.length > 0 && (
+              <Select value={subcategoryFilter} onValueChange={setSubcategoryFilter}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="All Subcategories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subcategories</SelectItem>
+                  {availableSubcategories.map((subcategory) => (
+                    <SelectItem key={subcategory} value={subcategory}>
+                      {subcategory}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+
         {/* Selection Controls */}
         {Object.keys(assets).length > 0 && (
           <div className="mt-4 flex items-center gap-2">
@@ -257,11 +306,34 @@ export function Gallery() {
                     {asset.type}
                   </Badge>
                   
-                  {selectedAssetIds.includes(asset.id) && (
-                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {selectedAssetIds.includes(asset.id) && (
+                      <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {DEFAULT_CATEGORIES.map((category) => (
+                          <DropdownMenuItem 
+                            key={category.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateAssetCategory(asset.id, category.id, category.subcategories[0]);
+                              toast.success(`Moved to ${category.name}`);
+                            }}
+                          >
+                            {category.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               

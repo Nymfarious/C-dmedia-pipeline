@@ -1,21 +1,28 @@
-import { useState, useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Wand2, 
-  Edit3, 
-  Scissors, 
-  ZoomIn, 
-  RotateCw, 
-  Download,
-  Layers,
-  Undo2,
-  Redo2
+  Undo2, 
+  Redo2, 
+  Download, 
+  Scissors,
+  ZoomIn,
+  RotateCw,
+  Eraser,
+  Sparkles,
+  FileImage,
+  Import,
+  Upload
 } from 'lucide-react';
 import { Asset } from '@/types/media';
-import { useToast } from '@/hooks/use-toast';
+import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
+import { toast } from 'sonner';
+import useAppStore from '@/store/appStore';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ImageCanvasProps {
   asset?: Asset;
@@ -23,27 +30,30 @@ interface ImageCanvasProps {
 }
 
 export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
-  const [selectedTool, setSelectedTool] = useState<string>('select');
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [history, setHistory] = useState<Asset[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [generatePrompt, setGeneratePrompt] = useState('');
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('replicate.flux');
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { toast } = useToast();
+  const { enqueueStep, runStep, generateDirectly, assets } = useAppStore();
 
   const tools = [
-    { id: 'select', label: 'Select', icon: Edit3 },
-    { id: 'generate', label: 'Generate', icon: Wand2 },
-    { id: 'edit', label: 'Edit', icon: Edit3 },
-    { id: 'remove-bg', label: 'Remove BG', icon: Scissors },
+    { id: 'background-remove', label: 'Remove Background', icon: Eraser },
     { id: 'upscale', label: 'Upscale', icon: ZoomIn },
     { id: 'rotate', label: 'Rotate', icon: RotateCw },
+    { id: 'import', label: 'Import Asset', icon: Import }
   ];
 
   const addToHistory = useCallback((newAsset: Asset) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newAsset);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
+    if (asset) {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newAsset);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
+  }, [history, historyIndex, asset]);
 
   const undo = useCallback(() => {
     if (historyIndex > 0) {
@@ -61,140 +71,133 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   }, [history, historyIndex, onAssetUpdate]);
 
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
   const handleToolAction = async (toolId: string) => {
+    if (toolId === 'import') {
+      setShowImportDialog(true);
+      return;
+    }
+
     if (!asset) {
-      toast({
-        title: "No Asset",
-        description: "Please select or generate an image first",
-        variant: "destructive",
-      });
+      toast.error('No asset loaded');
       return;
     }
 
     setSelectedTool(toolId);
     
-    switch (toolId) {
-      case 'generate':
-        // Trigger generation pipeline
-        toast({
-          title: "Generate Tool",
-          description: "Opening generation pipeline...",
-        });
-        break;
-        
-      case 'edit':
-        // Trigger edit pipeline
-        toast({
-          title: "Edit Tool", 
-          description: "Opening edit pipeline...",
-        });
-        break;
-        
-      case 'remove-bg':
-        await handleBackgroundRemoval();
-        break;
-        
-      case 'upscale':
-        await handleUpscale();
-        break;
-        
-      case 'rotate':
-        await handleRotate();
-        break;
+    try {
+      switch (toolId) {
+        case 'background-remove':
+          await handleBackgroundRemoval();
+          break;
+        case 'upscale':
+          await handleUpscale();
+          break;
+        case 'rotate':
+          await handleRotate();
+          break;
+        default:
+          console.log(`Tool ${toolId} not implemented yet`);
+      }
+    } catch (error) {
+      console.error(`Error with tool ${toolId}:`, error);
+      toast.error(`Failed to apply ${toolId}`);
+    } finally {
+      setSelectedTool(null);
     }
   };
 
-  const handleBackgroundRemoval = async () => {
-    const apiKey = localStorage.getItem('replicate_api_key');
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please configure Replicate API key in settings",
-        variant: "destructive",
-      });
+  const handleDirectGenerate = async () => {
+    if (!generatePrompt.trim()) {
+      toast.error('Please enter a prompt');
       return;
     }
 
     try {
-      const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          version: "cjwbw/rembg",
-          input: {
-            image: asset?.src
-          }
-        }),
-      });
-
-      const prediction = await response.json();
+      const newAsset = await generateDirectly(
+        { prompt: generatePrompt },
+        selectedProvider
+      );
       
-      toast({
-        title: "Background Removal",
-        description: "Processing image...",
-      });
-      
-      // Poll for result and update asset
-      // Implementation would continue here...
-      
+      onAssetUpdate?.(newAsset);
+      addToHistory(newAsset);
+      toast.success('Image generated successfully!');
+      setGeneratePrompt('');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to remove background",
-        variant: "destructive",
-      });
+      console.error('Generation error:', error);
+      toast.error('Failed to generate image');
+    }
+  };
+
+  const handleImportAsset = (assetId: string) => {
+    const importedAsset = assets[assetId];
+    if (importedAsset) {
+      onAssetUpdate?.(importedAsset);
+      addToHistory(importedAsset);
+      setShowImportDialog(false);
+      toast.success('Asset imported to canvas');
+    }
+  };
+
+  const handleBackgroundRemoval = async () => {
+    if (!asset) return;
+    
+    try {
+      const stepId = enqueueStep('REMOVE_BG', [asset.id], {}, 'replicate.rembg');
+      await runStep(stepId);
+      toast.success('Background removed successfully!');
+    } catch (error) {
+      console.error('Background removal error:', error);
+      toast.error('Failed to remove background');
     }
   };
 
   const handleUpscale = async () => {
-    toast({
-      title: "Upscale",
-      description: "Upscaling image...",
-    });
-    // Implementation for upscaling
-  };
-
-  const handleRotate = () => {
     if (!asset) return;
     
-    // Simple 90-degree rotation
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.rotate(Math.PI / 2);
-        addToHistory(asset);
-        toast({
-          title: "Rotated",
-          description: "Image rotated 90 degrees",
-        });
-      }
+    try {
+      const stepId = enqueueStep('UPSCALE', [asset.id], {}, 'replicate.upscale');
+      await runStep(stepId);
+      toast.success('Image upscaled successfully!');
+    } catch (error) {
+      console.error('Upscale error:', error);
+      toast.error('Failed to upscale image');
     }
   };
 
-  const downloadAsset = () => {
+  const handleRotate = async () => {
+    console.log('Rotate tool selected');
+    toast.info('Rotation coming soon!');
+  };
+
+  const downloadAsset = async () => {
     if (!asset) return;
     
-    const link = document.createElement('a');
-    link.href = asset.src;
-    link.download = asset.name || 'image.png';
-    link.click();
+    try {
+      const blob = await fetchBlobFromUrl(asset.src);
+      const extension = getFileExtensionFromBlob(blob);
+      downloadBlob(blob, `${asset.name || 'image'}.${extension}`);
+      toast.success('Asset downloaded');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download asset');
+    }
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2">
+    <Card className="h-full bg-canvas-bg">
+      <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Canvas</CardTitle>
-          <div className="flex gap-1">
+          <CardTitle className="text-lg font-semibold text-foreground">Image Canvas</CardTitle>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={undo}
-              disabled={historyIndex <= 0}
+              disabled={!canUndo}
+              className="text-muted-foreground hover:text-foreground"
             >
               <Undo2 className="h-4 w-4" />
             </Button>
@@ -202,20 +205,61 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
               variant="outline"
               size="sm"
               onClick={redo}
-              disabled={historyIndex >= history.length - 1}
+              disabled={!canRedo}
+              className="text-muted-foreground hover:text-foreground"
             >
               <Redo2 className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={downloadAsset}>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadAsset}
+              disabled={!asset}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <Download className="h-4 w-4" />
             </Button>
           </div>
         </div>
+
+        {/* Direct Generation Controls */}
+        {!asset && (
+          <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate New Image
+            </h3>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="replicate.flux">Flux (Fast)</SelectItem>
+                    <SelectItem value="replicate.sd">Stable Diffusion</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  placeholder="Describe the image you want to generate..."
+                  value={generatePrompt}
+                  onChange={(e) => setGeneratePrompt(e.target.value)}
+                  className="flex-1 min-h-[40px] max-h-[80px]"
+                />
+                <Button onClick={handleDirectGenerate} disabled={!generatePrompt.trim()}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardHeader>
-      
-      <CardContent className="flex-1 p-0">
+
+      <CardContent className="flex-1 flex flex-col">
         {/* Toolbar */}
-        <div className="p-3 border-b">
+        <div className="py-4 border-b border-border">
           <div className="flex flex-wrap gap-2">
             {tools.map((tool) => {
               const Icon = tool.icon;
@@ -225,7 +269,8 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
                   variant={selectedTool === tool.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleToolAction(tool.id)}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-2"
+                  disabled={!asset && tool.id !== 'import'}
                 >
                   <Icon className="h-4 w-4" />
                   {tool.label}
@@ -235,50 +280,121 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           </div>
         </div>
 
-        {/* Canvas Area */}
-        <div className="p-4 flex-1 flex items-center justify-center bg-muted/20">
-          {asset ? (
-            <div className="relative max-w-full max-h-full">
-              <img
-                src={asset.src}
-                alt={asset.name}
-                className="max-w-full max-h-[400px] object-contain rounded-lg shadow-lg"
-              />
-              <canvas
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-              />
-              <Badge className="absolute top-2 left-2">
-                <Layers className="h-3 w-3 mr-1" />
-                {asset.meta?.provider || 'Unknown'}
-              </Badge>
-            </div>
-          ) : (
-            <div className="text-center text-muted-foreground">
-              <Wand2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No image selected</p>
-              <p className="text-sm">Use the generation tools to create or upload an image</p>
-            </div>
-          )}
-        </div>
-
-        {/* Asset Info */}
-        {asset && (
-          <div className="p-3 border-t bg-muted/20">
-            <div className="text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Dimensions:</span>
-                <span>{asset.meta?.width} × {asset.meta?.height}</span>
+        {asset ? (
+          <div className="space-y-6">
+            {/* Canvas Container */}
+            <div className="relative bg-canvas-surface rounded-lg border border-border">
+              <div className="relative bg-checkered min-h-[400px] rounded-lg overflow-hidden">
+                <img
+                  src={asset.src}
+                  alt={asset.name}
+                  className="w-full h-full object-contain"
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ display: 'none' }}
+                />
               </div>
+            </div>
+
+            {/* Asset Info */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium text-foreground mb-2">{asset.name}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {asset.meta?.width && asset.meta?.height && (
+                    <Badge variant="secondary">
+                      {asset.meta.width} × {asset.meta.height}
+                    </Badge>
+                  )}
+                  {asset.meta?.provider && (
+                    <Badge variant="outline">{asset.meta.provider}</Badge>
+                  )}
+                  <Badge variant="outline">{asset.type}</Badge>
+                  {asset.category && (
+                    <Badge variant="secondary">{asset.category}</Badge>
+                  )}
+                  {asset.subcategory && (
+                    <Badge variant="outline">{asset.subcategory}</Badge>
+                  )}
+                </div>
+              </div>
+
+              {asset.derivedFrom && (
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">Derived from:</span> {asset.derivedFrom}
+                </div>
+              )}
+
               {asset.meta?.prompt && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Prompt:</span>
-                  <span className="truncate max-w-[200px]">{asset.meta.prompt}</span>
+                <div>
+                  <h4 className="text-sm font-medium text-foreground mb-2">Original Prompt</h4>
+                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                    {asset.meta.prompt}
+                  </p>
                 </div>
               )}
             </div>
           </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4 mx-auto">
+                <FileImage className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-2">No Image Loaded</h3>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                Generate a new image above or import an asset from your gallery to get started.
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4" 
+                onClick={() => handleToolAction('import')}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import from Gallery
+              </Button>
+            </div>
+          </div>
         )}
+
+        {/* Import Dialog */}
+        <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Import Asset to Canvas</DialogTitle>
+              <DialogDescription>
+                Select an asset from your gallery to import into the canvas
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-3 gap-4 max-h-[60vh] overflow-auto">
+              {Object.values(assets).map((galleryAsset) => (
+                <Card 
+                  key={galleryAsset.id}
+                  className="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                  onClick={() => handleImportAsset(galleryAsset.id)}
+                >
+                  <CardContent className="p-3">
+                    <div className="aspect-square rounded overflow-hidden mb-2">
+                      <img
+                        src={galleryAsset.src}
+                        alt={galleryAsset.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium truncate">{galleryAsset.name}</h4>
+                    <div className="flex gap-1 mt-1">
+                      {galleryAsset.category && (
+                        <Badge variant="secondary" className="text-xs">{galleryAsset.category}</Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

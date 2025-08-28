@@ -1,12 +1,7 @@
 import { replicateStable } from './image-gen/replicateStable';
 import { replicateAdapter } from './image-gen/replicateAdapter';
-import { geminiGen } from './image-gen/gemini';
-import { fluxProAdapter } from './image-gen/fluxPro';
-import { fluxUltraAdapter } from './image-gen/fluxUltra';
-import { geminiNanoAdapter } from './image-gen/geminiNano';
-import { mockEditor } from './image-edit/editorX';
-import { seedEditAdapter } from './image-edit/seedEdit';
-import { geminiEditAdapter } from './image-edit/geminiEdit';
+import { backgroundRemoverAdapter } from './image-edit/backgroundRemover';
+import { upscalerAdapter } from './image-edit/upscaler';
 import { canvasOverlay } from './text-overlay/canvas';
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
@@ -14,16 +9,11 @@ import { localTTS } from './sound/ttsLocal';
 export const providers = {
   imageGen: { 
     "replicate.flux": replicateAdapter,
-    "replicate.sd": replicateStable, 
-    "gemini.img": geminiGen,
-    "flux.pro": fluxProAdapter,
-    "flux.ultra": fluxUltraAdapter,
-    "gemini.nano": geminiNanoAdapter
+    "replicate.sd": replicateStable
   },
   imageEdit: { 
-    "editor.mock": mockEditor,
-    "seededit.3": seedEditAdapter,
-    "gemini.edit": geminiEditAdapter
+    "replicate.rembg": backgroundRemoverAdapter,
+    "replicate.upscale": upscalerAdapter
   },
   textOverlay: { 
     "canvas.text": canvasOverlay 

@@ -12,15 +12,18 @@ interface AppState {
   currentProviderKey: string;
   params: Record<string, any>;
   paramsByKey: Record<string, Record<string, any>>;
+  categories: string[];
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
   runStep(stepId: string): Promise<void>;
+  generateDirectly(params: Record<string, any>, providerKey: string): Promise<Asset>;
   setSelected(ids: string[]): void;
   addAsset(a: Asset): void;
   addAssets(assets: Asset[]): void;
   deleteAssets(ids: string[]): void;
   exportAssets(ids: string[]): Promise<{ name: string; blob: Blob }[]>;
+  updateAssetCategory(assetId: string, category?: string, subcategory?: string): void;
   setCurrentStepKind(kind: PipelineStep["kind"]): void;
   setCurrentProviderKey(key: string): void;
   setParams(params: Record<string, any>): void;
@@ -33,9 +36,10 @@ const useAppStore = create<AppState>((set, get) => ({
   steps: {},
   selectedAssetIds: [],
   currentStepKind: "GENERATE",
-  currentProviderKey: "replicate.sd",
+  currentProviderKey: "replicate.flux",
   params: {},
   paramsByKey: {},
+  categories: [],
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -105,19 +109,39 @@ const useAppStore = create<AppState>((set, get) => ({
           result = await adapter.addSound(inputAssets[0], step.params as any);
           break;
         }
+        case "UPSCALE": {
+          const adapter = providers.imageEdit[step.provider as keyof typeof providers.imageEdit];
+          if (!adapter || !inputAssets[0]) throw new Error(`Provider ${step.provider} not found or no input asset`);
+          result = await adapter.edit(inputAssets[0], { instruction: 'upscale this image to higher resolution' });
+          break;
+        }
+        case "REMOVE_BG": {
+          const adapter = providers.imageEdit[step.provider as keyof typeof providers.imageEdit];
+          if (!adapter || !inputAssets[0]) throw new Error(`Provider ${step.provider} not found or no input asset`);
+          result = await adapter.edit(inputAssets[0], { instruction: 'remove the background from this image' });
+          break;
+        }
         default:
           throw new Error(`Unknown step kind: ${step.kind}`);
       }
 
+      // Auto-categorize based on step kind
+      const autoCategory = step.kind === 'GENERATE' ? 'generated' : 'edited';
+      const categorizedResult = { 
+        ...result, 
+        category: autoCategory,
+        subcategory: step.kind === 'GENERATE' ? 'AI Generated' : step.kind === 'UPSCALE' ? 'Upscaled' : step.kind === 'REMOVE_BG' ? 'Background Removed' : 'Enhanced'
+      };
+
       // Success - add asset and update step
       set((state) => ({
-        assets: { ...state.assets, [result.id]: result },
+        assets: { ...state.assets, [categorizedResult.id]: categorizedResult },
         steps: {
           ...state.steps,
           [stepId]: { 
             ...step, 
             status: "done", 
-            outputAssetId: result.id,
+            outputAssetId: categorizedResult.id,
             updatedAt: Date.now() 
           }
         }
@@ -142,6 +166,17 @@ const useAppStore = create<AppState>((set, get) => ({
 
       toast.error(`${step.kind} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  },
+
+  generateDirectly: async (params, providerKey) => {
+    const stepId = get().enqueueStep("GENERATE", [], params, providerKey);
+    await get().runStep(stepId);
+    
+    const step = get().steps[stepId];
+    if (step.status === "done" && step.outputAssetId) {
+      return get().assets[step.outputAssetId];
+    }
+    throw new Error(step.error || "Generation failed");
   },
 
   setSelected: (ids) => set({ selectedAssetIds: ids }),
@@ -206,6 +241,22 @@ const useAppStore = create<AppState>((set, get) => ({
     
     return exports;
   },
+
+  updateAssetCategory: (assetId, category, subcategory) => set((state) => {
+    const asset = state.assets[assetId];
+    if (!asset) return state;
+    
+    return {
+      assets: {
+        ...state.assets,
+        [assetId]: {
+          ...asset,
+          category,
+          subcategory
+        }
+      }
+    };
+  }),
 
   setCurrentStepKind: (kind) => {
     const state = get();
@@ -323,6 +374,8 @@ async function createDemoAssets(): Promise<Record<string, Asset>> {
       src: URL.createObjectURL(blob),
       meta: { width: 512, height: 512 },
       createdAt: Date.now() - (i * 1000),
+      category: 'uploaded',
+      subcategory: 'Demo',
     };
     
     assets[asset.id] = asset;
