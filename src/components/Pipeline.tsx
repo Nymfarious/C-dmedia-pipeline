@@ -21,7 +21,9 @@ import {
   XCircle, 
   Loader2,
   Settings,
-  RotateCcw
+  RotateCcw,
+  Scissors,
+  ZoomIn
 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { PipelineStep } from '@/types/media';
@@ -82,6 +84,22 @@ const stepConfig = {
       ttsText: { type: 'textarea', label: 'Text to Speech', required: false },
       sfxKind: { type: 'select', label: 'Sound Effect', options: ['ambient', 'dramatic', 'upbeat'], required: false },
       durationMs: { type: 'number', label: 'Duration (ms)', required: false }
+    }
+  },
+  REMOVE_BG: {
+    icon: Scissors,
+    label: 'Remove Background',
+    description: 'Remove background from images',
+    providers: Object.keys(providers.imageEdit),
+    fields: {}
+  },
+  UPSCALE: {
+    icon: ZoomIn,
+    label: 'Upscale Image',
+    description: 'Enhance image resolution',
+    providers: Object.keys(providers.imageEdit),
+    fields: {
+      scale: { type: 'number', label: 'Scale Factor', required: false }
     }
   }
 } as const;

@@ -12,6 +12,7 @@ import { MediaType, Asset, DEFAULT_CATEGORIES } from '@/types/media';
 import { cn } from '@/lib/utils';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
+import { CategoryManagement } from "./CategoryManagement";
 
 // Helper functions
 function getAssetTypeFromFile(file: File): MediaType {
@@ -39,7 +40,7 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export function Gallery() {
-  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory } = useAppStore();
+  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory, allCategories } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -60,7 +61,7 @@ export function Gallery() {
 
   const availableSubcategories = categoryFilter === 'all' 
     ? []
-    : DEFAULT_CATEGORIES.find(cat => cat.id === categoryFilter)?.subcategories || [];
+    : allCategories.find(cat => cat.id === categoryFilter)?.subcategories || [];
 
   const handleAssetClick = (assetId: string) => {
     if (selectedAssetIds.includes(assetId)) {
@@ -166,6 +167,8 @@ export function Gallery() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground">Gallery</h2>
           <div className="flex items-center gap-2">
+            <CategoryManagement />
+            
             {selectedAssetIds.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -222,7 +225,7 @@ export function Gallery() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {DEFAULT_CATEGORIES.map((category) => (
+                {allCategories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
@@ -319,7 +322,7 @@ export function Gallery() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        {DEFAULT_CATEGORIES.map((category) => (
+                        {allCategories.map((category) => (
                           <DropdownMenuItem 
                             key={category.id}
                             onClick={(e) => {

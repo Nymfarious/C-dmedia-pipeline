@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
-import { Asset, PipelineStep } from '@/types/media';
+import { Asset, PipelineStep, CategoryInfo, DEFAULT_CATEGORIES } from '@/types/media';
 import { providers } from '@/adapters/registry';
 import { toast } from 'sonner';
 
@@ -12,7 +12,9 @@ interface AppState {
   currentProviderKey: string;
   params: Record<string, any>;
   paramsByKey: Record<string, Record<string, any>>;
-  categories: string[];
+  categories: CategoryInfo[];
+  customCategories: CategoryInfo[];
+  allCategories: CategoryInfo[];
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
@@ -24,6 +26,9 @@ interface AppState {
   deleteAssets(ids: string[]): void;
   exportAssets(ids: string[]): Promise<{ name: string; blob: Blob }[]>;
   updateAssetCategory(assetId: string, category?: string, subcategory?: string): void;
+  addCustomCategory(category: CategoryInfo): void;
+  removeCustomCategory(categoryName: string): void;
+  updateCustomCategory(categoryName: string, updatedCategory: CategoryInfo): void;
   setCurrentStepKind(kind: PipelineStep["kind"]): void;
   setCurrentProviderKey(key: string): void;
   setParams(params: Record<string, any>): void;
@@ -39,7 +44,11 @@ const useAppStore = create<AppState>((set, get) => ({
   currentProviderKey: "replicate.flux",
   params: {},
   paramsByKey: {},
-  categories: [],
+  categories: DEFAULT_CATEGORIES,
+  customCategories: [],
+  get allCategories() {
+    return [...this.categories, ...this.customCategories];
+  },
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -257,6 +266,20 @@ const useAppStore = create<AppState>((set, get) => ({
       }
     };
   }),
+
+  addCustomCategory: (category) => set((state) => ({
+    customCategories: [...state.customCategories, category]
+  })),
+
+  removeCustomCategory: (categoryName) => set((state) => ({
+    customCategories: state.customCategories.filter(cat => cat.name !== categoryName)
+  })),
+
+  updateCustomCategory: (categoryName, updatedCategory) => set((state) => ({
+    customCategories: state.customCategories.map(cat =>
+      cat.name === categoryName ? updatedCategory : cat
+    )
+  })),
 
   setCurrentStepKind: (kind) => {
     const state = get();

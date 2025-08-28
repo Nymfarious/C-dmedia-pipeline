@@ -22,7 +22,7 @@ import { Asset } from '@/types/media';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
 import useAppStore from '@/store/appStore';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AssetImportModal } from "../AssetImportModal";
 
 interface ImageCanvasProps {
   asset?: Asset;
@@ -359,42 +359,16 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           </div>
         )}
 
-        {/* Import Dialog */}
-        <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>Import Asset to Canvas</DialogTitle>
-              <DialogDescription>
-                Select an asset from your gallery to import into the canvas
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid grid-cols-3 gap-4 max-h-[60vh] overflow-auto">
-              {Object.values(assets).map((galleryAsset) => (
-                <Card 
-                  key={galleryAsset.id}
-                  className="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                  onClick={() => handleImportAsset(galleryAsset.id)}
-                >
-                  <CardContent className="p-3">
-                    <div className="aspect-square rounded overflow-hidden mb-2">
-                      <img
-                        src={galleryAsset.src}
-                        alt={galleryAsset.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <h4 className="text-sm font-medium truncate">{galleryAsset.name}</h4>
-                    <div className="flex gap-1 mt-1">
-                      {galleryAsset.category && (
-                        <Badge variant="secondary" className="text-xs">{galleryAsset.category}</Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Import Modal */}
+        <AssetImportModal
+          isOpen={showImportDialog}
+          onClose={() => setShowImportDialog(false)}
+          onImport={(importedAsset) => {
+            onAssetUpdate?.(importedAsset);
+            addToHistory(importedAsset);
+            toast.success('Asset imported to canvas');
+          }}
+        />
       </CardContent>
     </Card>
   );
