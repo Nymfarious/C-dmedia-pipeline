@@ -59,6 +59,9 @@ All colors MUST be HSL.
     /* Canvas specific */
     --canvas-bg: 216 25% 9%;
     --canvas-surface: 216 25% 11%;
+    --canvas-primary: 216 25% 15%;
+    --canvas-accent: 217 91% 60%;
+    --canvas-muted: 216 25% 50%;
 
     /* Shadows for depth */
     --shadow-card: 0 10px 40px -15px hsl(262 83% 58% / 0.3);

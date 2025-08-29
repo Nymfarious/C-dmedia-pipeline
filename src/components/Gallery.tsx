@@ -322,6 +322,16 @@ export function Gallery() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // This will be handled by parent component
+                            window.dispatchEvent(new CustomEvent('openAssetInCanvas', { detail: asset }));
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit in Canvas
+                        </DropdownMenuItem>
                         {allCategories.map((category) => (
                           <DropdownMenuItem 
                             key={category.id}
