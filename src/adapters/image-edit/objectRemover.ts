@@ -1,5 +1,6 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadMaskFromDataUrl, downloadAndUploadImage } from '@/lib/assetStorage';
 
 export const objectRemoverAdapter: ImageEditAdapter = {
   key: "replicate.object-remove",
@@ -10,18 +11,32 @@ export const objectRemoverAdapter: ImageEditAdapter = {
     }
     const instruction = params.removeObjectInstruction || params.instruction || "Remove the marked objects cleanly";
 
-    // Call Supabase edge function for Replicate
+    // Upload mask to storage
+    const maskUpload = await uploadMaskFromDataUrl(params.maskPngDataUrl!);
+    if (maskUpload.error) {
+      throw new Error(`Failed to upload mask: ${maskUpload.error}`);
+    }
+
+    // Ensure image is also in our storage
+    let imageUrl = asset.src;
+    if (!asset.src.includes(supabase.storage.from('ai-images').getPublicUrl('').data.publicUrl)) {
+      const imageUpload = await downloadAndUploadImage(asset.src);
+      if (!imageUpload.error) {
+        imageUrl = imageUpload.url;
+      }
+    }
+
+    // Call enhanced Supabase edge function
     const body = {
-      model: "andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab",
       operation: "object-removal",
       input: {
-        image: asset.src,
+        image: imageUrl,
         mask_instruction: instruction,
-        mask: params.maskPngDataUrl
+        mask: maskUpload.url
       }
     };
 
-    const { data: result, error } = await supabase.functions.invoke('replicate', {
+    const { data: result, error } = await supabase.functions.invoke('replicate-enhanced', {
       body
     });
 

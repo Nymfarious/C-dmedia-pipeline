@@ -5,9 +5,8 @@ export const backgroundRemoverAdapter: ImageEditAdapter = {
   key: "replicate.rembg",
   
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
-    const { data, error } = await supabase.functions.invoke('replicate', {
+    const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        model: "cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003",
         operation: 'background-removal',
         input: {
           image: asset.src

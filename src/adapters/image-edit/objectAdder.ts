@@ -1,5 +1,6 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadMaskFromDataUrl, downloadAndUploadImage } from '@/lib/assetStorage';
 
 export const objectAdderAdapter: ImageEditAdapter = {
   key: "replicate.object-add",
@@ -29,21 +30,35 @@ export const objectAdderAdapter: ImageEditAdapter = {
       throw new Error("No target region provided. Paint a mask or click to place.");
     }
 
-    // Call Supabase edge function for Replicate
+    // Upload mask to storage
+    const maskUpload = await uploadMaskFromDataUrl(maskDataUrl);
+    if (maskUpload.error) {
+      throw new Error(`Failed to upload mask: ${maskUpload.error}`);
+    }
+
+    // Ensure image is also in our storage
+    let imageUrl = asset.src;
+    if (!asset.src.includes(supabase.storage.from('ai-images').getPublicUrl('').data.publicUrl)) {
+      const imageUpload = await downloadAndUploadImage(asset.src);
+      if (!imageUpload.error) {
+        imageUrl = imageUpload.url;
+      }
+    }
+
+    // Call enhanced Supabase edge function
     const body = {
-      model: "black-forest-labs/flux.1-dev",
-      operation: "add-object",
+      operation: "object-addition",
       input: {
-        image: asset.src,
+        image: imageUrl,
         prompt: instruction,
-        mask: maskDataUrl,
+        mask: maskUpload.url,
         strength: 0.8,
         guidance_scale: 3.5,
         num_inference_steps: 28
       }
     };
 
-    const { data: result, error } = await supabase.functions.invoke('replicate', {
+    const { data: result, error } = await supabase.functions.invoke('replicate-enhanced', {
       body
     });
 

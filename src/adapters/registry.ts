@@ -10,6 +10,9 @@ import { geminiNanoAdapter } from './image-edit/geminiNano';
 import { poseAdjustmentAdapter } from './image-edit/poseAdjustment';
 import { smartCropAdapter } from './image-edit/smartCrop';
 import { faceConsistencyAdapter } from './image-edit/faceConsistency';
+import { seedEditAdapter } from './image-edit/seedEdit';
+import { fluxInpaintAdapter } from './image-edit/fluxInpaint';
+import { geminiConversationalAdapter } from './image-edit/geminiConversational';
 import { canvasOverlay } from './text-overlay/canvas';
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
@@ -21,6 +24,9 @@ export const providers = {
   },
   imageEdit: { 
     "replicate.nano-banana": geminiNanoAdapter,
+    "replicate.seed-edit": seedEditAdapter,
+    "replicate.flux-inpaint": fluxInpaintAdapter,
+    "gemini.conversational-edit": geminiConversationalAdapter,
     "replicate.rembg": backgroundRemoverAdapter,
     "replicate.upscale": upscalerAdapter,
     "replicate.object-remove": objectRemoverAdapter,

@@ -2,12 +2,22 @@ import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
 import { uploadMaskFromDataUrl, downloadAndUploadImage } from '@/lib/assetStorage';
 
-export const seedEditAdapter: ImageEditAdapter = {
-  key: "replicate.seed-edit",
+export const fluxInpaintAdapter: ImageEditAdapter = {
+  key: "replicate.flux-inpaint",
 
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
-    const instruction = params.instruction || "Edit the image as needed";
+    if (!params.maskPngDataUrl) {
+      throw new Error("Mask is required for inpainting. Paint the area to modify.");
+    }
+
+    const prompt = params.instruction || "Inpaint the masked area";
     
+    // Upload mask to storage
+    const maskUpload = await uploadMaskFromDataUrl(params.maskPngDataUrl);
+    if (maskUpload.error) {
+      throw new Error(`Failed to upload mask: ${maskUpload.error}`);
+    }
+
     // Ensure image is in our storage
     let imageUrl = asset.src;
     if (!asset.src.includes(supabase.storage.from('ai-images').getPublicUrl('').data.publicUrl)) {
@@ -17,53 +27,45 @@ export const seedEditAdapter: ImageEditAdapter = {
       }
     }
 
-    // Handle mask if provided
-    let maskUrl;
-    if (params.maskPngDataUrl) {
-      const maskUpload = await uploadMaskFromDataUrl(params.maskPngDataUrl);
-      if (maskUpload.error) {
-        throw new Error(`Failed to upload mask: ${maskUpload.error}`);
-      }
-      maskUrl = maskUpload.url;
-    }
-
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        operation: 'seed-edit',
+        operation: 'flux-inpaint',
         input: {
           image: imageUrl,
-          instruction,
-          ...(maskUrl && { mask: maskUrl }),
-          strength: 0.8,
-          guidance_scale: 7.5
+          mask: maskUpload.url,
+          prompt,
+          negative_prompt: "blurred, distorted, artifacts",
+          guidance_scale: 3.5,
+          num_inference_steps: 28,
+          strength: 0.8
         }
       }
     });
 
     if (error) {
-      throw new Error(`SeedEdit failed: ${error.message}`);
+      throw new Error(`FLUX inpainting failed: ${error.message}`);
     }
 
     if (!data?.output?.[0]) {
-      throw new Error('No output received from SeedEdit');
+      throw new Error('No output received from FLUX inpainting');
     }
 
     const newAsset: Asset = {
       id: crypto.randomUUID(),
       type: 'image',
-      name: `${asset.name || 'image'} - edited`,
+      name: `${asset.name || 'image'} - inpainted`,
       src: Array.isArray(data.output) ? data.output[0] : data.output,
       meta: {
         ...asset.meta,
-        provider: 'replicate.seed-edit',
+        provider: 'replicate.flux-inpaint',
         originalAsset: asset.id,
-        editType: 'seed-edit',
-        instruction
+        editType: 'inpainting',
+        prompt
       },
       createdAt: Date.now(),
       derivedFrom: asset.id,
       category: 'edited',
-      subcategory: 'Character Consistent'
+      subcategory: 'Inpainting'
     };
 
     return newAsset;

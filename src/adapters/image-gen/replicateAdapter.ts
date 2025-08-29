@@ -5,10 +5,10 @@ export const replicateAdapter: ImageGenAdapter = {
   key: "replicate.flux",
   
   async generate(params: ImageGenParams): Promise<Asset> {
-    const { data, error } = await supabase.functions.invoke('replicate', {
+    const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        model: "black-forest-labs/flux-schnell",
         operation: 'generate',
+        model: 'flux-schnell',
         input: {
           prompt: params.prompt,
           num_outputs: 1,

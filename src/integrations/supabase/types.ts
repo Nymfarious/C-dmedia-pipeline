@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_operations: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_params: Json
+          job_id: string | null
+          model: string
+          operation_type: string
+          output_asset_url: string | null
+          provider: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_params: Json
+          job_id?: string | null
+          model: string
+          operation_type: string
+          output_asset_url?: string | null
+          provider: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_params?: Json
+          job_id?: string | null
+          model?: string
+          operation_type?: string
+          output_asset_url?: string | null
+          provider?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
