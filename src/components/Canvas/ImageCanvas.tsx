@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Undo2, 
   Redo2, 
@@ -15,31 +14,28 @@ import {
   RotateCw,
   Eraser,
   Sparkles,
-  FileImage,
   Import,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { Asset, ImageEditParams } from '@/types/media';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
 import useAppStore from '@/store/appStore';
 import { AssetImportModal } from "../AssetImportModal";
-import { ObjectEditTool } from './ObjectEditTool';
+import { EmptyCanvas } from './EmptyCanvas';
+import { EnhancedObjectEditTool } from './EnhancedObjectEditTool';
 import { ColorAdjustmentPanel } from './ColorAdjustmentPanel';
 import { StyleFilterGallery } from './StyleFilterGallery';
 import { PoseEditor } from './PoseEditor';
 import { CropTool } from './CropTool';
 import { FaceSwapTool } from './FaceSwapTool';
 import { ProjectSaveLoad } from '../ProjectSaveLoad';
-import { geminiNanoAdapter } from '@/adapters/image-edit/geminiNano';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
 import { objectAdderAdapter } from '@/adapters/image-edit/objectAdder';
 import { saveCurrentSession } from '@/lib/localStorage';
 import { colorEnhancerAdapter } from '@/adapters/image-edit/colorEnhancer';
 import { enhancedUpscalerAdapter } from '@/adapters/image-edit/enhancedUpscaler';
-import { poseAdjustmentAdapter } from '@/adapters/image-edit/poseAdjustment';
-import { smartCropAdapter } from '@/adapters/image-edit/smartCrop';
-import { faceConsistencyAdapter } from '@/adapters/image-edit/faceConsistency';
 
 interface ImageCanvasProps {
   asset?: Asset;
@@ -50,9 +46,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [history, setHistory] = useState<Asset[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [generatePrompt, setGeneratePrompt] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState('replicate.flux');
   const [showObjectEditTool, setShowObjectEditTool] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showStyleGallery, setShowStyleGallery] = useState(false);
@@ -61,17 +55,17 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [showFaceSwapTool, setShowFaceSwapTool] = useState(false);
   const [enhanceFaces, setEnhanceFaces] = useState(false);
   const [upscaleFactor, setUpscaleFactor] = useState(2);
+  const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { enqueueStep, runStep, generateDirectly, assets, addAsset } = useAppStore();
 
   const tools = [
-    { id: 'background-remove', label: 'Remove Background', icon: Eraser },
-    { id: 'object-remove', label: 'Remove Object', icon: Scissors },
-    { id: 'object-add', label: 'Add Object', icon: Upload },
-    { id: 'upscale', label: 'Enhanced Upscale', icon: ZoomIn },
-    { id: 'color-adjust', label: 'Color & Style', icon: Sparkles },
-    { id: 'rotate', label: 'Rotate', icon: RotateCw },
-    { id: 'import', label: 'Import Asset', icon: Import }
+    { id: 'background-remove', label: 'Remove Background', icon: Eraser, needsAsset: true },
+    { id: 'object-edit', label: 'Edit Objects', icon: Scissors, needsAsset: true },
+    { id: 'upscale', label: 'Enhanced Upscale', icon: ZoomIn, needsAsset: true },
+    { id: 'color-adjust', label: 'Color & Style', icon: Sparkles, needsAsset: true },
+    { id: 'rotate', label: 'Rotate', icon: RotateCw, needsAsset: true },
+    { id: 'import', label: 'Import Asset', icon: Import, needsAsset: false }
   ];
 
   const addToHistory = useCallback((newAsset: Asset) => {
@@ -120,8 +114,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
         case 'background-remove':
           await handleBackgroundRemoval();
           break;
-        case 'object-remove':
-        case 'object-add':
+        case 'object-edit':
           setShowObjectEditTool(true);
           break;
         case 'upscale':
@@ -145,36 +138,35 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   };
 
-  const handleDirectGenerate = async () => {
-    if (!generatePrompt.trim()) {
+  const handleDirectGenerate = async (prompt: string, provider: string) => {
+    if (!prompt.trim()) {
       toast.error('Please enter a prompt');
       return;
     }
 
+    setIsGenerating(true);
     try {
       const newAsset = await generateDirectly(
-        { prompt: generatePrompt },
-        selectedProvider
+        { prompt },
+        provider
       );
       
       onAssetUpdate?.(newAsset);
       addToHistory(newAsset);
       toast.success('Image generated successfully!');
-      setGeneratePrompt('');
     } catch (error) {
       console.error('Generation error:', error);
       toast.error('Failed to generate image');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleImportAsset = (assetId: string) => {
-    const importedAsset = assets[assetId];
-    if (importedAsset) {
-      onAssetUpdate?.(importedAsset);
-      addToHistory(importedAsset);
-      setShowImportDialog(false);
-      toast.success('Asset imported to canvas');
-    }
+  const handleImportAsset = (importedAsset: Asset) => {
+    onAssetUpdate?.(importedAsset);
+    addToHistory(importedAsset);
+    setShowImportDialog(false);
+    toast.success('Asset imported to canvas');
   };
 
   const handleBackgroundRemoval = async () => {
@@ -299,11 +291,46 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   };
 
+  // Show empty canvas if no asset
+  if (!asset) {
+    return (
+      <Card className="h-full bg-card">
+        <CardHeader className="border-b border-border">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
+            <ProjectSaveLoad 
+              currentAsset={asset} 
+              onProjectLoad={(loadedAssets, currentAssetId) => {
+                Object.values(loadedAssets).forEach(addAsset);
+                if (currentAssetId && loadedAssets[currentAssetId]) {
+                  onAssetUpdate?.(loadedAssets[currentAssetId]);
+                  addToHistory(loadedAssets[currentAssetId]);
+                }
+              }} 
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 p-6">
+          <EmptyCanvas 
+            onGenerate={handleDirectGenerate}
+            onImport={() => setShowImportDialog(true)}
+            isGenerating={isGenerating}
+          />
+          <AssetImportModal
+            isOpen={showImportDialog}
+            onClose={() => setShowImportDialog(false)}
+            onImport={handleImportAsset}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="h-full bg-canvas-bg">
+    <Card className="h-full bg-card">
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-foreground">Image Canvas</CardTitle>
+          <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
           <div className="flex items-center gap-2">
             <ProjectSaveLoad 
               currentAsset={asset} 
@@ -346,39 +373,6 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
             </Button>
           </div>
         </div>
-
-        {/* Direct Generation Controls */}
-        {!asset && (
-          <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Generate New Image
-            </h3>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="replicate.flux">Flux (Fast)</SelectItem>
-                    <SelectItem value="replicate.sd">Stable Diffusion</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  placeholder="Describe the image you want to generate..."
-                  value={generatePrompt}
-                  onChange={(e) => setGeneratePrompt(e.target.value)}
-                  className="flex-1 min-h-[40px] max-h-[80px]"
-                />
-                <Button onClick={handleDirectGenerate} disabled={!generatePrompt.trim()}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col">
@@ -387,14 +381,18 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           <div className="flex flex-wrap gap-2">
             {tools.map((tool) => {
               const Icon = tool.icon;
+              const isActive = selectedTool === tool.id || 
+                (tool.id === 'object-edit' && showObjectEditTool) ||
+                (tool.id === 'color-adjust' && (showColorPanel || showStyleGallery));
+              
               return (
                 <Button
                   key={tool.id}
-                  variant={selectedTool === tool.id ? "default" : "outline"}
+                  variant={isActive ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleToolAction(tool.id)}
                   className="flex items-center gap-2"
-                  disabled={!asset && tool.id !== 'import'}
+                  disabled={tool.needsAsset && !asset}
                 >
                   <Icon className="h-4 w-4" />
                   {tool.label}
@@ -431,46 +429,44 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           )}
         </div>
 
-        {asset ? (
-          <div className="space-y-6">
-            {/* Editing Tools */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {showObjectEditTool && (
-                <div className="lg:col-span-2">
-                  <ObjectEditTool
-                    imageUrl={asset.src}
-                    onEditComplete={handleObjectEdit}
-                    className="w-full"
-                  />
-                </div>
-              )}
-              
+        <div className="space-y-6 flex-1">
+          {/* Editing Tools */}
+          {showObjectEditTool && (
+            <EnhancedObjectEditTool
+              imageUrl={asset.src}
+              onEditComplete={handleObjectEdit}
+              onCancel={() => setShowObjectEditTool(false)}
+              className="w-full"
+            />
+          )}
+          
+          {(showColorPanel || showStyleGallery) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {showColorPanel && (
-                <div className="lg:col-span-1">
-                  <ColorAdjustmentPanel
-                    onAdjustment={handleColorAdjustment}
-                    className="w-full"
-                  />
-                </div>
+                <ColorAdjustmentPanel
+                  onAdjustment={handleColorAdjustment}
+                  className="w-full"
+                />
               )}
               
               {showStyleGallery && (
-                <div className="lg:col-span-1">
-                  <StyleFilterGallery
-                    onStyleApply={handleStyleFilter}
-                    className="w-full"
-                  />
-                </div>
+                <StyleFilterGallery
+                  onStyleApply={handleStyleFilter}
+                  className="w-full"
+                />
               )}
             </div>
-            
-            {/* Canvas Container */}
-            <div className="relative bg-canvas-surface rounded-lg border border-border">
-              <div className="relative bg-checkered min-h-[400px] rounded-lg overflow-hidden">
+          )}
+          
+          {/* Canvas Container - Only show when no editing tool is active */}
+          {!showObjectEditTool && !showColorPanel && !showStyleGallery && (
+            <div className="relative bg-card rounded-lg border border-border">
+              <div className="relative min-h-[400px] rounded-lg overflow-hidden">
                 <img
                   src={asset.src}
                   alt={asset.name}
                   className="w-full h-full object-contain"
+                  style={{ maxHeight: '70vh' }}
                 />
                 <canvas
                   ref={canvasRef}
@@ -479,77 +475,41 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
                 />
               </div>
             </div>
+          )}
 
-            {/* Asset Info */}
-            <div className="space-y-4">
+          {/* Asset Info */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-2">{asset.name}</h3>
+              <div className="flex flex-wrap gap-2">
+                {asset.meta?.width && asset.meta?.height && (
+                  <Badge variant="secondary">
+                    {asset.meta.width} × {asset.meta.height}
+                  </Badge>
+                )}
+                <Badge variant="outline">{asset.type}</Badge>
+                {asset.meta?.provider && (
+                  <Badge variant="outline">{asset.meta.provider}</Badge>
+                )}
+              </div>
+            </div>
+
+            {asset.meta?.prompt && (
               <div>
-                <h3 className="text-lg font-medium text-foreground mb-2">{asset.name}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {asset.meta?.width && asset.meta?.height && (
-                    <Badge variant="secondary">
-                      {asset.meta.width} × {asset.meta.height}
-                    </Badge>
-                  )}
-                  {asset.meta?.provider && (
-                    <Badge variant="outline">{asset.meta.provider}</Badge>
-                  )}
-                  <Badge variant="outline">{asset.type}</Badge>
-                  {asset.category && (
-                    <Badge variant="secondary">{asset.category}</Badge>
-                  )}
-                  {asset.subcategory && (
-                    <Badge variant="outline">{asset.subcategory}</Badge>
-                  )}
-                </div>
+                <h4 className="text-sm font-medium mb-2">Original Prompt</h4>
+                <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+                  {asset.meta.prompt}
+                </p>
               </div>
-
-              {asset.derivedFrom && (
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Derived from:</span> {asset.derivedFrom}
-                </div>
-              )}
-
-              {asset.meta?.prompt && (
-                <div>
-                  <h4 className="text-sm font-medium text-foreground mb-2">Original Prompt</h4>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                    {asset.meta.prompt}
-                  </p>
-                </div>
-              )}
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4 mx-auto">
-                <FileImage className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">No Image Loaded</h3>
-              <p className="text-muted-foreground text-sm max-w-sm">
-                Generate a new image above or import an asset from your gallery to get started.
-              </p>
-              <Button 
-                variant="outline" 
-                className="mt-4" 
-                onClick={() => handleToolAction('import')}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Import from Gallery
-              </Button>
-            </div>
-          </div>
-        )}
+        </div>
 
-        {/* Import Modal */}
+        {/* Import Asset Modal */}
         <AssetImportModal
           isOpen={showImportDialog}
           onClose={() => setShowImportDialog(false)}
-          onImport={(importedAsset) => {
-            onAssetUpdate?.(importedAsset);
-            addToHistory(importedAsset);
-            toast.success('Asset imported to canvas');
-          }}
+          onImport={handleImportAsset}
         />
       </CardContent>
     </Card>

@@ -1,0 +1,301 @@
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { Eraser, Undo, RotateCcw, Paintbrush } from 'lucide-react';
+
+type Stroke = { x: number; y: number; r: number };
+
+interface EnhancedBrushToolProps {
+  imageUrl: string;
+  onExportMask: (mask: { dataUrl: string; blob: Blob }) => void;
+  initialBrush?: number;
+  className?: string;
+  onCancel?: () => void;
+}
+
+export function EnhancedBrushTool({ 
+  imageUrl, 
+  onExportMask, 
+  initialBrush = 24, 
+  className,
+  onCancel 
+}: EnhancedBrushToolProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const [ready, setReady] = useState(false);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [brush, setBrush] = useState([initialBrush]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Load and setup image
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      imageRef.current = img;
+      setImageLoaded(true);
+      setupCanvas();
+    };
+    img.onerror = () => {
+      console.error('Failed to load image for brush tool');
+    };
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  // Setup canvas to match image dimensions
+  const setupCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    const img = imageRef.current;
+    
+    if (!canvas || !container || !img) return;
+
+    // Get container dimensions
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+
+    // Calculate scale to fit image in container
+    const scaleX = containerWidth / img.naturalWidth;
+    const scaleY = containerHeight / img.naturalHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't upscale
+
+    // Set canvas size to match displayed image
+    const displayWidth = img.naturalWidth * scale;
+    const displayHeight = img.naturalHeight * scale;
+    
+    canvas.width = img.naturalWidth; // Native resolution for mask
+    canvas.height = img.naturalHeight;
+    
+    // Set CSS size to match displayed image
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
+    
+    setReady(true);
+    redraw();
+  }, []);
+
+  // Redraw the mask
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !ready) return;
+    
+    const ctx = canvas.getContext('2d')!;
+    
+    // Clear with white (keep areas)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw black strokes (edit areas)
+    ctx.fillStyle = '#000000';
+    ctx.globalCompositeOperation = 'source-over';
+    
+    for (const stroke of strokes) {
+      ctx.beginPath();
+      ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [strokes, ready]);
+
+  useEffect(() => {
+    redraw();
+  }, [redraw]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (imageLoaded) {
+        setupCanvas();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [imageLoaded, setupCanvas]);
+
+  // Convert mouse/touch position to canvas coordinates
+  const getCanvasPos = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    
+    return { x, y };
+  };
+
+  // Mouse events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!ready) return;
+    e.preventDefault();
+    setIsDrawing(true);
+    const { x, y } = getCanvasPos(e.clientX, e.clientY);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ready || !isDrawing) return;
+    e.preventDefault();
+    const { x, y } = getCanvasPos(e.clientX, e.clientY);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
+
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+  };
+
+  // Touch events for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!ready || e.touches.length !== 1) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    setIsDrawing(true);
+    const { x, y } = getCanvasPos(touch.clientX, touch.clientY);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!ready || !isDrawing || e.touches.length !== 1) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const { x, y } = getCanvasPos(touch.clientX, touch.clientY);
+    setStrokes(prev => [...prev, { x, y, r: brush[0] }]);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    setIsDrawing(false);
+  };
+
+  // Actions
+  const undo = () => {
+    if (strokes.length > 0) {
+      setStrokes(prev => prev.slice(0, -1));
+    }
+  };
+
+  const clear = () => setStrokes([]);
+
+  const exportMask = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const dataUrl = canvas.toDataURL('image/png');
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    onExportMask({ dataUrl, blob });
+  };
+
+  return (
+    <div className={className}>
+      {/* Controls */}
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Paintbrush className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Paint the area to edit</span>
+            <Badge variant="outline">{strokes.length} strokes</Badge>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-sm">Brush Size:</span>
+          <Slider 
+            min={4} 
+            max={120} 
+            step={1} 
+            value={brush} 
+            onValueChange={setBrush} 
+            className="flex-1 max-w-48" 
+          />
+          <span className="text-sm text-muted-foreground w-8">{brush[0]}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={undo} 
+            disabled={strokes.length === 0}
+          >
+            <Undo className="h-4 w-4 mr-1" />
+            Undo
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clear}
+            disabled={strokes.length === 0}
+          >
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Clear
+          </Button>
+          <div className="flex-1" />
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button 
+            onClick={exportMask} 
+            disabled={strokes.length === 0}
+          >
+            Apply Mask
+          </Button>
+        </div>
+      </div>
+
+      {/* Canvas Container */}
+      <div 
+        ref={containerRef}
+        className="relative bg-card rounded-lg border border-border overflow-hidden"
+        style={{ minHeight: '400px', maxHeight: '70vh' }}
+      >
+        {imageLoaded && (
+          <>
+            {/* Background Image */}
+            <img
+              src={imageUrl}
+              alt="Reference"
+              className="w-full h-full object-contain"
+              style={{ maxHeight: '70vh' }}
+              draggable={false}
+            />
+            
+            {/* Drawing Canvas Overlay */}
+            <canvas
+              ref={canvasRef}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair"
+              style={{ 
+                mixBlendMode: 'multiply',
+                opacity: 0.6,
+                touchAction: 'none'
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            />
+          </>
+        )}
+        
+        {!imageLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-muted-foreground">Loading image...</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

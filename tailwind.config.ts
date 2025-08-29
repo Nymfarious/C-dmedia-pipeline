@@ -55,6 +55,8 @@ export default {
 				'gallery-bg': 'hsl(var(--gallery-bg))',
 				'stage-bg': 'hsl(var(--stage-bg))',
 				'pipeline-bg': 'hsl(var(--pipeline-bg))',
+				'canvas-bg': 'hsl(var(--canvas-bg))',
+				'canvas-surface': 'hsl(var(--canvas-surface))',
 				'status-queued': 'hsl(var(--status-queued))',
 				'status-running': 'hsl(var(--status-running))',
 				'status-done': 'hsl(var(--status-done))',

@@ -55,6 +55,10 @@ All colors MUST be HSL.
     --gallery-bg: 216 28% 8%;
     --stage-bg: 216 25% 9%;
     --pipeline-bg: 216 25% 10%;
+    
+    /* Canvas specific */
+    --canvas-bg: 216 25% 9%;
+    --canvas-surface: 216 25% 11%;
 
     /* Shadows for depth */
     --shadow-card: 0 10px 40px -15px hsl(262 83% 58% / 0.3);
