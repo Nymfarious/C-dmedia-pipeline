@@ -41,6 +41,7 @@ interface AppState {
   createCanvas(type: 'image' | 'video' | 'audio', asset?: Asset): string;
   setActiveCanvas(canvasId: string | null): void;
   updateCanvasAsset(canvasId: string, asset: Asset): void;
+  getActiveCanvasWithAsset(): { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } | null;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }

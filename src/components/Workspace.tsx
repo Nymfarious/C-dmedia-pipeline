@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { AIGenerationModal } from './AIGenerationModal';
-import { Asset } from '@/types/media';
+import { Asset, PipelineStep } from '@/types/media';
+import { toast } from 'sonner';
 
 interface WorkspaceProps {
   activeTab: string;
@@ -44,6 +45,10 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const createCanvas = useAppStore(state => state.createCanvas);
   const setActiveCanvas = useAppStore(state => state.setActiveCanvas);
   const updateCanvasAsset = useAppStore(state => state.updateCanvasAsset);
+  const getActiveCanvasWithAsset = useAppStore(state => state.getActiveCanvasWithAsset);
+  const enqueueStep = useAppStore(state => state.enqueueStep);
+  const runStep = useAppStore(state => state.runStep);
+  const generateDirectly = useAppStore(state => state.generateDirectly);
 
   console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvases.length);
 
@@ -125,63 +130,41 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
     }
   };
 
-  const handleAIAction = async (action: string) => {
-    if (!hasContent || !generatedImage) return;
+  const handleAIAction = (action: string) => {
+    const activeCanvasWithAsset = getActiveCanvasWithAsset();
+    if (!activeCanvasWithAsset?.asset) {
+      toast.error("No image on canvas to process");
+      return;
+    }
+
     setProcessingAction(action);
     
-    try {
-      const store = useAppStore.getState();
-      let result;
-      
-      if (action === 'remove_bg') {
-        const stepId = store.enqueueStep("REMOVE_BG", [generatedImage.id], {}, "replicate.flux");
-        await store.runStep(stepId);
-        const step = store.steps[stepId];
-        if (step.status === "done" && step.outputAssetId) {
-          result = store.assets[step.outputAssetId];
-        }
-      } else if (action === 'enhance') {
-        const stepId = store.enqueueStep("UPSCALE", [generatedImage.id], {}, "replicate.flux");
-        await store.runStep(stepId);
-        const step = store.steps[stepId];
-        if (step.status === "done" && step.outputAssetId) {
-          result = store.assets[step.outputAssetId];
-        }
-      } else if (action === 'style_transfer') {
-        const stepId = store.enqueueStep("EDIT", [generatedImage.id], { instruction: 'Apply artistic style transfer to this image' }, "replicate.flux");
-        await store.runStep(stepId);
-        const step = store.steps[stepId];
-        if (step.status === "done" && step.outputAssetId) {
-          result = store.assets[step.outputAssetId];
-        }
-      }
-      
-      if (result) {
-        setGeneratedImage(result);
-      }
-      
-      setProcessingAction(null);
-      addToHistory({
-        type: action,
-        tab: activeTab,
-        time: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      });
-    } catch (error) {
-      setProcessingAction(null);
-      console.error(`${action} failed:`, error);
-      addToHistory({
-        type: `${action}_error`,
-        tab: activeTab,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        time: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      });
+    // Map action to step kind and use nano-banana provider
+    let stepKind: PipelineStep["kind"];
+    let providerKey = "replicate.nano-banana";
+    
+    switch (action) {
+      case 'remove_bg':
+        stepKind = "REMOVE_BG";
+        break;
+      case 'enhance':
+        stepKind = "UPSCALE";
+        break;
+      case 'style_transfer':
+        stepKind = "EDIT";
+        break;
+      default:
+        stepKind = "EDIT";
     }
+
+    // Enqueue and run the step
+    const stepId = enqueueStep(stepKind, [activeCanvasWithAsset.asset.id], {}, providerKey);
+    runStep(stepId).then(() => {
+      setProcessingAction(null);
+    }).catch((error) => {
+      console.error('AI action failed:', error);
+      setProcessingAction(null);
+    });
   };
 
   const handleZoom = (direction: 'in' | 'out') => {

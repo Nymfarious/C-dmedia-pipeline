@@ -25,6 +25,7 @@ function EnhancedApp() {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
 
   // Initialize store once on app load
   useEffect(() => {
@@ -91,6 +92,7 @@ function EnhancedApp() {
           selectedTool={selectedTool}
           onToolChange={handleToolChange}
           toggleRightPanel={toggleRightPanel}
+          onOpenAIModal={() => setIsGenerationModalOpen(true)}
         />
         <div className="flex flex-1">
           <Workspace

@@ -23,6 +23,7 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
 
   const [images, setImages] = useState([]);
   const galleryImages = useAppStore((state) => state.galleryImages);
+  const { createCanvas, setActiveCanvas, addAsset } = useAppStore();
 
   useEffect(() => {
     setImages(galleryImages || []);
@@ -50,6 +51,39 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
   const handleDelete = (id: string) => {
     useAppStore.getState().removeFromGallery(id);
     toast.success('Image removed from gallery');
+  };
+
+  const handleOpenInCanvas = (image: any) => {
+    try {
+      // Create asset from gallery image
+      const asset = {
+        id: crypto.randomUUID(),
+        type: 'image' as const,
+        name: `Gallery: ${image.prompt.slice(0, 30)}...`,
+        src: image.url,
+        meta: {
+          provider: image.model || 'gallery',
+          originalPrompt: image.prompt,
+          parameters: image.parameters
+        },
+        createdAt: Date.now(),
+        category: 'imported',
+        subcategory: 'From Gallery'
+      };
+
+      // Add asset to store
+      addAsset(asset);
+
+      // Create canvas and set as active
+      const canvasId = createCanvas('image', asset);
+      setActiveCanvas(canvasId);
+
+      toast.success('Image opened in canvas!');
+      onSelectImage(null); // Close gallery
+    } catch (error) {
+      console.error('Failed to open in canvas:', error);
+      toast.error('Failed to open image in canvas');
+    }
   };
 
   return (
@@ -120,10 +154,9 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
             {filteredImages.map((image) => (
               <div
                 key={image.id}
-                className={`group border border-border rounded-lg overflow-hidden hover:border-primary transition-colors cursor-pointer ${
+                className={`group border border-border rounded-lg overflow-hidden hover:border-primary transition-colors ${
                   viewMode === 'list' ? 'flex items-center p-4' : ''
                 }`}
-                onClick={() => onSelectImage(image)}
               >
                 {viewMode === 'grid' ? (
                   <>
@@ -171,17 +204,26 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
                          </button>
                       </div>
                     </div>
-                     <div className="p-3">
-                       <p className="text-sm font-medium line-clamp-2 mb-1">{image.prompt}</p>
-                       <div className="flex items-center justify-between">
-                         <p className="text-xs text-muted-foreground">{image.created}</p>
-                         {image.model && (
-                           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                             {image.model.replace('replicate.', '')}
-                           </span>
-                         )}
-                       </div>
-                     </div>
+                      <div className="p-3">
+                        <p className="text-sm font-medium line-clamp-2 mb-1">{image.prompt}</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-muted-foreground">{image.created}</p>
+                          {image.model && (
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {image.model.replace('replicate.', '')}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenInCanvas(image);
+                          }}
+                          className="w-full text-xs bg-primary text-primary-foreground hover:bg-primary/90 px-2 py-1 rounded transition-colors"
+                        >
+                          Open in Canvas
+                        </button>
+                      </div>
                   </>
                 ) : (
                   <>
@@ -206,8 +248,17 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
                            </span>
                          )}
                        </div>
-                     </div>
-                    <div className="flex items-center space-x-2">
+                      </div>
+                     <div className="flex items-center space-x-2">
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handleOpenInCanvas(image);
+                         }}
+                         className="text-xs bg-primary text-primary-foreground hover:bg-primary/90 px-2 py-1 rounded transition-colors"
+                       >
+                         Open in Canvas
+                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

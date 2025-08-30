@@ -14,6 +14,8 @@ import {
   Star,
   StarOff,
 } from 'lucide-react';
+import useAppStore from '@/store/appStore';
+import { toast } from 'sonner';
 
 interface PropertiesPanelProps {
   activeTab: string;
@@ -32,6 +34,12 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
   const [styleStrength, setStyleStrength] = useState(75);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [generatingStyle, setGeneratingStyle] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGenerationType, setAiGenerationType] = useState('Create New');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Store hooks
+  const { generateDirectly, createCanvas, setActiveCanvas, getActiveCanvasWithAsset, enqueueStep, runStep } = useAppStore();
 
   const toggleSection = (section: string) => {
     setExpandedSections({
@@ -61,12 +69,106 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
     setSelectedStyle(style === selectedStyle ? null : style);
   };
 
-  const handleApplyStyle = () => {
+  const handleApplyStyle = async () => {
     if (!selectedStyle) return;
+    
+    const activeCanvasWithAsset = getActiveCanvasWithAsset();
+    if (!activeCanvasWithAsset?.asset) {
+      toast.error("No image on canvas to apply style to");
+      return;
+    }
+
     setGeneratingStyle(true);
-    setTimeout(() => {
+    try {
+      const stepId = enqueueStep("EDIT", [activeCanvasWithAsset.asset.id], {
+        instruction: `Apply ${selectedStyle} style to this image`,
+        stylePreset: selectedStyle,
+        strength: styleStrength / 100
+      }, "replicate.nano-banana");
+      
+      await runStep(stepId);
+      toast.success("Style applied successfully!");
+    } catch (error) {
+      console.error('Style transfer failed:', error);
+      toast.error("Failed to apply style");
+    } finally {
       setGeneratingStyle(false);
-    }, 2000);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a prompt");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      if (aiGenerationType === 'Create New') {
+        // Generate new image and create canvas
+        const asset = await generateDirectly({ prompt: aiPrompt }, "replicate.nano-banana");
+        const canvasId = createCanvas('image', asset);
+        setActiveCanvas(canvasId);
+        toast.success("Image generated successfully!");
+      } else {
+        // Modify existing canvas
+        const activeCanvasWithAsset = getActiveCanvasWithAsset();
+        if (!activeCanvasWithAsset?.asset) {
+          toast.error("No image on canvas to modify");
+          return;
+        }
+
+        const stepId = enqueueStep("EDIT", [activeCanvasWithAsset.asset.id], {
+          instruction: aiPrompt
+        }, "replicate.nano-banana");
+        
+        await runStep(stepId);
+        toast.success("Image modified successfully!");
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error);
+      toast.error("Failed to generate image");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAIEnhancement = async (action: string) => {
+    const activeCanvasWithAsset = getActiveCanvasWithAsset();
+    if (!activeCanvasWithAsset?.asset) {
+      toast.error("No image on canvas to enhance");
+      return;
+    }
+
+    try {
+      let stepKind: any;
+      let instruction = '';
+      
+      switch (action) {
+        case 'enhance':
+          stepKind = "UPSCALE";
+          instruction = "enhance and upscale this image";
+          break;
+        case 'remove-bg':
+          stepKind = "REMOVE_BG";
+          instruction = "remove the background from this image";
+          break;
+        case 'upscale':
+          stepKind = "UPSCALE";
+          instruction = "upscale this image to higher resolution";
+          break;
+      }
+
+      const stepId = enqueueStep(stepKind, [activeCanvasWithAsset.asset.id], {
+        instruction
+      }, "replicate.nano-banana");
+      
+      await runStep(stepId);
+      toast.success(`${action} completed successfully!`);
+    } catch (error) {
+      console.error(`${action} failed:`, error);
+      toast.error(`Failed to ${action}`);
+    }
   };
 
   const stylePresets = [
@@ -278,12 +380,18 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
               <textarea
                 className="w-full bg-background border border-border rounded-md px-2 py-1.5 text-sm min-h-[60px] focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Describe what you want to generate..."
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
               />
             </div>
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-sm">Generation Type</span>
-                <select className="bg-background border border-border rounded px-2 py-1 text-xs">
+                <select 
+                  className="bg-background border border-border rounded px-2 py-1 text-xs"
+                  value={aiGenerationType}
+                  onChange={(e) => setAiGenerationType(e.target.value)}
+                >
                   <option>Create New</option>
                   <option>Modify Selection</option>
                   <option>Inpainting</option>
@@ -291,9 +399,22 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
                 </select>
               </div>
             </div>
-            <button className="w-full flex items-center justify-center px-3 py-2 bg-primary rounded-md hover:bg-primary/90 text-sm text-primary-foreground">
-              <SparklesIcon size={14} className="mr-2" />
-              Generate Image
+            <button 
+              className="w-full flex items-center justify-center px-3 py-2 bg-primary rounded-md hover:bg-primary/90 text-sm text-primary-foreground disabled:opacity-50"
+              onClick={handleGenerateImage}
+              disabled={isGenerating || !aiPrompt.trim()}
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCwIcon size={14} className="mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <SparklesIcon size={14} className="mr-2" />
+                  Generate Image
+                </>
+              )}
             </button>
           </div>
         )}
@@ -308,14 +429,23 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
         {expandedSections.aiEnhancement && (
           <div className="bg-muted rounded-md p-3 mt-1">
             <div className="space-y-2">
-              <button className="w-full flex items-center justify-center px-3 py-2 bg-primary rounded-md hover:bg-primary/90 text-sm text-primary-foreground">
+              <button 
+                className="w-full flex items-center justify-center px-3 py-2 bg-primary rounded-md hover:bg-primary/90 text-sm text-primary-foreground"
+                onClick={() => handleAIEnhancement('enhance')}
+              >
                 <ZapIcon size={14} className="mr-2" />
                 Auto Enhance
               </button>
-              <button className="w-full flex items-center justify-center px-3 py-2 bg-secondary rounded-md hover:bg-secondary/90 text-sm">
+              <button 
+                className="w-full flex items-center justify-center px-3 py-2 bg-secondary rounded-md hover:bg-secondary/90 text-sm"
+                onClick={() => handleAIEnhancement('remove-bg')}
+              >
                 Remove Background
               </button>
-              <button className="w-full flex items-center justify-center px-3 py-2 bg-secondary rounded-md hover:bg-secondary/90 text-sm">
+              <button 
+                className="w-full flex items-center justify-center px-3 py-2 bg-secondary rounded-md hover:bg-secondary/90 text-sm"
+                onClick={() => handleAIEnhancement('upscale')}
+              >
                 Upscale Image
               </button>
             </div>

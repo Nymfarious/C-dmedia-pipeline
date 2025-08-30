@@ -28,6 +28,7 @@ interface ToolbarTopProps {
   selectedTool: string;
   onToolChange: (tool: string) => void;
   toggleRightPanel: () => void;
+  onOpenAIModal?: () => void;
 }
 
 export function ToolbarTop({
@@ -35,6 +36,7 @@ export function ToolbarTop({
   selectedTool,
   onToolChange,
   toggleRightPanel,
+  onOpenAIModal,
 }: ToolbarTopProps) {
   const [activeTool, setActiveTool] = useState('select');
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
@@ -42,6 +44,11 @@ export function ToolbarTop({
   const handleToolClick = (tool: string) => {
     setActiveTool(tool);
     onToolChange(tool);
+    
+    // Open AI modal for magic wand tool
+    if (tool === 'smart-select' && onOpenAIModal) {
+      onOpenAIModal();
+    }
   };
 
   const toolGroups = [
@@ -55,8 +62,8 @@ export function ToolbarTop({
         },
         {
           id: 'smart-select',
-          icon: <SparklesIcon size={18} />,
-          tooltip: 'Smart Selection',
+          icon: <Wand2 size={18} />,
+          tooltip: 'AI Generation',
         },
         {
           id: 'lasso',
