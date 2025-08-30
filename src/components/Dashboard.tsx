@@ -30,6 +30,20 @@ export function Dashboard() {
     setActiveCanvas(newCanvas.id);
   };
 
+  const loadAssetToCanvas = (asset: Asset) => {
+    // Create a new canvas with the asset loaded
+    const newCanvas = {
+      id: crypto.randomUUID(),
+      type: asset.type as 'image' | 'video' | 'audio',
+      name: asset.name,
+      asset,
+      createdAt: Date.now(),
+    };
+    
+    setCanvases(prev => [...prev, newCanvas]);
+    setActiveCanvas(newCanvas.id);
+  };
+
   const updateCanvasAsset = (canvasId: string, asset: Asset) => {
     setCanvases(prev => prev.map(canvas => 
       canvas.id === canvasId 
@@ -76,6 +90,7 @@ export function Dashboard() {
           activeCanvas={activeCanvas}
           onCreateCanvas={createCanvas}
           onSelectCanvas={setActiveCanvas}
+          onLoadAssetToCanvas={loadAssetToCanvas}
         />
         
         {/* Center Workspace */}

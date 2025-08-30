@@ -12,6 +12,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { Asset } from '@/types/media';
+import useAppStore from '@/store/appStore';
 
 interface LeftSidebarProps {
   canvases: Array<{
@@ -24,9 +25,16 @@ interface LeftSidebarProps {
   activeCanvas: string | null;
   onCreateCanvas: (type: 'image' | 'video' | 'audio') => void;
   onSelectCanvas: (id: string) => void;
+  onLoadAssetToCanvas?: (asset: Asset) => void;
 }
 
-export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCanvas }: LeftSidebarProps) {
+export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCanvas, onLoadAssetToCanvas }: LeftSidebarProps) {
+  const assets = useAppStore((state) => state.assets);
+  
+  // Get recent assets for recent projects
+  const recentAssets = Object.values(assets)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 3);
   return (
     <div className="w-64 border-r border-border bg-card flex flex-col">
       <div className="p-4 space-y-6">
@@ -91,24 +99,39 @@ export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCa
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Recent Projects</h3>
           <div className="space-y-2">
-            <Card 
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => console.log('Navigate to Abstract Art project')}
-            >
-              <CardContent className="p-3">
-                <div className="text-sm font-medium text-foreground">Abstract Art</div>
-                <div className="text-xs text-muted-foreground">2 hours ago</div>
-              </CardContent>
-            </Card>
-            <Card 
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => console.log('Navigate to Logo Design project')}
-            >
-              <CardContent className="p-3">
-                <div className="text-sm font-medium text-foreground">Logo Design</div>
-                <div className="text-xs text-muted-foreground">Yesterday</div>
-              </CardContent>
-            </Card>
+            {recentAssets.length > 0 ? recentAssets.map((asset) => (
+              <Card 
+                key={asset.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => onLoadAssetToCanvas?.(asset)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-2">
+                    {asset.src && (
+                      <img 
+                        src={asset.src} 
+                        alt={asset.name}
+                        className="w-10 h-10 rounded object-cover"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{asset.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(asset.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {asset.type}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )) : (
+              <div className="text-center text-muted-foreground py-4">
+                <div className="text-sm">No recent projects</div>
+                <div className="text-xs">Generate some images to see them here</div>
+              </div>
+            )}
           </div>
         </div>
 
