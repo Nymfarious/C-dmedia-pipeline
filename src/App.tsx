@@ -12,6 +12,7 @@ import { Workspace } from './components/Workspace';
 import { ToolbarTop } from './components/ToolbarTop';
 import { RightPanel } from './components/RightPanel';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
+import { SimplifiedAIModal } from './components/SimplifiedAIModal';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -137,6 +138,10 @@ function EnhancedApp() {
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
         {renderMainContent()}
       </div>
+      <SimplifiedAIModal
+        isOpen={isGenerationModalOpen}
+        onClose={() => setIsGenerationModalOpen(false)}
+      />
     </div>
   );
 }

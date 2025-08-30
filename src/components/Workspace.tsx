@@ -14,7 +14,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
-import { AIGenerationModal } from './AIGenerationModal';
+// Modal now handled at App level
 import { Asset, PipelineStep } from '@/types/media';
 import { toast } from 'sonner';
 
@@ -437,12 +437,7 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
           )}
         </div>
       )}
-      {/* AI Generation Modal */}
-      <AIGenerationModal
-        isOpen={isGenerationModalOpen}
-        onClose={() => setIsGenerationModalOpen(false)}
-        onGenerate={handleGenerate}
-      />
+      {/* AI Generation Modal now handled at App level */}
     </div>
   );
 }

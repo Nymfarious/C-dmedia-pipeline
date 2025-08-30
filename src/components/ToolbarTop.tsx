@@ -43,6 +43,10 @@ export function ToolbarTop({
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
 
   const handleToolClick = (tool: string) => {
+    // Only allow clicks on working tools
+    const toolData = toolGroups.flatMap(g => g.tools).find(t => t.id === tool);
+    if (!toolData?.working) return;
+    
     setActiveTool(tool);
     onToolChange(tool);
     
@@ -52,6 +56,10 @@ export function ToolbarTop({
     }
   };
 
+  // Define which tools are functional vs coming soon
+  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg'];
+  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'inpaint', 'enhance', 'style', 'text', 'stickers', 'adjust'];
+
   const toolGroups = [
     {
       title: 'Selection',
@@ -60,16 +68,19 @@ export function ToolbarTop({
           id: 'select',
           icon: <MousePointerIcon size={18} />,
           tooltip: 'Select',
+          working: true,
         },
         {
           id: 'smart-select',
           icon: <Wand2 size={18} />,
           tooltip: 'AI Generation',
+          working: true,
         },
         {
           id: 'lasso',
           icon: <ShapesIcon size={18} />,
-          tooltip: 'Lasso Selection',
+          tooltip: 'Lasso Selection - Coming Soon',
+          working: false,
         },
       ],
     },
@@ -80,16 +91,19 @@ export function ToolbarTop({
           id: 'brush',
           icon: <PaintbrushIcon size={18} />,
           tooltip: 'Paintbrush',
+          working: true,
         },
         {
           id: 'eraser',
           icon: <EraserIcon size={18} />,
-          tooltip: 'Eraser',
+          tooltip: 'Eraser - Coming Soon',
+          working: false,
         },
         {
           id: 'colors',
           icon: <div className="w-4 h-4 bg-gradient-to-r from-red-500 to-blue-500 rounded-full" />,
-          tooltip: 'Color & Style',
+          tooltip: 'Color & Style - Coming Soon',
+          working: false,
         },
       ],
     },
@@ -100,16 +114,19 @@ export function ToolbarTop({
           id: 'crop',
           icon: <CropIcon size={18} />,
           tooltip: 'Crop',
+          working: true,
         },
         {
           id: 'rotate',
           icon: <RotateCwIcon size={18} />,
-          tooltip: 'Rotate',
+          tooltip: 'Rotate - Coming Soon',
+          working: false,
         },
         {
           id: 'resize',
           icon: <MoveIcon size={18} />,
-          tooltip: 'Resize',
+          tooltip: 'Resize - Coming Soon',
+          working: false,
         },
       ],
     },
@@ -117,24 +134,28 @@ export function ToolbarTop({
       title: 'AI Tools',
       tools: [
         {
-          id: 'inpaint',
-          icon: <Edit3 size={18} />,
-          tooltip: 'AI Inpainting',
-        },
-        {
           id: 'remove-bg',
           icon: <Trash size={18} />,
           tooltip: 'Remove Background',
+          working: true,
+        },
+        {
+          id: 'inpaint',
+          icon: <Edit3 size={18} />,
+          tooltip: 'AI Inpainting - Coming Soon',
+          working: false,
         },
         {
           id: 'enhance',
           icon: <SparklesIcon size={18} />,
-          tooltip: 'AI Enhance',
+          tooltip: 'AI Enhance - Coming Soon',
+          working: false,
         },
         {
           id: 'style',
           icon: <Wand2 size={18} />,
-          tooltip: 'Style Transfer',
+          tooltip: 'Style Transfer - Coming Soon',
+          working: false,
         },
       ],
     },
@@ -144,17 +165,20 @@ export function ToolbarTop({
         {
           id: 'text',
           icon: <TypeIcon size={18} />,
-          tooltip: 'Add Text',
+          tooltip: 'Add Text - Coming Soon',
+          working: false,
         },
         {
           id: 'stickers',
           icon: <Smile size={18} />,
-          tooltip: 'Stickers & Emoji',
+          tooltip: 'Stickers & Emoji - Coming Soon',
+          working: false,
         },
         {
           id: 'adjust',
           icon: <SlidersIcon size={18} />,
-          tooltip: 'Adjustments',
+          tooltip: 'Adjustments - Coming Soon',
+          working: false,
         },
       ],
     },
@@ -171,11 +195,14 @@ export function ToolbarTop({
                 {group.tools.map((tool) => (
                   <button
                     key={tool.id}
-                    className={`p-2 rounded-md hover:bg-muted relative group transition-colors ${
-                      activeTool === tool.id ? 'bg-primary/10 text-primary' : ''
+                    className={`p-2 rounded-md relative group transition-colors ${
+                      tool.working 
+                        ? `hover:bg-muted ${activeTool === tool.id ? 'bg-primary/10 text-primary' : ''}` 
+                        : 'opacity-50 cursor-not-allowed text-muted-foreground'
                     }`}
-                    onClick={() => handleToolClick(tool.id)}
+                    onClick={() => tool.working && handleToolClick(tool.id)}
                     title={tool.tooltip}
+                    disabled={!tool.working}
                   >
                     {tool.icon}
                     <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-0.5 bg-popover border border-border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
