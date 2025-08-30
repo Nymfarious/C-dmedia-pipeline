@@ -27,7 +27,7 @@ export type Database = {
           output_asset_url: string | null
           provider: string
           status: string
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           completed_at?: string | null
@@ -41,7 +41,7 @@ export type Database = {
           output_asset_url?: string | null
           provider: string
           status?: string
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           completed_at?: string | null
@@ -55,7 +55,37 @@ export type Database = {
           output_asset_url?: string | null
           provider?: string
           status?: string
-          user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
