@@ -36,6 +36,7 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const [zoom, setZoom] = useState(100);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
+  const [showAIActions, setShowAIActions] = useState(false);
 
   // Use individual store subscriptions to avoid object recreation
   const activeCanvas = useAppStore(state => state.activeCanvas);
@@ -220,7 +221,11 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
           </div>
         </div>
       ) : (
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div 
+          className="relative w-full h-full flex items-center justify-center"
+          onMouseEnter={() => setShowAIActions(true)}
+          onMouseLeave={() => setShowAIActions(false)}
+        >
           {/* Canvas area */}
           <div className="bg-white rounded-md shadow-lg w-4/5 h-4/5 flex items-center justify-center relative overflow-hidden">
             {/* Drop zone for assets */}
@@ -408,33 +413,35 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
               <RotateCwIcon size={16} />
             </button>
           </div>
-          {/* AI Quick Actions */}
-          <div className="absolute left-4 top-4 bg-card rounded-md shadow-lg border border-border">
-            <button
-              className="p-2 hover:bg-muted flex items-center"
-              onClick={() => handleAIAction('remove_bg')}
-              disabled={processingAction !== null}
-            >
-              <Trash size={16} className="mr-1.5" />
-              <span className="text-xs">Remove BG</span>
-            </button>
-            <button
-              className="p-2 hover:bg-muted flex items-center border-t border-border"
-              onClick={() => handleAIAction('enhance')}
-              disabled={processingAction !== null}
-            >
-              <SparklesIcon size={16} className="mr-1.5" />
-              <span className="text-xs">Enhance</span>
-            </button>
-            <button
-              className="p-2 hover:bg-muted flex items-center border-t border-border"
-              onClick={() => handleAIAction('style_transfer')}
-              disabled={processingAction !== null}
-            >
-              <Wand2 size={16} className="mr-1.5" />
-              <span className="text-xs">Style</span>
-            </button>
-          </div>
+          {/* AI Quick Actions - Only show on hover */}
+          {showAIActions && (
+            <div className="absolute left-4 top-4 bg-card rounded-md shadow-lg border border-border">
+              <button
+                className="p-2 hover:bg-muted flex items-center"
+                onClick={() => handleAIAction('remove_bg')}
+                disabled={processingAction !== null}
+              >
+                <Trash size={16} className="mr-1.5" />
+                <span className="text-xs">Remove BG</span>
+              </button>
+              <button
+                className="p-2 hover:bg-muted flex items-center border-t border-border"
+                onClick={() => handleAIAction('enhance')}
+                disabled={processingAction !== null}
+              >
+                <SparklesIcon size={16} className="mr-1.5" />
+                <span className="text-xs">Enhance</span>
+              </button>
+              <button
+                className="p-2 hover:bg-muted flex items-center border-t border-border"
+                onClick={() => handleAIAction('style_transfer')}
+                disabled={processingAction !== null}
+              >
+                <Wand2 size={16} className="mr-1.5" />
+                <span className="text-xs">Style</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
       {/* AI Generation Modal */}
