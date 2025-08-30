@@ -314,12 +314,10 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
               </TabsTrigger>
               <TabsTrigger 
                 value="inpainting" 
-                disabled 
-                className="flex items-center gap-2 opacity-50 cursor-not-allowed"
+                className="flex items-center gap-2"
               >
                 <Brush className="h-4 w-4" />
                 Inpainting
-                <span className="text-xs bg-muted px-2 py-0.5 rounded">Coming Soon</span>
               </TabsTrigger>
             </TabsList>
 
@@ -562,7 +560,15 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
               <div className="text-center py-12 text-muted-foreground">
                 <Brush className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <h3 className="text-lg font-medium mb-2">AI Inpainting</h3>
-                <p>Edit specific parts of images with AI. Coming soon!</p>
+                <p>Use the inpainting tool in the main canvas to edit specific parts of images with AI.</p>
+                <p className="text-sm mt-2">1. Load or generate an image → 2. Click the inpainting tool in the toolbar → 3. Paint areas to modify</p>
+                <Button 
+                  onClick={onClose} 
+                  className="mt-4"
+                  variant="outline"
+                >
+                  Go to Canvas
+                </Button>
               </div>
             </TabsContent>
           </Tabs>
