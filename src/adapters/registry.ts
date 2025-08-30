@@ -6,6 +6,17 @@ import { fluxUltraAdapter } from './image-gen/fluxUltra';
 import { geminiNanoAdapter as geminiNanoGenAdapter } from './image-gen/geminiNano';
 import { openaiAdapter } from './image-gen/openaiAdapter';
 
+// Import all new Replicate models
+import {
+  fluxSchnellAdapter, fluxDevAdapter, fluxProAdapter as replicateFluxPro, fluxUltraAdapter as replicateFluxUltra,
+  sdxlAdapter, sdTurboAdapter, sd15Adapter, sdxlLightningAdapter,
+  realVisAdapter, dreamshaperAdapter, deliberateAdapter, realisticVisionAdapter,
+  animeDiffusionAdapter, anythingV5Adapter, nijiDiffusionAdapter, openjourneyAdapter,
+  midjourneyV4Adapter, protogenAdapter, synthwaveAdapter, vanGoghAdapter,
+  dallECloneAdapter, playgroundV2Adapter,
+  logoDiffusionAdapter, interiorDesignAdapter, fashionDiffusionAdapter
+} from './image-gen/replicateModels';
+
 import { backgroundRemoverAdapter } from './image-edit/backgroundRemover';
 import { upscalerAdapter } from './image-edit/upscaler';
 import { objectRemoverAdapter } from './image-edit/objectRemover';
@@ -28,6 +39,46 @@ import { localTTS } from './sound/ttsLocal';
 
 export const providers = {
   imageGen: { 
+    // Flux Models - Premium Speed & Quality
+    "replicate.flux-schnell": fluxSchnellAdapter,
+    "replicate.flux-dev": fluxDevAdapter,
+    "replicate.flux-pro": replicateFluxPro,
+    "replicate.flux-ultra": replicateFluxUltra,
+    
+    // Stable Diffusion Family
+    "replicate.sdxl": sdxlAdapter,
+    "replicate.sd-turbo": sdTurboAdapter,
+    "replicate.sd-1-5": sd15Adapter,
+    "replicate.sdxl-lightning": sdxlLightningAdapter,
+    
+    // Photorealistic Models
+    "replicate.real-vis": realVisAdapter,
+    "replicate.dreamshaper": dreamshaperAdapter,
+    "replicate.deliberate": deliberateAdapter,
+    "replicate.realistic-vision": realisticVisionAdapter,
+    
+    // Anime & Art Models
+    "replicate.anime-diffusion": animeDiffusionAdapter,
+    "replicate.anything-v5": anythingV5Adapter,
+    "replicate.niji-diffusion": nijiDiffusionAdapter,
+    "replicate.openjourney": openjourneyAdapter,
+    
+    // Artistic & Style Models
+    "replicate.midjourney-v4": midjourneyV4Adapter,
+    "replicate.protogen": protogenAdapter,
+    "replicate.synthwave": synthwaveAdapter,
+    "replicate.van-gogh": vanGoghAdapter,
+    
+    // Creative Models
+    "replicate.dall-e-clone": dallECloneAdapter,
+    "replicate.playground-v2": playgroundV2Adapter,
+    
+    // Specialized Models
+    "replicate.logo-diffusion": logoDiffusionAdapter,
+    "replicate.interior-design": interiorDesignAdapter,
+    "replicate.fashion-diffusion": fashionDiffusionAdapter,
+    
+    // Legacy Support (keep for existing functionality)
     "replicate.flux": replicateAdapter,
     "replicate.sd": replicateStable,
     "gemini.img": geminiGen,

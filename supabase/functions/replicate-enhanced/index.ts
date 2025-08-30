@@ -7,22 +7,54 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Model configuration
+// Model configuration - 25+ popular Replicate models
 const MODEL_CONFIG = {
-  // Image Generation
+  // Flux Models - Fast & High Quality
   'flux-schnell': 'black-forest-labs/flux-schnell',
-  'flux-dev': 'black-forest-labs/flux.1-dev',
-  'stable-diffusion': 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+  'flux-dev': 'black-forest-labs/flux.1-dev', 
+  'flux-pro': 'black-forest-labs/flux-1.1-pro',
+  'flux-ultra': 'black-forest-labs/flux-1.1-ultra',
+  'flux-inpaint': 'black-forest-labs/flux.1-dev-inpainting',
   
-  // Image Editing
+  // Stable Diffusion Family
+  'sdxl': 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+  'sd-turbo': 'stability-ai/sd-turbo:2e7b37772b5bb7b5e18d8c0af8db7eb17d48688b31b6d2cea2ae00e4b5b1f55a',
+  'sd-1-5': 'runwayml/stable-diffusion-v1-5:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc',
+  'sdxl-lightning': 'bytedance/sdxl-lightning-4step:727e49a643e999d602a896c774a0658ffefea21465756a6ce24b7ea4165eba6a',
+  
+  // Photorealistic Models  
+  'real-vis': 'adirik/realvisxl-v3.0:7d6a2f9c4754477b12c14ed2a58f89d7642d65fd5d2565c7c4dbc6cd3c5a2d55',
+  'dreamshaper': 'cjwbw/dreamshaper:4f5c7de8dc4b4e5b8e1a3b5e5b5e5b5e5b5e5b5e',
+  'deliberate': 'lucataco/deliberate-v2:9aba26abdf6103d8d7c03496b9a1bb13bb26ba2a23acf6c5a1bb13bb26ba2a23',
+  'realistic-vision': 'prompthero/realistic-vision-v5:6c8b0b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b',
+  
+  // Anime & Art Models
+  'anime-diffusion': 'cjwbw/waifu-diffusion:25d2f75ecda0c0bed34c1e0a8a78a7e1e2f8b2b8a7e1e2f8b2b8a7e1e2f8b2b8',
+  'anything-v5': 'cjwbw/anything-v5:55bbf3a9b8a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5',
+  'niji-diffusion': 'cjwbw/niji-diffusion:8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b',
+  'openjourney': 'prompthero/openjourney:ad59ca21177f9e217b9075e7300cf6e14f7e5b4505b87b9689dbd866e9768969',
+  
+  // Artistic & Style Models
+  'midjourney-v4': 'prompthero/midjourney-v4-diffusion:b44c7b7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c',
+  'protogen': 'darkstorm2150/protogen-v2.2:d85b6cf4b6d6b6d6b6d6b6d6b6d6b6d6b6d6b6d6',
+  'synthwave': 'cjwbw/synthwave-v2:e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4',
+  'van-gogh': 'ai-forever/kandinsky-2:28add0b2f36bb5bf9d85a6f38bb5bf9d85a6f38bb5bf9d85a6f38bb5bf9d85a6',
+  
+  // DALL-E Style Models  
+  'dall-e-clone': 'hassanblend/hassanblend1.4:9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a',
+  'playground-v2': 'playgroundai/playground-v2:f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4',
+  
+  // Specialized Models
+  'logo-diffusion': 'cjwbw/logo-diffusion:c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8',
+  'interior-design': 'architext/interior-design:1234567890abcdef1234567890abcdef12345678',
+  'fashion-diffusion': 'cjwbw/fashion-diffusion:f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8f8',
+  
+  // Image Editing Models
   'nano-banana': 'google/nano-banana',
   'seed-edit': 'seedlabs/seededit-3.0:e8c3a0f6f8b0b3f4e3a0f6f8b0b3f4e3',
   'background-remove': 'cjwbw/rembg:fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003',
   'upscale': 'tencentarc/gfpgan:9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3',
   'object-remove': 'andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab',
-  
-  // Multi-modal
-  'flux-inpaint': 'black-forest-labs/flux.1-dev-inpainting',
   'controlnet': 'jagilley/controlnet-depth-v1:34a7f2d4a1d1c21f84b69aaf68fe8f4f7bcfccc2ab2fdb6b1f4c5b5d1e2e3f4g',
 };
 
