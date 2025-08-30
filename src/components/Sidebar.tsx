@@ -16,6 +16,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const { assets, createCanvas, setActiveCanvas } = useAppStore();
+  
   const tabs = [
     {
       id: 'image',
@@ -51,8 +53,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       description: 'Your saved work',
     },
   ];
-
-  const { assets } = useAppStore();
   
   // Get real recent projects from assets
   const recentProjects = Object.values(assets)
@@ -64,8 +64,17 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       date: new Date(asset.createdAt).toLocaleDateString(),
       type: asset.type,
       src: asset.src,
+      asset: asset,
       category: asset.category,
     }));
+
+  const handleProjectClick = (project: any) => {
+    // Load the asset to a new canvas
+    const canvasId = createCanvas(project.type as 'image' | 'video' | 'audio', project.asset);
+    setActiveCanvas(canvasId);
+    // Switch to the appropriate tab
+    onTabChange(project.type);
+  };
 
   return (
     <div className="w-56 bg-card border-r border-border flex flex-col">
@@ -123,11 +132,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </button>
         </div>
         <div className="space-y-1">
-          {recentProjects.map((project) => (
+          {recentProjects.length > 0 ? recentProjects.map((project) => (
             <button
               key={project.id}
               className="flex items-start w-full p-2 rounded-lg text-left hover:bg-muted group transition-colors"
-              onClick={() => onTabChange('image')} // Navigate to canvas to view project
+              onClick={() => handleProjectClick(project)}
             >
               <div className="mr-2 mt-0.5">
                 {project.type === 'image' && (
@@ -158,7 +167,12 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 </div>
               </div>
             </button>
-          ))}
+          )) : (
+            <div className="text-center text-muted-foreground py-4">
+              <div className="text-sm">No recent projects</div>
+              <div className="text-xs">Generate some images to get started</div>
+            </div>
+          )}
         </div>
       </div>
       <div className="p-4 border-t border-border">
