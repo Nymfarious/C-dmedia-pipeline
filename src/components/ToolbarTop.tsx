@@ -46,7 +46,7 @@ export function ToolbarTop({
     setActiveTool(tool);
     onToolChange(tool);
     
-    // Open AI modal for magic wand tool
+    // Open AI modal for AI generation tool
     if (tool === 'smart-select' && onOpenAIModal) {
       onOpenAIModal();
     }

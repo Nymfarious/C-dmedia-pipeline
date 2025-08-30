@@ -139,30 +139,40 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
 
     setProcessingAction(action);
     
-    // Map action to step kind and use nano-banana provider
+    // Map action to step kind and provider
     let stepKind: PipelineStep["kind"];
-    let providerKey = "replicate.nano-banana";
+    let providerKey: string;
+    let instruction = '';
     
     switch (action) {
       case 'remove_bg':
         stepKind = "REMOVE_BG";
+        providerKey = "replicate.birefnet"; // Use better background removal
+        instruction = "Remove the background from this image";
         break;
       case 'enhance':
-        stepKind = "UPSCALE";
+        stepKind = "UPSCALE"; 
+        providerKey = "replicate.nano-banana";
+        instruction = "Enhance and improve the quality of this image";
         break;
       case 'style_transfer':
         stepKind = "EDIT";
+        providerKey = "replicate.nano-banana";
+        instruction = "Apply an artistic style to this image";
         break;
       default:
         stepKind = "EDIT";
+        providerKey = "replicate.nano-banana";
     }
 
     // Enqueue and run the step
-    const stepId = enqueueStep(stepKind, [activeCanvasWithAsset.asset.id], {}, providerKey);
+    const stepId = enqueueStep(stepKind, [activeCanvasWithAsset.asset.id], { instruction }, providerKey);
     runStep(stepId).then(() => {
       setProcessingAction(null);
+      toast.success(`${action.replace('_', ' ')} completed successfully!`);
     }).catch((error) => {
       console.error('AI action failed:', error);
+      toast.error(`Failed to ${action.replace('_', ' ')}: ${error.message}`);
       setProcessingAction(null);
     });
   };

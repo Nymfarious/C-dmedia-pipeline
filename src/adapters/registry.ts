@@ -115,6 +115,7 @@ export const providers = {
     "replicate.seed-edit": seedEditAdapter,
     "gemini.conversational-edit": geminiConversationalAdapter,
     "replicate.rembg": backgroundRemoverAdapter,
+    "replicate.birefnet": backgroundRemoverAdapter, // Better background removal
     "replicate.upscale": upscalerAdapter,
     "replicate.object-remove": objectRemoverAdapter,
     "replicate.object-add": objectAdderAdapter,

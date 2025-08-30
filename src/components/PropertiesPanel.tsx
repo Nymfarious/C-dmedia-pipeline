@@ -106,7 +106,7 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
     try {
       if (aiGenerationType === 'Create New') {
         // Generate new image and create canvas
-        const asset = await generateDirectly({ prompt: aiPrompt }, "replicate.nano-banana");
+        const asset = await generateDirectly({ prompt: aiPrompt }, "replicate.flux");
         const canvasId = createCanvas('image', asset);
         setActiveCanvas(canvasId);
         toast.success("Image generated successfully!");
@@ -161,7 +161,7 @@ export function PropertiesPanel({ activeTab }: PropertiesPanelProps) {
 
       const stepId = enqueueStep(stepKind, [activeCanvasWithAsset.asset.id], {
         instruction
-      }, "replicate.nano-banana");
+      }, stepKind === "REMOVE_BG" ? "replicate.rembg" : "replicate.nano-banana");
       
       await runStep(stepId);
       toast.success(`${action} completed successfully!`);

@@ -27,10 +27,10 @@ export const backgroundRemoverAdapter: ImageEditAdapter = {
       id: crypto.randomUUID(),
       type: asset.type,
       name: `${asset.name} (Background Removed)`,
-      src: data.output,
+      src: typeof data.output === 'string' ? data.output : data.output[0],
       meta: {
         ...asset.meta,
-        provider: 'replicate.rembg',
+        provider: 'replicate.birefnet',
         originalAsset: asset.id
       },
       createdAt: Date.now(),
