@@ -18,6 +18,8 @@ interface AppState {
   galleryImages: GalleryImage[];
   canvases: Array<{ id: string; type: 'image' | 'video' | 'audio'; name: string; asset?: Asset; createdAt: number }>;
   activeCanvas: string | null;
+  activeTool: string;
+  inpaintingMode: boolean;
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
@@ -44,6 +46,8 @@ interface AppState {
   getActiveCanvasWithAsset(): { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } | null;
   clearWorkspace(): void;
   loadProjectData(assets: Record<string, Asset>, currentAssetId?: string): void;
+  setActiveTool(tool: string): void;
+  setInpaintingMode(enabled: boolean): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }
@@ -62,6 +66,8 @@ const useAppStore = create<AppState>((set, get) => ({
   galleryImages: [],
   canvases: [],
   activeCanvas: null,
+  activeTool: 'select',
+  inpaintingMode: false,
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -484,6 +490,18 @@ const useAppStore = create<AppState>((set, get) => ({
     
     get().persist();
   },
+
+  setActiveTool: (tool) => {
+    set({ activeTool: tool });
+    // Enable inpainting mode when inpaint tool is selected
+    if (tool === 'inpaint') {
+      set({ inpaintingMode: true });
+    } else if (get().inpaintingMode) {
+      set({ inpaintingMode: false });
+    }
+  },
+
+  setInpaintingMode: (enabled) => set({ inpaintingMode: enabled }),
 
   persist: async () => {
     const state = get();

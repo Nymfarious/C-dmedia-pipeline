@@ -18,7 +18,10 @@ export function Dashboard() {
     setActiveCanvas, 
     updateCanvasAsset,
     clearWorkspace,
-    loadProjectData
+    loadProjectData,
+    activeTool,
+    setActiveTool,
+    inpaintingMode 
   } = useAppStore();
 
   const [showAIModal, setShowAIModal] = useState(false);

@@ -57,8 +57,8 @@ export function ToolbarTop({
   };
 
   // Define which tools are functional vs coming soon
-  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg'];
-  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'inpaint', 'enhance', 'style', 'text', 'stickers', 'adjust'];
+  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg', 'inpaint'];
+  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'enhance', 'style', 'text', 'stickers', 'adjust'];
 
   const toolGroups = [
     {
@@ -142,8 +142,8 @@ export function ToolbarTop({
         {
           id: 'inpaint',
           icon: <Edit3 size={18} />,
-          tooltip: 'AI Inpainting - Coming Soon',
-          working: false,
+          tooltip: 'AI Inpainting',
+          working: true,
         },
         {
           id: 'enhance',

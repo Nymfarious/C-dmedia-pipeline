@@ -30,6 +30,7 @@ import { StyleFilterGallery } from './StyleFilterGallery';
 import { PoseEditor } from './PoseEditor';
 import { CropTool } from './CropTool';
 import { FaceSwapTool } from './FaceSwapTool';
+import { InpaintingTool } from './InpaintingTool';
 import { ProjectSaveLoad } from '../ProjectSaveLoad';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
 import { objectAdderAdapter } from '@/adapters/image-edit/objectAdder';
@@ -59,7 +60,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [upscaleFactor, setUpscaleFactor] = useState(2);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { enqueueStep, runStep, generateDirectly, assets, addAsset } = useAppStore();
+  const { enqueueStep, runStep, generateDirectly, assets, addAsset, activeTool, inpaintingMode } = useAppStore();
 
   const tools = [
     { id: 'background-remove', label: 'Remove Background', icon: Eraser, needsAsset: true },
@@ -274,6 +275,28 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     }
   };
 
+  const handleInpaintingComplete = async (params: ImageEditParams) => {
+    if (!asset) return;
+    
+    try {
+      const stepId = enqueueStep('EDIT', [asset.id], params, 'replicate.flux-inpaint');
+      await runStep(stepId);
+      
+      const { steps, assets: updatedAssets } = useAppStore.getState();
+      const step = steps[stepId];
+      if (step.status === "done" && step.outputAssetId) {
+        const editedAsset = updatedAssets[step.outputAssetId];
+        addAsset(editedAsset);
+        onAssetUpdate?.(editedAsset);
+        addToHistory(editedAsset);
+        toast.success('Inpainting completed successfully!');
+      }
+    } catch (error) {
+      console.error('Inpainting error:', error);
+      toast.error('Failed to complete inpainting');
+    }
+  };
+
   const handleRotate = async () => {
     console.log('Rotate tool selected');
     toast.info('Rotation coming soon!');
@@ -462,9 +485,18 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
               )}
             </div>
           )}
+
+          {/* Inpainting Tool */}
+          {activeTool === 'inpaint' && inpaintingMode && (
+            <InpaintingTool
+              asset={asset}
+              onComplete={handleInpaintingComplete}
+              className="w-full"
+            />
+          )}
           
           {/* Canvas Container - Only show when no editing tool is active */}
-          {!showObjectEditTool && !showColorPanel && !showStyleGallery && (
+          {!showObjectEditTool && !showColorPanel && !showStyleGallery && !(activeTool === 'inpaint' && inpaintingMode) && (
             <div className="relative bg-card rounded-lg border border-border">
               <div className="relative min-h-[400px] rounded-lg overflow-hidden">
                 <img
