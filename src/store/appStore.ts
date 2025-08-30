@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { get as idbGet, set as idbSet } from 'idb-keyval';
-import { Asset, PipelineStep, CategoryInfo, DEFAULT_CATEGORIES } from '@/types/media';
+import { Asset, PipelineStep, CategoryInfo, DEFAULT_CATEGORIES, GalleryImage, GalleryMetadata } from '@/types/media';
 import { providers } from '@/adapters/registry';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ interface AppState {
   categories: CategoryInfo[];
   customCategories: CategoryInfo[];
   allCategories: CategoryInfo[];
+  galleryImages: GalleryImage[];
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
@@ -32,6 +33,9 @@ interface AppState {
   setCurrentStepKind(kind: PipelineStep["kind"]): void;
   setCurrentProviderKey(key: string): void;
   setParams(params: Record<string, any>): void;
+  saveToAIGallery(asset: Asset, metadata: GalleryMetadata): Promise<void>;
+  removeFromGallery(id: string): void;
+  toggleGalleryImageFavorite(id: string): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }
@@ -46,6 +50,7 @@ const useAppStore = create<AppState>((set, get) => ({
   paramsByKey: {},
   categories: DEFAULT_CATEGORIES,
   customCategories: [],
+  galleryImages: [],
   get allCategories() {
     return [...this.categories, ...this.customCategories];
   },
@@ -328,12 +333,70 @@ const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  // Gallery management
+  saveToAIGallery: async (asset: Asset, metadata: GalleryMetadata) => {
+    try {
+      // Download and upload the image to cloud storage
+      const { uploadAsset, downloadAndUploadImage } = await import('@/lib/assetStorage');
+      
+      let cloudUrl = asset.src;
+      if (asset.src && !asset.src.includes('supabase')) {
+        // If it's an external URL, download and upload to our storage
+        const uploadResult = await downloadAndUploadImage(
+          asset.src, 
+          `gallery-${Date.now()}.webp`
+        );
+        if (uploadResult.url) {
+          cloudUrl = uploadResult.url;
+        }
+      }
+
+      const galleryImage: GalleryImage = {
+        id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        url: cloudUrl,
+        prompt: metadata.prompt,
+        model: metadata.model,
+        parameters: metadata.parameters,
+        category: metadata.category,
+        favorite: false,
+        created: new Date().toLocaleString(),
+        createdAt: Date.now()
+      };
+
+      set((state) => ({
+        galleryImages: [galleryImage, ...state.galleryImages]
+      }));
+
+      await get().persist();
+    } catch (error) {
+      console.error('Failed to save to gallery:', error);
+      throw error;
+    }
+  },
+
+  removeFromGallery: (id: string) => {
+    set((state) => ({
+      galleryImages: state.galleryImages.filter(img => img.id !== id)
+    }));
+    get().persist();
+  },
+
+  toggleGalleryImageFavorite: (id: string) => {
+    set((state) => ({
+      galleryImages: state.galleryImages.map(img => 
+        img.id === id ? { ...img, favorite: !img.favorite } : img
+      )
+    }));
+    get().persist();
+  },
+
   persist: async () => {
     const state = get();
     await idbSet('app-state', {
       assets: state.assets,
       steps: state.steps,
       paramsByKey: state.paramsByKey,
+      galleryImages: state.galleryImages,
     });
   },
 
@@ -345,6 +408,7 @@ const useAppStore = create<AppState>((set, get) => ({
           assets: stored.assets || {},
           steps: stored.steps || {},
           paramsByKey: stored.paramsByKey || {},
+          galleryImages: stored.galleryImages || [],
         });
       }
       

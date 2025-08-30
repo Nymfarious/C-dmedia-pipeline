@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X, SparklesIcon, ImageIcon, Settings, Wand2, Clock, Zap, Palette, DollarSign } from 'lucide-react';
 import { providers } from '@/adapters/registry';
+import useAppStore from '@/store/appStore';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,

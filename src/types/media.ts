@@ -140,3 +140,22 @@ export interface SoundAdapter {
   key: string; 
   addSound(target: Asset, p: SoundParams): Promise<Asset>; 
 }
+
+export interface GalleryImage {
+  id: string;
+  url: string;
+  prompt: string;
+  model?: string;
+  parameters?: Record<string, any>;
+  category: string;
+  favorite: boolean;
+  created: string;
+  createdAt: number;
+}
+
+export interface GalleryMetadata {
+  prompt: string;
+  model: string;
+  parameters: Record<string, any>;
+  category: string;
+}
