@@ -65,15 +65,6 @@ const MODEL_INFO: Record<string, ModelInfo> = {
     specialty: 'Customization & Control',
     cost: 'low'
   },
-  'huggingface.flux': {
-    key: 'huggingface.flux',
-    name: 'HuggingFace Flux',
-    description: 'Free open-source model with good results',
-    speed: 'fast',
-    quality: 'standard',
-    specialty: 'Budget-Friendly',
-    cost: 'low'
-  },
   'gemini.img': {
     key: 'gemini.img',
     name: 'Gemini Vision',

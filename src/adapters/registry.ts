@@ -5,7 +5,7 @@ import { fluxProAdapter } from './image-gen/fluxPro';
 import { fluxUltraAdapter } from './image-gen/fluxUltra';
 import { geminiNanoAdapter as geminiNanoGenAdapter } from './image-gen/geminiNano';
 import { openaiAdapter } from './image-gen/openaiAdapter';
-import { huggingfaceAdapter } from './image-gen/huggingfaceAdapter';
+
 import { backgroundRemoverAdapter } from './image-edit/backgroundRemover';
 import { upscalerAdapter } from './image-edit/upscaler';
 import { objectRemoverAdapter } from './image-edit/objectRemover';
@@ -34,8 +34,7 @@ export const providers = {
     "flux.pro": fluxProAdapter,
     "flux.ultra": fluxUltraAdapter,
     "gemini.nano": geminiNanoGenAdapter,
-    "openai.dall-e": openaiAdapter,
-    "huggingface.flux": huggingfaceAdapter
+    "openai.dall-e": openaiAdapter
   },
   imageEdit: { 
     "replicate.flux": replicateEdit,
