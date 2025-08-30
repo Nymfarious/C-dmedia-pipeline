@@ -21,13 +21,19 @@ interface CenterWorkspaceProps {
 }
 
 export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCanvas }: CenterWorkspaceProps) {
-  const assets = useAppStore((state) => state.assets);
+  const { assets, createCanvas, setActiveCanvas } = useAppStore();
   
-  // Get recent generated assets
+  // Get recent generated assets (from both assets and gallery)
   const recentGeneratedAssets = Object.values(assets)
-    .filter(asset => asset.category === 'generated')
+    .filter(asset => asset.meta?.provider || asset.category === 'generated')
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 6);
+
+  const handleLoadAssetToCanvas = (asset: Asset) => {
+    console.log('Loading asset to canvas:', asset);
+    const canvasId = createCanvas('image', asset);
+    setActiveCanvas(canvasId);
+  };
 
   if (!currentCanvas) {
     return (
@@ -79,12 +85,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
                     <Card 
                       key={asset.id}
                       className="cursor-pointer hover:bg-muted/50 transition-colors border-border group"
-                      onClick={() => {
-                        const customEvent = new CustomEvent('openAssetInCanvas', { 
-                          detail: asset 
-                        });
-                        window.dispatchEvent(customEvent);
-                      }}
+                      onClick={() => handleLoadAssetToCanvas(asset)}
                     >
                       <div className="p-3">
                         <div className="aspect-square rounded-lg overflow-hidden mb-3 bg-muted">

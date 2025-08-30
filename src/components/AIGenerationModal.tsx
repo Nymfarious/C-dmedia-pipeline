@@ -395,6 +395,8 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
     if (!prompt.trim()) return;
     
     try {
+      console.log('Starting generation with model:', selectedModel);
+      
       const generatedAsset = await useAppStore.getState().generateDirectly(
         { 
           prompt, 
@@ -407,8 +409,11 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
       );
       
       if (generatedAsset) {
+        console.log('Generated asset:', generatedAsset);
+        
         // Add to main assets store
         useAppStore.getState().addAsset(generatedAsset);
+        console.log('Added to assets store');
         
         // Save to AI gallery with metadata
         await useAppStore.getState().saveToAIGallery(generatedAsset, {
@@ -417,12 +422,16 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
           parameters: { style: selectedStyle, quality, negativePrompt, seed },
           category: 'generated'
         });
+        console.log('Saved to gallery');
         
-        // Automatically load the generated asset into a canvas
-        const customEvent = new CustomEvent('openAssetInCanvas', { 
-          detail: generatedAsset 
-        });
-        window.dispatchEvent(customEvent);
+        // Create canvas and auto-load asset
+        const canvasId = useAppStore.getState().createCanvas('image', generatedAsset);
+        useAppStore.getState().setActiveCanvas(canvasId);
+        console.log('Created and activated canvas:', canvasId);
+        
+        // Persist state to ensure changes survive reload
+        await useAppStore.getState().persist();
+        console.log('State persisted');
         
         toast.success('Image generated and loaded to canvas!');
         onClose();

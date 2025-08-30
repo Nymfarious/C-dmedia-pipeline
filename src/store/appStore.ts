@@ -433,6 +433,13 @@ const useAppStore = create<AppState>((set, get) => ({
     get().persist();
   },
 
+  getActiveCanvasWithAsset: () => {
+    const state = get();
+    if (!state.activeCanvas) return null;
+    const canvas = state.canvases.find(c => c.id === state.activeCanvas);
+    return canvas && canvas.asset ? canvas as { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } : null;
+  },
+
   persist: async () => {
     const state = get();
     await idbSet('app-state', {
