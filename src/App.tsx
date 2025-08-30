@@ -93,7 +93,10 @@ function EnhancedApp() {
           selectedTool={selectedTool}
           onToolChange={handleToolChange}
           toggleRightPanel={toggleRightPanel}
-          onOpenAIModal={() => setIsGenerationModalOpen(true)}
+          onOpenAIModal={() => {
+            console.log('App - Opening AI modal, current state:', isGenerationModalOpen);
+            setIsGenerationModalOpen(true);
+          }}
         />
         <div className="flex flex-1">
           <Workspace

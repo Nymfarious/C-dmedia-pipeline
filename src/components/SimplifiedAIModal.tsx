@@ -45,6 +45,8 @@ export function SimplifiedAIModal({ isOpen, onClose }: SimplifiedAIModalProps) {
   const [dimensions, setDimensions] = useState('512x512');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  console.log('SimplifiedAIModal - isOpen:', isOpen);
+
   if (!isOpen) return null;
 
   const handleGenerate = async () => {

@@ -43,16 +43,26 @@ export function ToolbarTop({
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
 
   const handleToolClick = (tool: string) => {
+    console.log('ToolbarTop - Tool clicked:', tool);
+    
     // Only allow clicks on working tools
     const toolData = toolGroups.flatMap(g => g.tools).find(t => t.id === tool);
-    if (!toolData?.working) return;
+    console.log('ToolbarTop - Tool data:', toolData);
+    
+    if (!toolData?.working) {
+      console.log('ToolbarTop - Tool not working, returning');
+      return;
+    }
     
     setActiveTool(tool);
     onToolChange(tool);
     
     // Open AI modal for AI generation tool
     if (tool === 'smart-select' && onOpenAIModal) {
+      console.log('ToolbarTop - Opening AI modal');
       onOpenAIModal();
+    } else if (tool === 'smart-select') {
+      console.log('ToolbarTop - onOpenAIModal is missing');
     }
   };
 
