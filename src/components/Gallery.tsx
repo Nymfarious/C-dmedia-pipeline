@@ -40,7 +40,7 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export function Gallery() {
-  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory, allCategories } = useAppStore();
+  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory, allCategories, createCanvas, setActiveCanvas } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -325,12 +325,14 @@ export function Gallery() {
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            // This will be handled by parent component
-                            window.dispatchEvent(new CustomEvent('openAssetInCanvas', { detail: asset }));
+                            console.log('Gallery - Opening asset in canvas:', asset.name);
+                            const canvasId = createCanvas('image', asset);
+                            setActiveCanvas(canvasId);
+                            toast.success(`Opened ${asset.name} in canvas`);
                           }}
                         >
                           <Edit className="h-4 w-4 mr-2" />
-                          Edit in Canvas
+                          Open in Canvas
                         </DropdownMenuItem>
                         {allCategories.map((category) => (
                           <DropdownMenuItem 

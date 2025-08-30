@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { AIGenerationModal } from './AIGenerationModal';
+import { Asset } from '@/types/media';
 
 interface WorkspaceProps {
   activeTab: string;
@@ -35,6 +36,30 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const [zoom, setZoom] = useState(100);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
+
+  // Subscribe to global canvas state
+  const { activeCanvas, canvases, createCanvas, setActiveCanvas, updateCanvasAsset } = useAppStore(s => ({
+    activeCanvas: s.activeCanvas,
+    canvases: s.canvases,
+    createCanvas: s.createCanvas,
+    setActiveCanvas: s.setActiveCanvas,
+    updateCanvasAsset: s.updateCanvasAsset,
+  }));
+
+  // Sync local state with global canvas state
+  useEffect(() => {
+    console.log('Workspace - Canvas state changed:', { activeCanvas, canvasCount: canvases.length });
+    const currentCanvas = canvases.find(c => c.id === activeCanvas);
+    if (currentCanvas?.asset) {
+      console.log('Workspace - Setting content from canvas:', currentCanvas.asset.name);
+      setHasContent(true);
+      setGeneratedImage(currentCanvas.asset);
+    } else if (activeCanvas && !currentCanvas) {
+      console.log('Workspace - Active canvas not found, clearing content');
+      setHasContent(false);
+      setGeneratedImage(null);
+    }
+  }, [activeCanvas, canvases]);
 
   useEffect(() => {
     if (selectedTool === 'brush' && hasContent) {
@@ -209,12 +234,28 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
             <div
               className="absolute inset-0 rounded-md"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault();
                 try {
                   const assetData = JSON.parse(
                     e.dataTransfer.getData('application/json'),
-                  );
+                  ) as Asset;
+                  
+                  console.log('Workspace - Asset dropped:', assetData.name);
+                  
+                  // If no active canvas, create one. Otherwise, update existing
+                  const currentCanvas = canvases.find(c => c.id === activeCanvas);
+                  if (!currentCanvas) {
+                    const canvasId = createCanvas('image', assetData);
+                    setActiveCanvas(canvasId);
+                    console.log('Workspace - Created new canvas for dropped asset:', canvasId);
+                  } else {
+                    updateCanvasAsset(currentCanvas.id, assetData);
+                    console.log('Workspace - Updated existing canvas with dropped asset');
+                  }
+                  
+                  setHasContent(true);
+                  setGeneratedImage(assetData);
                   addToHistory({
                     type: 'add_asset',
                     asset: assetData,
@@ -223,7 +264,6 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
                       minute: '2-digit',
                     }),
                   });
-                  // Would implement actual asset placement here
                 } catch (err) {
                   console.error('Failed to add asset', err);
                 }
