@@ -42,7 +42,13 @@ export function Dashboard() {
   return (
     <div className="h-screen w-full flex flex-col bg-background">
       {/* Header */}
-      <Header />
+      <Header 
+        activeTab={activeCanvas || 'image'}
+        undo={() => {}}
+        redo={() => {}}
+        canUndo={false}
+        canRedo={false}
+      />
       
       {/* Toolbar */}
       <Toolbar />
