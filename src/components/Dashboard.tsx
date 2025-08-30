@@ -15,19 +15,11 @@ export function Dashboard() {
     activeCanvas, 
     createCanvas, 
     setActiveCanvas, 
-    updateCanvasAsset,
-    hydrate 
+    updateCanvasAsset 
   } = useAppStore();
-
-  // Initialize store data on component mount
-  useEffect(() => {
-    console.log('Dashboard initializing store...');
-    hydrate();
-  }, [hydrate]);
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
   console.log('Dashboard render - canvases:', canvases);
-  console.log('Dashboard render - currentCanvas exists:', !!canvases.find(c => c.id === activeCanvas));
 
   const loadAssetToCanvas = (asset: Asset) => {
     const canvasId = createCanvas(asset.type as 'image' | 'video' | 'audio', asset);
