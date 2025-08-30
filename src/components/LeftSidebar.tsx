@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
+import { ProjectManagementModal } from './ProjectManagementModal';
 
 interface LeftSidebarProps {
   canvases: Array<{
@@ -26,15 +27,38 @@ interface LeftSidebarProps {
   onCreateCanvas: (type: 'image' | 'video' | 'audio') => void;
   onSelectCanvas: (id: string) => void;
   onLoadAssetToCanvas?: (asset: Asset) => void;
+  onClearWorkspace?: () => void;
+  onLoadProject?: (assets: Record<string, Asset>, currentAssetId?: string) => void;
 }
 
-export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCanvas, onLoadAssetToCanvas }: LeftSidebarProps) {
+export function LeftSidebar({ 
+  canvases, 
+  activeCanvas, 
+  onCreateCanvas, 
+  onSelectCanvas, 
+  onLoadAssetToCanvas,
+  onClearWorkspace,
+  onLoadProject
+}: LeftSidebarProps) {
   const assets = useAppStore((state) => state.assets);
+  const [showProjectModal, setShowProjectModal] = useState(false);
   
   // Get recent assets for recent projects
   const recentAssets = Object.values(assets)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 3);
+
+  const handleNewProject = () => {
+    if (onClearWorkspace) {
+      onClearWorkspace();
+    }
+  };
+
+  const handleProjectLoad = (assets: Record<string, Asset>, currentAssetId?: string) => {
+    if (onLoadProject) {
+      onLoadProject(assets, currentAssetId);
+    }
+  };
   return (
     <div className="w-64 border-r border-border bg-card flex flex-col">
       <div className="p-4 space-y-6">
@@ -173,11 +197,21 @@ export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCa
 
       {/* New Project Button */}
       <div className="mt-auto p-4">
-        <Button className="w-full bg-primary hover:bg-primary/90">
+        <Button 
+          className="w-full bg-primary hover:bg-primary/90"
+          onClick={() => setShowProjectModal(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
       </div>
+
+      <ProjectManagementModal
+        isOpen={showProjectModal}
+        onClose={() => setShowProjectModal(false)}
+        onNewProject={handleNewProject}
+        onProjectLoad={handleProjectLoad}
+      />
     </div>
   );
 }

@@ -176,7 +176,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         </div>
       </div>
       <div className="p-4 border-t border-border">
-        <button className="flex items-center justify-center w-full p-2 bg-primary hover:bg-primary/90 rounded-md text-sm text-primary-foreground">
+        <button 
+          className="flex items-center justify-center w-full p-2 bg-primary hover:bg-primary/90 rounded-md text-sm text-primary-foreground"
+          onClick={() => {
+            // For now, just navigate to the main app. Project management is handled in Dashboard.
+            window.location.hash = '';
+          }}
+        >
           <PlusCircleIcon size={16} className="mr-1.5" />
           New Project
         </button>

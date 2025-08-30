@@ -15,7 +15,9 @@ export function Dashboard() {
     activeCanvas, 
     createCanvas, 
     setActiveCanvas, 
-    updateCanvasAsset 
+    updateCanvasAsset,
+    clearWorkspace,
+    loadProjectData
   } = useAppStore();
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
@@ -73,6 +75,8 @@ export function Dashboard() {
           }}
           onSelectCanvas={setActiveCanvas}
           onLoadAssetToCanvas={loadAssetToCanvas}
+          onClearWorkspace={clearWorkspace}
+          onLoadProject={loadProjectData}
         />
         
         {/* Center Workspace */}

@@ -42,6 +42,8 @@ interface AppState {
   setActiveCanvas(canvasId: string | null): void;
   updateCanvasAsset(canvasId: string, asset: Asset): void;
   getActiveCanvasWithAsset(): { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } | null;
+  clearWorkspace(): void;
+  loadProjectData(assets: Record<string, Asset>, currentAssetId?: string): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }
@@ -452,6 +454,35 @@ const useAppStore = create<AppState>((set, get) => ({
     if (!state.activeCanvas) return null;
     const canvas = state.canvases.find(c => c.id === state.activeCanvas);
     return canvas && canvas.asset ? canvas as { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } : null;
+  },
+
+  clearWorkspace: () => {
+    set({
+      assets: {},
+      steps: {},
+      selectedAssetIds: [],
+      canvases: [],
+      activeCanvas: null,
+      galleryImages: [],
+    });
+    get().persist();
+  },
+
+  loadProjectData: (assets, currentAssetId) => {
+    set({
+      assets,
+      selectedAssetIds: currentAssetId ? [currentAssetId] : [],
+      canvases: [],
+      activeCanvas: null,
+    });
+    
+    // If there's a current asset, create a canvas for it
+    if (currentAssetId && assets[currentAssetId]) {
+      const asset = assets[currentAssetId];
+      const canvasId = get().createCanvas(asset.type as 'image' | 'video' | 'audio', asset);
+    }
+    
+    get().persist();
   },
 
   persist: async () => {
