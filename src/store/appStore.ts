@@ -16,6 +16,8 @@ interface AppState {
   customCategories: CategoryInfo[];
   allCategories: CategoryInfo[];
   galleryImages: GalleryImage[];
+  canvases: Array<{ id: string; type: 'image' | 'video' | 'audio'; name: string; asset?: Asset; createdAt: number }>;
+  activeCanvas: string | null;
   
   // Actions
   enqueueStep(kind: PipelineStep["kind"], inputAssetIds: string[], params: Record<string, any>, providerKey: string): string;
@@ -36,6 +38,9 @@ interface AppState {
   saveToAIGallery(asset: Asset, metadata: GalleryMetadata): Promise<void>;
   removeFromGallery(id: string): void;
   toggleGalleryImageFavorite(id: string): void;
+  createCanvas(type: 'image' | 'video' | 'audio', asset?: Asset): string;
+  setActiveCanvas(canvasId: string | null): void;
+  updateCanvasAsset(canvasId: string, asset: Asset): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }
@@ -51,6 +56,8 @@ const useAppStore = create<AppState>((set, get) => ({
   categories: DEFAULT_CATEGORIES,
   customCategories: [],
   galleryImages: [],
+  canvases: [],
+  activeCanvas: null,
   get allCategories() {
     return [...this.categories, ...this.customCategories];
   },
@@ -188,7 +195,10 @@ const useAppStore = create<AppState>((set, get) => ({
     
     const step = get().steps[stepId];
     if (step.status === "done" && step.outputAssetId) {
-      return get().assets[step.outputAssetId];
+      const asset = get().assets[step.outputAssetId];
+      // Ensure asset is persisted
+      await get().persist();
+      return asset;
     }
     throw new Error(step.error || "Generation failed");
   },
@@ -390,6 +400,39 @@ const useAppStore = create<AppState>((set, get) => ({
     get().persist();
   },
 
+  createCanvas: (type, asset) => {
+    const canvasId = crypto.randomUUID();
+    const newCanvas = {
+      id: canvasId,
+      type,
+      name: asset ? asset.name : `New ${type} canvas`,
+      asset,
+      createdAt: Date.now(),
+    };
+    
+    set((state) => ({
+      canvases: [...state.canvases, newCanvas],
+      activeCanvas: canvasId
+    }));
+    
+    get().persist();
+    return canvasId;
+  },
+
+  setActiveCanvas: (canvasId) => {
+    set({ activeCanvas: canvasId });
+    get().persist();
+  },
+
+  updateCanvasAsset: (canvasId, asset) => {
+    set((state) => ({
+      canvases: state.canvases.map(canvas =>
+        canvas.id === canvasId ? { ...canvas, asset, name: asset.name } : canvas
+      )
+    }));
+    get().persist();
+  },
+
   persist: async () => {
     const state = get();
     await idbSet('app-state', {
@@ -397,6 +440,8 @@ const useAppStore = create<AppState>((set, get) => ({
       steps: state.steps,
       paramsByKey: state.paramsByKey,
       galleryImages: state.galleryImages,
+      canvases: state.canvases,
+      activeCanvas: state.activeCanvas,
     });
   },
 
@@ -409,6 +454,8 @@ const useAppStore = create<AppState>((set, get) => ({
           steps: stored.steps || {},
           paramsByKey: stored.paramsByKey || {},
           galleryImages: stored.galleryImages || [],
+          canvases: stored.canvases || [],
+          activeCanvas: stored.activeCanvas || null,
         });
       }
       

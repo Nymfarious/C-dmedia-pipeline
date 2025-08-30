@@ -407,6 +407,9 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
       );
       
       if (generatedAsset) {
+        // Add to main assets store
+        useAppStore.getState().addAsset(generatedAsset);
+        
         // Save to AI gallery with metadata
         await useAppStore.getState().saveToAIGallery(generatedAsset, {
           prompt,
@@ -415,7 +418,13 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
           category: 'generated'
         });
         
-        toast.success('Image generated and saved to gallery!');
+        // Automatically load the generated asset into a canvas
+        const customEvent = new CustomEvent('openAssetInCanvas', { 
+          detail: generatedAsset 
+        });
+        window.dispatchEvent(customEvent);
+        
+        toast.success('Image generated and loaded to canvas!');
         onClose();
       }
     } catch (error) {

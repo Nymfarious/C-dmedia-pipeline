@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Asset, ImageEditParams } from '@/types/media';
 import { Header } from '@/components/Header';
 import { Toolbar } from '@/components/Toolbar';
@@ -8,48 +8,32 @@ import { CenterWorkspace } from '@/components/CenterWorkspace';
 import useAppStore from '@/store/appStore';
 
 export function Dashboard() {
-  const [canvases, setCanvases] = useState<Array<{
-    id: string;
-    type: 'image' | 'video' | 'audio';
-    name: string;
-    asset?: Asset;
-    createdAt: number;
-  }>>([]);
-  
-  const [activeCanvas, setActiveCanvas] = useState<string | null>(null);
+  const { 
+    enqueueStep, 
+    runStep, 
+    canvases, 
+    activeCanvas, 
+    createCanvas, 
+    setActiveCanvas, 
+    updateCanvasAsset 
+  } = useAppStore();
 
-  const createCanvas = (type: 'image' | 'video' | 'audio') => {
-    const newCanvas = {
-      id: crypto.randomUUID(),
-      type,
-      name: `New ${type} canvas`,
-      createdAt: Date.now(),
+  // Listen for asset loading events from AI generation
+  useEffect(() => {
+    const handleOpenAssetInCanvas = (event: CustomEvent<Asset>) => {
+      const canvasId = createCanvas(event.detail.type as 'image' | 'video' | 'audio', event.detail);
+      setActiveCanvas(canvasId);
     };
-    
-    setCanvases(prev => [...prev, newCanvas]);
-    setActiveCanvas(newCanvas.id);
-  };
+
+    window.addEventListener('openAssetInCanvas', handleOpenAssetInCanvas as EventListener);
+    return () => {
+      window.removeEventListener('openAssetInCanvas', handleOpenAssetInCanvas as EventListener);
+    };
+  }, [createCanvas, setActiveCanvas]);
 
   const loadAssetToCanvas = (asset: Asset) => {
-    // Create a new canvas with the asset loaded
-    const newCanvas = {
-      id: crypto.randomUUID(),
-      type: asset.type as 'image' | 'video' | 'audio',
-      name: asset.name,
-      asset,
-      createdAt: Date.now(),
-    };
-    
-    setCanvases(prev => [...prev, newCanvas]);
-    setActiveCanvas(newCanvas.id);
-  };
-
-  const updateCanvasAsset = (canvasId: string, asset: Asset) => {
-    setCanvases(prev => prev.map(canvas => 
-      canvas.id === canvasId 
-        ? { ...canvas, asset }
-        : canvas
-    ));
+    const canvasId = createCanvas(asset.type as 'image' | 'video' | 'audio', asset);
+    setActiveCanvas(canvasId);
   };
 
   const currentCanvas = canvases.find(c => c.id === activeCanvas);
@@ -57,13 +41,13 @@ export function Dashboard() {
   const handleEditComplete = async (params: ImageEditParams) => {
     if (!currentCanvas?.asset) return;
     
-    const store = useAppStore.getState();
-    const stepId = store.enqueueStep("EDIT", [currentCanvas.asset.id], params, params.provider || "replicate.nano-banana");
-    await store.runStep(stepId);
+    const stepId = enqueueStep("EDIT", [currentCanvas.asset.id], params, params.provider || "replicate.nano-banana");
+    await runStep(stepId);
     
-    const step = store.steps[stepId];
+    const { steps, assets } = useAppStore.getState();
+    const step = steps[stepId];
     if (step.status === "done" && step.outputAssetId) {
-      const editedAsset = store.assets[step.outputAssetId];
+      const editedAsset = assets[step.outputAssetId];
       updateCanvasAsset(currentCanvas.id, editedAsset);
     }
   };
@@ -88,7 +72,10 @@ export function Dashboard() {
         <LeftSidebar 
           canvases={canvases}
           activeCanvas={activeCanvas}
-          onCreateCanvas={createCanvas}
+          onCreateCanvas={(type) => {
+            const canvasId = createCanvas(type);
+            setActiveCanvas(canvasId);
+          }}
           onSelectCanvas={setActiveCanvas}
           onLoadAssetToCanvas={loadAssetToCanvas}
         />
@@ -97,7 +84,10 @@ export function Dashboard() {
         <CenterWorkspace 
           currentCanvas={currentCanvas}
           onCanvasAssetUpdate={updateCanvasAsset}
-          onCreateCanvas={createCanvas}
+          onCreateCanvas={(type) => {
+            const canvasId = createCanvas(type);
+            setActiveCanvas(canvasId);
+          }}
         />
         
         {/* Right Sidebar */}
