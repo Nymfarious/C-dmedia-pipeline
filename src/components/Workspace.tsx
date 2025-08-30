@@ -37,20 +37,16 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
 
-  // Subscribe to global canvas state with optimized selector to prevent unnecessary re-renders
-  const { activeCanvas, canvases, createCanvas, setActiveCanvas, updateCanvasAsset } = useAppStore(
-    (state) => ({
-      activeCanvas: state.activeCanvas,
-      canvases: state.canvases,
-      createCanvas: state.createCanvas,
-      setActiveCanvas: state.setActiveCanvas,
-      updateCanvasAsset: state.updateCanvasAsset,
-    })
-  );
+  // Use individual store subscriptions to avoid object recreation
+  const activeCanvas = useAppStore(state => state.activeCanvas);
+  const canvases = useAppStore(state => state.canvases);
+  const createCanvas = useAppStore(state => state.createCanvas);
+  const setActiveCanvas = useAppStore(state => state.setActiveCanvas);
+  const updateCanvasAsset = useAppStore(state => state.updateCanvasAsset);
 
   console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvases.length);
 
-  // Sync canvas state to local state
+  // Sync canvas state to local state - with proper memoization
   useEffect(() => {
     const currentCanvas = canvases.find(c => c.id === activeCanvas);
     if (currentCanvas?.asset) {
@@ -62,7 +58,7 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
       setHasContent(false);
       setGeneratedImage(null);
     }
-  }, [activeCanvas, canvases]);
+  }, [activeCanvas, canvases.length]); // Use canvases.length instead of canvases array
 
   // Fix brush options with functional update to avoid stale closure
   useEffect(() => {
