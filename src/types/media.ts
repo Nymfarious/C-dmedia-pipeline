@@ -54,7 +54,7 @@ export interface ImageGenParams {
 export interface ImageEditParams { 
   instruction?: string; 
   maskAssetId?: string;
-  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit";
+  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit" | "nano-banana-edit" | "flux-inpaint" | "professional-upscale" | "advanced-object-removal" | "color-enhancement" | "pose-adjustment" | "face-enhancement" | string;
   brushMask?: { x: number; y: number; radius: number }[];
   clickPosition?: { x: number; y: number };
   addObjectInstruction?: string;
@@ -73,6 +73,16 @@ export interface ImageEditParams {
   enhanceFaces?: boolean;
   upscaleFactor?: number;
   poseAdjustments?: Array<{ x: number; y: number; id: string; label: string }>;
+  poseKeypoints?: Array<{ x: number; y: number; id: string; label: string }>;
+  provider?: string;
+  scale?: number;
+  strength?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  warmth?: number;
   cropSettings?: {
     aspectRatio: string;
     preset: string;

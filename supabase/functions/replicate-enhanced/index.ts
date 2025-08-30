@@ -56,6 +56,14 @@ const MODEL_CONFIG = {
   'upscale': 'tencentarc/gfpgan:9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3',
   'object-remove': 'andreasjansson/remove-object:ee05b83ade94cd0e11628243fb5c043fffe64d2e3b32f3afe83b6aec8b50a7ab',
   'controlnet': 'jagilley/controlnet-depth-v1:34a7f2d4a1d1c21f84b69aaf68fe8f4f7bcfccc2ab2fdb6b1f4c5b5d1e2e3f4g',
+  
+  // Enhanced edit models
+  'professional-upscale': 'nightmareai/real-esrgan:42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b',
+  'advanced-object-removal': 'sczhou/codeformer:7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53142edd9de2cd',
+  'color-enhancement': 'tencentarc/gfpgan:9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3',
+  'pose-adjustment': 'jagilley/controlnet-pose:0016d281169e0f0c63dc7a8cea6d97cdb93a0c0a6c28e4d31de0e8ca39c9c8ca',
+  'face-enhancement': 'sczhou/codeformer:7de2ea26c616d5bf2245ad0d5e24f0ff9a6204578a5c876db53142edd9de2cd',
+  'style-transfer': 'riffusion/riffusion:8cf61ea6c56afd61d8f5b9ffd14d7c216c0a93844ce2d82ac1c9ecc9c7f24e05',
 };
 
 // Initialize Supabase client
@@ -179,7 +187,7 @@ serve(async (req) => {
         output = await replicate.run(MODEL_CONFIG['nano-banana'], {
           input: {
             image: body.input.image,
-            instruction: body.input.instruction,
+            prompt: body.input.instruction || body.input.prompt, // nano-banana expects 'prompt' not 'instruction'
             negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
             guidance_scale: body.input.guidance_scale || 7.5,
             num_inference_steps: body.input.num_inference_steps || 20,
@@ -264,6 +272,71 @@ serve(async (req) => {
             guidance_scale: 7.5,
             num_inference_steps: 20,
             strength: 0.6
+          }
+        });
+        break;
+
+      case 'professional-upscale':
+        output = await replicate.run(MODEL_CONFIG['professional-upscale'], {
+          input: {
+            image: body.input.image,
+            scale: body.input.scale || 4,
+            face_enhance: body.input.face_enhance || true
+          }
+        });
+        break;
+
+      case 'advanced-object-removal':
+        output = await replicate.run(MODEL_CONFIG['advanced-object-removal'], {
+          input: {
+            image: body.input.image,
+            mask: body.input.mask,
+            algorithm: body.input.algorithm || 'lama-cleaner'
+          }
+        });
+        break;
+
+      case 'color-enhancement':
+        output = await replicate.run(MODEL_CONFIG['color-enhancement'], {
+          input: {
+            image: body.input.image,
+            brightness: body.input.brightness || 0,
+            contrast: body.input.contrast || 0,
+            saturation: body.input.saturation || 0,
+            warmth: body.input.warmth || 0
+          }
+        });
+        break;
+
+      case 'pose-adjustment':
+        output = await replicate.run(MODEL_CONFIG['pose-adjustment'], {
+          input: {
+            image: body.input.image,
+            pose_keypoints: body.input.pose_keypoints || [],
+            prompt: body.input.instruction || 'Adjust pose naturally'
+          }
+        });
+        break;
+
+      case 'face-enhancement':
+        output = await replicate.run(MODEL_CONFIG['face-enhancement'], {
+          input: {
+            image: body.input.image,
+            enhance_background: body.input.enhance_background || false,
+            face_upsample: body.input.face_upsample || true,
+            codeformer_fidelity: body.input.codeformer_fidelity || 0.8
+          }
+        });
+        break;
+
+      case 'style-transfer':
+        output = await replicate.run(MODEL_CONFIG['style-transfer'], {
+          input: {
+            content_image: body.input.image,
+            style_prompt: body.input.style_prompt || body.input.instruction || 'oil painting style',
+            content_strength: body.input.content_strength || 0.7,
+            style_strength: body.input.style_strength || 0.8,
+            num_inference_steps: body.input.num_inference_steps || 20
           }
         });
         break;

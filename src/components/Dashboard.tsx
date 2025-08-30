@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Asset } from '@/types/media';
+import { Asset, ImageEditParams } from '@/types/media';
 import { Header } from '@/components/Header';
 import { Toolbar } from '@/components/Toolbar';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
+import useAppStore from '@/store/appStore';
 
 export function Dashboard() {
   const [canvases, setCanvases] = useState<Array<{
@@ -39,6 +40,20 @@ export function Dashboard() {
 
   const currentCanvas = canvases.find(c => c.id === activeCanvas);
 
+  const handleEditComplete = async (params: ImageEditParams) => {
+    if (!currentCanvas?.asset) return;
+    
+    const store = useAppStore.getState();
+    const stepId = store.enqueueStep("EDIT", [currentCanvas.asset.id], params, params.provider || "replicate.nano-banana");
+    await store.runStep(stepId);
+    
+    const step = store.steps[stepId];
+    if (step.status === "done" && step.outputAssetId) {
+      const editedAsset = store.assets[step.outputAssetId];
+      updateCanvasAsset(currentCanvas.id, editedAsset);
+    }
+  };
+
   return (
     <div className="h-screen w-full flex flex-col bg-background">
       {/* Header */}
@@ -71,7 +86,10 @@ export function Dashboard() {
         />
         
         {/* Right Sidebar */}
-        <RightSidebar />
+        <RightSidebar 
+          selectedAsset={currentCanvas?.asset}
+          onEditComplete={handleEditComplete}
+        />
       </div>
     </div>
   );

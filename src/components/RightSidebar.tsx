@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { EditPanel } from './EditPanel';
 import { 
   Layers, 
   Image, 
@@ -10,15 +11,25 @@ import {
   Eye,
   EyeOff,
   Lock,
-  Unlock
+  Unlock,
+  Wand2
 } from 'lucide-react';
+import { Asset, ImageEditParams } from '@/types/media';
 
-export function RightSidebar() {
+interface RightSidebarProps {
+  selectedAsset?: Asset | null;
+  onEditComplete?: (params: ImageEditParams) => Promise<void>;
+}
+
+export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProps) {
   return (
     <div className="w-80 border-l border-border bg-card">
       <Tabs defaultValue="layers" className="h-full flex flex-col">
         <div className="p-4 pb-0">
-          <TabsList className="grid w-full grid-cols-4 bg-muted">
+          <TabsList className="grid w-full grid-cols-5 bg-muted">
+            <TabsTrigger value="edit" className="text-xs">
+              <Wand2 className="h-4 w-4" />
+            </TabsTrigger>
             <TabsTrigger value="layers" className="text-xs">
               <Layers className="h-4 w-4" />
             </TabsTrigger>
@@ -35,6 +46,13 @@ export function RightSidebar() {
         </div>
 
         <div className="flex-1 overflow-auto">
+          <TabsContent value="edit" className="m-0 p-4">
+            <EditPanel 
+              selectedAsset={selectedAsset || null}
+              onEditComplete={onEditComplete || (async () => {})}
+            />
+          </TabsContent>
+
           <TabsContent value="layers" className="m-0 p-4">
             <div className="space-y-2">
               <h3 className="font-semibold text-sm text-foreground mb-3">Layers</h3>

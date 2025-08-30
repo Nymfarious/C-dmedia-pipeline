@@ -31,6 +31,18 @@ import { seedEditAdapter } from './image-edit/seedEdit';
 import { fluxInpaintAdapter } from './image-edit/fluxInpaint';
 import { geminiConversationalAdapter } from './image-edit/geminiConversational';
 import { replicateEdit } from './image-edit/replicateEdit';
+
+// Enhanced Replicate Edit Adapters
+import { 
+  nanoBananaAdapter,
+  fluxInpaintAdapter as replicateFluxInpaintAdapter,
+  professionalUpscalerAdapter,
+  advancedObjectRemoverAdapter,
+  colorEnhancementAdapter,
+  poseAdjustmentAdapter as replicatePoseAdjustmentAdapter,
+  faceEnhancementAdapter,
+  styleTransferAdapter
+} from './image-edit/replicateEditModels';
 import { canvasOverlay } from './text-overlay/canvas';
 import { openaiTextAdapter } from './text-gen/openaiTextAdapter';
 import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter';
@@ -88,10 +100,19 @@ export const providers = {
     "openai.dall-e": openaiAdapter
   },
   imageEdit: { 
+    // Enhanced Replicate Models
+    "replicate.nano-banana": nanoBananaAdapter,
+    "replicate.flux-inpaint": replicateFluxInpaintAdapter,
+    "replicate.professional-upscaler": professionalUpscalerAdapter,
+    "replicate.advanced-object-remover": advancedObjectRemoverAdapter,
+    "replicate.color-enhancement": colorEnhancementAdapter,
+    "replicate.pose-adjustment": replicatePoseAdjustmentAdapter,
+    "replicate.face-enhancement": faceEnhancementAdapter,
+    "replicate.style-transfer": styleTransferAdapter,
+    
+    // Legacy adapters (still available)
     "replicate.flux": replicateEdit,
-    "replicate.nano-banana": geminiNanoAdapter,
     "replicate.seed-edit": seedEditAdapter,
-    "replicate.flux-inpaint": fluxInpaintAdapter,
     "gemini.conversational-edit": geminiConversationalAdapter,
     "replicate.rembg": backgroundRemoverAdapter,
     "replicate.upscale": upscalerAdapter,
