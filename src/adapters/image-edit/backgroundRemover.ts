@@ -30,7 +30,7 @@ export const backgroundRemoverAdapter: ImageEditAdapter = {
       src: typeof data.output === 'string' ? data.output : data.output[0],
       meta: {
         ...asset.meta,
-        provider: 'replicate.birefnet',
+        provider: 'replicate.rembg',
         originalAsset: asset.id
       },
       createdAt: Date.now(),

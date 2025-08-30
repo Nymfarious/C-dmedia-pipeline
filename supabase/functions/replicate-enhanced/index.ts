@@ -9,12 +9,12 @@ const corsHeaders = {
 
 // Working Replicate model configurations
 const MODEL_CONFIG = {
-  'nano-banana': 'google/nano-banana',
+  'nano-banana': 'google-research/nano-banana',
   'background-remove': 'cjwbw/rembg',
   'flux-inpaint': 'black-forest-labs/flux-fill-dev',
   'flux-inpaint-pro': 'black-forest-labs/flux-fill-pro',
   'upscale': 'nightmareai/real-esrgan',
-  'birefnet': 'men1scus/birefnet', // Better background removal
+  'birefnet': 'cjwbw/rembg', // Use working background removal
 };
 
 // Initialize Supabase client
@@ -113,12 +113,10 @@ serve(async (req) => {
         break;
 
       case 'background-removal':
-        modelKey = 'birefnet'; // Use better background removal model
+        modelKey = 'background-remove';
         output = await replicate.run(MODEL_CONFIG[modelKey], {
           input: { 
-            image: body.input.image,
-            model: 'general-use',
-            refine_foreground: true
+            image: body.input.image
           }
         });
         break;
