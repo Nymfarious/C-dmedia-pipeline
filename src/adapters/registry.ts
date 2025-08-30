@@ -1,5 +1,11 @@
 import { replicateStable } from './image-gen/replicateStable';
 import { replicateAdapter } from './image-gen/replicateAdapter';
+import { geminiGen } from './image-gen/gemini';
+import { fluxProAdapter } from './image-gen/fluxPro';
+import { fluxUltraAdapter } from './image-gen/fluxUltra';
+import { geminiNanoAdapter as geminiNanoGenAdapter } from './image-gen/geminiNano';
+import { openaiAdapter } from './image-gen/openaiAdapter';
+import { huggingfaceAdapter } from './image-gen/huggingfaceAdapter';
 import { backgroundRemoverAdapter } from './image-edit/backgroundRemover';
 import { upscalerAdapter } from './image-edit/upscaler';
 import { objectRemoverAdapter } from './image-edit/objectRemover';
@@ -14,13 +20,21 @@ import { seedEditAdapter } from './image-edit/seedEdit';
 import { fluxInpaintAdapter } from './image-edit/fluxInpaint';
 import { geminiConversationalAdapter } from './image-edit/geminiConversational';
 import { canvasOverlay } from './text-overlay/canvas';
+import { openaiTextAdapter } from './text-gen/openaiTextAdapter';
+import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter';
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
 
 export const providers = {
   imageGen: { 
     "replicate.flux": replicateAdapter,
-    "replicate.sd": replicateStable
+    "replicate.sd": replicateStable,
+    "gemini.img": geminiGen,
+    "flux.pro": fluxProAdapter,
+    "flux.ultra": fluxUltraAdapter,
+    "gemini.nano": geminiNanoGenAdapter,
+    "openai.dall-e": openaiAdapter,
+    "huggingface.flux": huggingfaceAdapter
   },
   imageEdit: { 
     "replicate.nano-banana": geminiNanoAdapter,
@@ -38,7 +52,9 @@ export const providers = {
     "replicate.face-id": faceConsistencyAdapter
   },
   textOverlay: { 
-    "canvas.text": canvasOverlay 
+    "canvas.text": canvasOverlay,
+    "openai.text": openaiTextAdapter,
+    "ai.font-recommendation": fontRecommendationAdapter
   },
   animate: { 
     "sprite.mock": spriteAnimator 

@@ -7,6 +7,8 @@ import {
   BookmarkIcon,
   PlusCircleIcon,
 } from 'lucide-react';
+import useAppStore from '@/store/appStore';
+import type { Asset } from '@/types/media';
 
 interface SidebarProps {
   activeTab: string;
@@ -50,26 +52,20 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     },
   ];
 
-  const recentProjects = [
-    {
-      id: '1',
-      name: 'Mountain landscape',
-      date: '2 hours ago',
-      type: 'image',
-    },
-    {
-      id: '2',
-      name: 'Product animation',
-      date: 'Yesterday',
-      type: 'video',
-    },
-    {
-      id: '3',
-      name: 'Voice narration',
-      date: '3 days ago',
-      type: 'audio',
-    },
-  ];
+  const { assets } = useAppStore();
+  
+  // Get real recent projects from assets
+  const recentProjects = Object.values(assets)
+    .sort((a: Asset, b: Asset) => b.createdAt - a.createdAt)
+    .slice(0, 5)
+    .map((asset: Asset) => ({
+      id: asset.id,
+      name: asset.name,
+      date: new Date(asset.createdAt).toLocaleDateString(),
+      type: asset.type,
+      src: asset.src,
+      category: asset.category,
+    }));
 
   return (
     <div className="w-56 bg-card border-r border-border flex flex-col">
@@ -130,18 +126,36 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           {recentProjects.map((project) => (
             <button
               key={project.id}
-              className="flex items-start w-full p-2 rounded-lg text-left hover:bg-muted transition-colors"
+              className="flex items-start w-full p-2 rounded-lg text-left hover:bg-muted group transition-colors"
+              onClick={() => onTabChange('image')} // Navigate to canvas to view project
             >
               <div className="mr-2 mt-0.5">
-                {project.type === 'image' && <ImageIcon size={18} />}
-                {project.type === 'video' && <VideoIcon size={18} />}
+                {project.type === 'image' && (
+                  project.src ? (
+                    <img 
+                      src={project.src} 
+                      alt={project.name}
+                      className="w-5 h-5 rounded object-cover"
+                    />
+                  ) : (
+                    <ImageIcon size={18} />
+                  )
+                )}
+                {project.type === 'animation' && <VideoIcon size={18} />}
                 {project.type === 'audio' && <MusicIcon size={18} />}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm truncate">
                   {project.name}
                 </div>
-                <div className="text-xs text-muted-foreground">{project.date}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">{project.date}</div>
+                  {project.category && (
+                    <div className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      {project.category}
+                    </div>
+                  )}
+                </div>
               </div>
             </button>
           ))}

@@ -8,3 +8,12 @@ verify_jwt = true
 
 [functions.gemini-nano]
 verify_jwt = true
+
+[functions.openai-image]
+verify_jwt = false
+
+[functions.huggingface-image]
+verify_jwt = false
+
+[functions.openai-text]
+verify_jwt = false

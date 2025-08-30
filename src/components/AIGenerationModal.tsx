@@ -1,16 +1,108 @@
 import React, { useState } from 'react';
-import { X, SparklesIcon, ImageIcon, Settings, Wand2 } from 'lucide-react';
+import { X, SparklesIcon, ImageIcon, Settings, Wand2, Clock, Zap, Palette, DollarSign } from 'lucide-react';
+import { providers } from '@/adapters/registry';
+
+interface ModelInfo {
+  key: string;
+  name: string;
+  description: string;
+  speed: 'fast' | 'medium' | 'slow';
+  quality: 'standard' | 'high' | 'ultra';
+  specialty: string;
+  cost: 'low' | 'medium' | 'high';
+}
+
+const MODEL_INFO: Record<string, ModelInfo> = {
+  'replicate.flux': {
+    key: 'replicate.flux',
+    name: 'Flux Schnell',
+    description: 'Lightning-fast image generation with good quality',
+    speed: 'fast',
+    quality: 'high',
+    specialty: 'Speed & Versatility',
+    cost: 'medium'
+  },
+  'flux.pro': {
+    key: 'flux.pro',
+    name: 'Flux Pro',
+    description: 'Professional-grade images with excellent detail',
+    speed: 'medium',
+    quality: 'ultra',
+    specialty: 'Professional Photography',
+    cost: 'high'
+  },
+  'flux.ultra': {
+    key: 'flux.ultra',
+    name: 'Flux Ultra',
+    description: 'Ultimate quality for artistic and creative work',
+    speed: 'slow',
+    quality: 'ultra',
+    specialty: 'Artistic & Creative',
+    cost: 'high'
+  },
+  'openai.dall-e': {
+    key: 'openai.dall-e',
+    name: 'DALL-E 3',
+    description: 'OpenAI\'s creative powerhouse for imaginative images',
+    speed: 'medium',
+    quality: 'ultra',
+    specialty: 'Creative & Conceptual',
+    cost: 'high'
+  },
+  'replicate.sd': {
+    key: 'replicate.sd',
+    name: 'Stable Diffusion XL',
+    description: 'Reliable and customizable image generation',
+    speed: 'medium',
+    quality: 'high',
+    specialty: 'Customization & Control',
+    cost: 'low'
+  },
+  'huggingface.flux': {
+    key: 'huggingface.flux',
+    name: 'HuggingFace Flux',
+    description: 'Free open-source model with good results',
+    speed: 'fast',
+    quality: 'standard',
+    specialty: 'Budget-Friendly',
+    cost: 'low'
+  },
+  'gemini.img': {
+    key: 'gemini.img',
+    name: 'Gemini Vision',
+    description: 'Google\'s multimodal AI for smart image creation',
+    speed: 'fast',
+    quality: 'high',
+    specialty: 'Smart Context Understanding',
+    cost: 'medium'
+  },
+  'gemini.nano': {
+    key: 'gemini.nano',
+    name: 'Gemini Nano',
+    description: 'Lightweight model for quick iterations',
+    speed: 'fast',
+    quality: 'standard',
+    specialty: 'Rapid Prototyping',
+    cost: 'low'
+  }
+};
 
 interface AIGenerationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (options: { prompt: string; style: string; quality: string }) => void;
+  onGenerate: (options: { prompt: string; style: string; quality: string; model: string; negativePrompt?: string; seed?: number }) => void;
 }
 
 export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationModalProps) {
   const [prompt, setPrompt] = useState('');
+  const [negativePrompt, setNegativePrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('photorealistic');
   const [quality, setQuality] = useState('high');
+  const [selectedModel, setSelectedModel] = useState('replicate.flux');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [seed, setSeed] = useState<number | undefined>();
+
+  const availableModels = Object.keys(providers.imageGen) as Array<keyof typeof providers.imageGen>;
 
   if (!isOpen) return null;
 
@@ -25,8 +117,31 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
 
   const handleGenerate = () => {
     if (prompt.trim()) {
-      onGenerate({ prompt, style: selectedStyle, quality });
+      onGenerate({ 
+        prompt, 
+        style: selectedStyle, 
+        quality, 
+        model: selectedModel,
+        negativePrompt: negativePrompt.trim() || undefined,
+        seed: seed
+      });
       onClose();
+    }
+  };
+
+  const getSpeedIcon = (speed: 'fast' | 'medium' | 'slow') => {
+    switch (speed) {
+      case 'fast': return <Zap className="h-3 w-3 text-green-500" />;
+      case 'medium': return <Clock className="h-3 w-3 text-yellow-500" />;
+      case 'slow': return <Clock className="h-3 w-3 text-red-500" />;
+    }
+  };
+
+  const getCostIcon = (cost: 'low' | 'medium' | 'high') => {
+    switch (cost) {
+      case 'low': return <DollarSign className="h-3 w-3 text-green-500" />;
+      case 'medium': return <DollarSign className="h-3 w-3 text-yellow-500" />;
+      case 'high': return <DollarSign className="h-3 w-3 text-red-500" />;
     }
   };
 
@@ -48,6 +163,45 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
 
         <div className="p-4 space-y-6">
           <div>
+            <label className="block text-sm font-medium mb-2">Model Selection</label>
+            <div className="grid grid-cols-1 gap-2 mb-4">
+              {availableModels.map((modelKey) => {
+                const model = MODEL_INFO[modelKey];
+                if (!model) return null;
+                
+                return (
+                  <button
+                    key={modelKey}
+                    onClick={() => setSelectedModel(modelKey)}
+                    className={`p-3 text-left border rounded-lg transition-colors ${
+                      selectedModel === modelKey
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-muted'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-sm">{model.name}</div>
+                        <div className="text-xs text-muted-foreground">{model.description}</div>
+                        <div className="text-xs text-primary mt-1">{model.specialty}</div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {getSpeedIcon(model.speed)}
+                        {getCostIcon(model.cost)}
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: model.quality === 'ultra' ? 3 : model.quality === 'high' ? 2 : 1 }).map((_, i) => (
+                            <div key={i} className="w-1 h-3 bg-primary rounded-full" />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-2">Prompt</label>
             <textarea
               value={prompt}
@@ -56,6 +210,31 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
               className="w-full h-24 px-3 py-2 bg-muted border border-border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+
+          {showAdvanced && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Negative Prompt (Optional)</label>
+              <textarea
+                value={negativePrompt}
+                onChange={(e) => setNegativePrompt(e.target.value)}
+                placeholder="What you don't want in the image..."
+                className="w-full h-16 px-3 py-2 bg-muted border border-border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          )}
+
+          {showAdvanced && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Seed (Optional)</label>
+              <input
+                type="number"
+                value={seed || ''}
+                onChange={(e) => setSeed(e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="Random seed for reproducible results"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-2">Style</label>
@@ -93,21 +272,30 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-border">
+        <div className="flex items-center justify-between p-4 border-t border-border">
           <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm hover:bg-muted rounded-md"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
           >
-            Cancel
+            <Settings className="mr-2 h-4 w-4 inline" />
+            {showAdvanced ? 'Hide' : 'Show'} Advanced
           </button>
-          <button
-            onClick={handleGenerate}
-            disabled={!prompt.trim()}
-            className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            <Wand2 className="mr-2 h-4 w-4" />
-            Generate
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm hover:bg-muted rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={!prompt.trim()}
+              className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              <Wand2 className="mr-2 h-4 w-4" />
+              Generate with {MODEL_INFO[selectedModel]?.name || 'Selected Model'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
