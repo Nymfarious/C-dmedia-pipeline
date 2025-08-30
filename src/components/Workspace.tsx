@@ -37,23 +37,39 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<any>(null);
 
-  // Subscribe to global canvas state - simplified to avoid loops
-  const { activeCanvas, canvases, createCanvas, setActiveCanvas, updateCanvasAsset } = useAppStore();
+  // Subscribe to global canvas state with optimized selector to prevent unnecessary re-renders
+  const { activeCanvas, canvases, createCanvas, setActiveCanvas, updateCanvasAsset } = useAppStore(
+    (state) => ({
+      activeCanvas: state.activeCanvas,
+      canvases: state.canvases,
+      createCanvas: state.createCanvas,
+      setActiveCanvas: state.setActiveCanvas,
+      updateCanvasAsset: state.updateCanvasAsset,
+    })
+  );
 
   console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvases.length);
 
+  // Sync canvas state to local state
   useEffect(() => {
-    if (selectedTool === 'brush' && hasContent) {
-      setBrushOptions({
-        ...brushOptions,
-        visible: true,
-      });
-    } else {
-      setBrushOptions({
-        ...brushOptions,
-        visible: false,
-      });
+    const currentCanvas = canvases.find(c => c.id === activeCanvas);
+    if (currentCanvas?.asset) {
+      console.log('Workspace - Setting content from canvas:', currentCanvas.asset.name);
+      setHasContent(true);
+      setGeneratedImage(currentCanvas.asset);
+    } else if (activeCanvas && !currentCanvas) {
+      console.log('Workspace - Active canvas not found, clearing content');
+      setHasContent(false);
+      setGeneratedImage(null);
     }
+  }, [activeCanvas, canvases]);
+
+  // Fix brush options with functional update to avoid stale closure
+  useEffect(() => {
+    setBrushOptions(prev => ({
+      ...prev,
+      visible: selectedTool === 'brush' && hasContent
+    }));
   }, [selectedTool, hasContent]);
 
   const handleCreateCanvas = () => {
