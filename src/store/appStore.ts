@@ -55,12 +55,10 @@ const useAppStore = create<AppState>((set, get) => ({
   paramsByKey: {},
   categories: DEFAULT_CATEGORIES,
   customCategories: [],
+  allCategories: DEFAULT_CATEGORIES, // Initialize as static array
   galleryImages: [],
   canvases: [],
   activeCanvas: null,
-  get allCategories() {
-    return [...this.categories, ...this.customCategories];
-  },
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -287,18 +285,27 @@ const useAppStore = create<AppState>((set, get) => ({
   }),
 
   addCustomCategory: (category) => set((state) => ({
-    customCategories: [...state.customCategories, category]
+    customCategories: [...state.customCategories, category],
+    allCategories: [...state.categories, ...state.customCategories, category]
   })),
 
-  removeCustomCategory: (categoryName) => set((state) => ({
-    customCategories: state.customCategories.filter(cat => cat.name !== categoryName)
-  })),
+  removeCustomCategory: (categoryName) => set((state) => {
+    const newCustomCategories = state.customCategories.filter(cat => cat.name !== categoryName);
+    return {
+      customCategories: newCustomCategories,
+      allCategories: [...state.categories, ...newCustomCategories]
+    };
+  }),
 
-  updateCustomCategory: (categoryName, updatedCategory) => set((state) => ({
-    customCategories: state.customCategories.map(cat =>
+  updateCustomCategory: (categoryName, updatedCategory) => set((state) => {
+    const newCustomCategories = state.customCategories.map(cat =>
       cat.name === categoryName ? updatedCategory : cat
-    )
-  })),
+    );
+    return {
+      customCategories: newCustomCategories,
+      allCategories: [...state.categories, ...newCustomCategories]
+    };
+  }),
 
   setCurrentStepKind: (kind) => {
     const state = get();

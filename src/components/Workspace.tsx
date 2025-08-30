@@ -59,7 +59,7 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
       setHasContent(false);
       setGeneratedImage(null);
     }
-  }, [activeCanvas, canvases]);
+  }, [activeCanvas, canvases.length]); // Only depend on length, not the array itself
 
   useEffect(() => {
     if (selectedTool === 'brush' && hasContent) {
