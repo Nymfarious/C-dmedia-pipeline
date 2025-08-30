@@ -43,6 +43,8 @@ interface ImageCanvasProps {
 }
 
 export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
+  console.log('ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
+  
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [history, setHistory] = useState<Asset[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -293,6 +295,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
 
   // Show empty canvas if no asset
   if (!asset) {
+    console.log('ImageCanvas - No asset provided, showing empty canvas');
     return (
       <Card className="h-full bg-card">
         <CardHeader className="border-b border-border">
@@ -326,6 +329,8 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     );
   }
 
+  console.log('ImageCanvas - Rendering with asset:', asset.name, asset.src);
+  
   return (
     <Card className="h-full bg-card">
       <CardHeader className="border-b border-border">

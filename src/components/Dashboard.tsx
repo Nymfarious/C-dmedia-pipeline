@@ -18,18 +18,9 @@ export function Dashboard() {
     updateCanvasAsset 
   } = useAppStore();
 
-  // Listen for asset loading events from AI generation
-  useEffect(() => {
-    const handleOpenAssetInCanvas = (event: CustomEvent<Asset>) => {
-      const canvasId = createCanvas(event.detail.type as 'image' | 'video' | 'audio', event.detail);
-      setActiveCanvas(canvasId);
-    };
-
-    window.addEventListener('openAssetInCanvas', handleOpenAssetInCanvas as EventListener);
-    return () => {
-      window.removeEventListener('openAssetInCanvas', handleOpenAssetInCanvas as EventListener);
-    };
-  }, [createCanvas, setActiveCanvas]);
+  console.log('Dashboard render - activeCanvas:', activeCanvas);
+  console.log('Dashboard render - canvases:', canvases);
+  console.log('Dashboard render - currentCanvas exists:', !!canvases.find(c => c.id === activeCanvas));
 
   const loadAssetToCanvas = (asset: Asset) => {
     const canvasId = createCanvas(asset.type as 'image' | 'video' | 'audio', asset);
@@ -37,6 +28,11 @@ export function Dashboard() {
   };
 
   const currentCanvas = canvases.find(c => c.id === activeCanvas);
+  
+  console.log('Dashboard - Current canvas found:', !!currentCanvas);
+  if (currentCanvas) {
+    console.log('Dashboard - Current canvas asset:', !!currentCanvas.asset);
+  }
 
   const handleEditComplete = async (params: ImageEditParams) => {
     if (!currentCanvas?.asset) return;
