@@ -19,6 +19,7 @@ import { faceConsistencyAdapter } from './image-edit/faceConsistency';
 import { seedEditAdapter } from './image-edit/seedEdit';
 import { fluxInpaintAdapter } from './image-edit/fluxInpaint';
 import { geminiConversationalAdapter } from './image-edit/geminiConversational';
+import { replicateEdit } from './image-edit/replicateEdit';
 import { canvasOverlay } from './text-overlay/canvas';
 import { openaiTextAdapter } from './text-gen/openaiTextAdapter';
 import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter';
@@ -37,6 +38,7 @@ export const providers = {
     "huggingface.flux": huggingfaceAdapter
   },
   imageEdit: { 
+    "replicate.flux": replicateEdit,
     "replicate.nano-banana": geminiNanoAdapter,
     "replicate.seed-edit": seedEditAdapter,
     "replicate.flux-inpaint": fluxInpaintAdapter,

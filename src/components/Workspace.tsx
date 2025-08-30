@@ -34,6 +34,7 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<any>(null);
 
   useEffect(() => {
     if (selectedTool === 'brush' && hasContent) {
@@ -66,29 +67,80 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
     });
   };
 
-  const handleGenerate = (generationOptions: any) => {
+  const handleGenerate = async (generationOptions: any) => {
     setIsGenerating(true);
-    // Simulate AI generation
-    setTimeout(() => {
+    try {
+      const asset = await useAppStore.getState().generateDirectly({
+        prompt: generationOptions.prompt,
+        style: generationOptions.style,
+        quality: generationOptions.quality,
+        negativePrompt: generationOptions.negativePrompt,
+        seed: generationOptions.seed
+      }, generationOptions.model);
+      
       setIsGenerating(false);
       setHasContent(true);
+      setGeneratedImage(asset);
       addToHistory({
         type: 'ai_generation',
         tab: activeTab,
         prompt: generationOptions.prompt,
+        model: generationOptions.model,
         time: new Date().toLocaleTimeString([], {
           hour: '2-digit',
           minute: '2-digit',
         }),
       });
-    }, 2000);
+    } catch (error) {
+      setIsGenerating(false);
+      console.error('Generation failed:', error);
+      addToHistory({
+        type: 'generation_error',
+        tab: activeTab,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      });
+    }
   };
 
-  const handleAIAction = (action: string) => {
-    if (!hasContent) return;
+  const handleAIAction = async (action: string) => {
+    if (!hasContent || !generatedImage) return;
     setProcessingAction(action);
-    // Simulate AI processing
-    setTimeout(() => {
+    
+    try {
+      const store = useAppStore.getState();
+      let result;
+      
+      if (action === 'remove_bg') {
+        const stepId = store.enqueueStep("REMOVE_BG", [generatedImage.id], {}, "replicate.flux");
+        await store.runStep(stepId);
+        const step = store.steps[stepId];
+        if (step.status === "done" && step.outputAssetId) {
+          result = store.assets[step.outputAssetId];
+        }
+      } else if (action === 'enhance') {
+        const stepId = store.enqueueStep("UPSCALE", [generatedImage.id], {}, "replicate.flux");
+        await store.runStep(stepId);
+        const step = store.steps[stepId];
+        if (step.status === "done" && step.outputAssetId) {
+          result = store.assets[step.outputAssetId];
+        }
+      } else if (action === 'style_transfer') {
+        const stepId = store.enqueueStep("EDIT", [generatedImage.id], { instruction: 'Apply artistic style transfer to this image' }, "replicate.flux");
+        await store.runStep(stepId);
+        const step = store.steps[stepId];
+        if (step.status === "done" && step.outputAssetId) {
+          result = store.assets[step.outputAssetId];
+        }
+      }
+      
+      if (result) {
+        setGeneratedImage(result);
+      }
+      
       setProcessingAction(null);
       addToHistory({
         type: action,
@@ -98,7 +150,19 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
           minute: '2-digit',
         }),
       });
-    }, 1500);
+    } catch (error) {
+      setProcessingAction(null);
+      console.error(`${action} failed:`, error);
+      addToHistory({
+        type: `${action}_error`,
+        tab: activeTab,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      });
+    }
   };
 
   const handleZoom = (direction: 'in' | 'out') => {
@@ -165,38 +229,47 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
                 }
               }}
             >
-              {/* Canvas content would go here */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                {isGenerating ? (
-                  <>
-                    <LoaderIcon
-                      size={32}
-                      className="animate-spin text-primary mb-2"
-                    />
-                    <p className="text-gray-800">Generating your image...</p>
-                  </>
-                ) : processingAction ? (
-                  <>
-                    <LoaderIcon
-                      size={32}
-                      className="animate-spin text-primary mb-2"
-                    />
+              {/* Canvas content */}
+              {generatedImage ? (
+                <img 
+                  src={generatedImage.src} 
+                  alt={generatedImage.name}
+                  className="max-w-full max-h-full object-contain"
+                  style={{ transform: `scale(${zoom / 100})` }}
+                />
+              ) : (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                  {isGenerating ? (
+                    <>
+                      <LoaderIcon
+                        size={32}
+                        className="animate-spin text-primary mb-2"
+                      />
+                      <p className="text-gray-800">Generating your image...</p>
+                    </>
+                  ) : processingAction ? (
+                    <>
+                      <LoaderIcon
+                        size={32}
+                        className="animate-spin text-primary mb-2"
+                      />
+                      <p className="text-gray-800">
+                        {processingAction === 'remove_bg' &&
+                          'Removing background...'}
+                        {processingAction === 'enhance' && 'Enhancing image...'}
+                        {processingAction === 'style_transfer' &&
+                          'Applying style transfer...'}
+                      </p>
+                    </>
+                  ) : (
                     <p className="text-gray-800">
-                      {processingAction === 'remove_bg' &&
-                        'Removing background...'}
-                      {processingAction === 'enhance' && 'Enhancing image...'}
-                      {processingAction === 'style_transfer' &&
-                        'Applying style transfer...'}
+                      {selectedTool === 'brush'
+                        ? 'Click and drag to paint'
+                        : 'Your canvas content'}
                     </p>
-                  </>
-                ) : (
-                  <p className="text-gray-800">
-                    {selectedTool === 'brush'
-                      ? 'Click and drag to paint'
-                      : 'Your canvas content'}
-                  </p>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Brush cursor overlay */}
             {brushOptions.visible && (

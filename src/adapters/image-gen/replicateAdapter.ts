@@ -8,13 +8,17 @@ export const replicateAdapter: ImageGenAdapter = {
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
         operation: 'generate',
-        model: 'flux-schnell',
+        model: 'flux-schnell', 
         input: {
           prompt: params.prompt,
           num_outputs: 1,
           aspect_ratio: params.aspect || "1:1",
           output_format: "webp",
           output_quality: 80,
+          negative_prompt: params.negativePrompt,
+          seed: params.seed,
+          guidance_scale: 3.5,
+          num_inference_steps: 4
         }
       }
     });
@@ -32,13 +36,16 @@ export const replicateAdapter: ImageGenAdapter = {
     return {
       id: crypto.randomUUID(),
       type: 'image',
-      name: `Generated: ${params.prompt.slice(0, 30)}...`,
+      name: `Flux: ${params.prompt.slice(0, 30)}...`,
       src: imageUrl,
       meta: { 
         width: 1024, 
         height: 1024, 
         prompt: params.prompt,
-        provider: 'replicate.flux'
+        negativePrompt: params.negativePrompt,
+        provider: 'replicate.flux',
+        model: 'flux-schnell',
+        seed: params.seed
       },
       createdAt: Date.now(),
     };
