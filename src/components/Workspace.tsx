@@ -48,18 +48,22 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
 
   // Sync local state with global canvas state
   useEffect(() => {
-    console.log('Workspace - Canvas state changed:', { activeCanvas, canvasCount: canvases.length });
+    console.log('Workspace useEffect triggered - activeCanvas:', activeCanvas);
     const currentCanvas = canvases.find(c => c.id === activeCanvas);
     if (currentCanvas?.asset) {
       console.log('Workspace - Setting content from canvas:', currentCanvas.asset.name);
-      setHasContent(true);
-      setGeneratedImage(currentCanvas.asset);
+      if (!hasContent || generatedImage?.id !== currentCanvas.asset.id) {
+        setHasContent(true);
+        setGeneratedImage(currentCanvas.asset);
+      }
     } else if (activeCanvas && !currentCanvas) {
       console.log('Workspace - Active canvas not found, clearing content');
-      setHasContent(false);
-      setGeneratedImage(null);
+      if (hasContent) {
+        setHasContent(false);
+        setGeneratedImage(null);
+      }
     }
-  }, [activeCanvas, canvases.length]); // Only depend on length, not the array itself
+  }, [activeCanvas]); // Only depend on activeCanvas
 
   useEffect(() => {
     if (selectedTool === 'brush' && hasContent) {

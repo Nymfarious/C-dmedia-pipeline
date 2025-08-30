@@ -408,6 +408,7 @@ const useAppStore = create<AppState>((set, get) => ({
   },
 
   createCanvas: (type, asset) => {
+    console.log('Store createCanvas called:', type, asset?.name);
     const canvasId = crypto.randomUUID();
     const newCanvas = {
       id: canvasId,
@@ -422,22 +423,27 @@ const useAppStore = create<AppState>((set, get) => ({
       activeCanvas: canvasId
     }));
     
-    get().persist();
+    // Remove persist call here to prevent loops
+    // get().persist();
     return canvasId;
   },
 
   setActiveCanvas: (canvasId) => {
+    console.log('Store setActiveCanvas called:', canvasId);
     set({ activeCanvas: canvasId });
-    get().persist();
+    // Remove persist call here to prevent loops
+    // get().persist();
   },
 
   updateCanvasAsset: (canvasId, asset) => {
+    console.log('Store updateCanvasAsset called:', canvasId, asset.name);
     set((state) => ({
       canvases: state.canvases.map(canvas =>
         canvas.id === canvasId ? { ...canvas, asset, name: asset.name } : canvas
       )
     }));
-    get().persist();
+    // Remove persist call here to prevent loops
+    // get().persist();
   },
 
   getActiveCanvasWithAsset: () => {

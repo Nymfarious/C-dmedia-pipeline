@@ -15,8 +15,15 @@ export function Dashboard() {
     activeCanvas, 
     createCanvas, 
     setActiveCanvas, 
-    updateCanvasAsset 
+    updateCanvasAsset,
+    hydrate 
   } = useAppStore();
+
+  // Initialize store data on component mount
+  useEffect(() => {
+    console.log('Dashboard initializing store...');
+    hydrate();
+  }, [hydrate]);
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
   console.log('Dashboard render - canvases:', canvases);

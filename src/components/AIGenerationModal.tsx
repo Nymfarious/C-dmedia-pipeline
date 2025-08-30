@@ -429,9 +429,7 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
         useAppStore.getState().setActiveCanvas(canvasId);
         console.log('Created and activated canvas:', canvasId);
         
-        // Persist state to ensure changes survive reload
-        await useAppStore.getState().persist();
-        console.log('State persisted');
+        // Note: Removed persist() call here to prevent loops - will persist async
         
         toast.success('Image generated and loaded to canvas!');
         onClose();
