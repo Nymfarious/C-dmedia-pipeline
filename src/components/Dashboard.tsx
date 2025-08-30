@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Asset, ImageEditParams } from '@/types/media';
 import { Header } from '@/components/Header';
 import { Toolbar } from '@/components/Toolbar';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
+import { EnhancedAIModal } from '@/components/EnhancedAIModal';
 import useAppStore from '@/store/appStore';
 
 export function Dashboard() {
@@ -19,6 +20,8 @@ export function Dashboard() {
     clearWorkspace,
     loadProjectData
   } = useAppStore();
+
+  const [showAIModal, setShowAIModal] = useState(false);
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
   console.log('Dashboard render - canvases:', canvases);
@@ -77,6 +80,7 @@ export function Dashboard() {
           onLoadAssetToCanvas={loadAssetToCanvas}
           onClearWorkspace={clearWorkspace}
           onLoadProject={loadProjectData}
+          onOpenAIModal={() => setShowAIModal(true)}
         />
         
         {/* Center Workspace */}
@@ -95,6 +99,12 @@ export function Dashboard() {
           onEditComplete={handleEditComplete}
         />
       </div>
+
+      {/* Enhanced AI Modal */}
+      <EnhancedAIModal 
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+      />
     </div>
   );
 }

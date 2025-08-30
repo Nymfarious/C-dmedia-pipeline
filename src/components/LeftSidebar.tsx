@@ -9,7 +9,8 @@ import {
   Plus,
   Grid3X3,
   Save,
-  FolderOpen
+  FolderOpen,
+  Sparkles
 } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
@@ -29,6 +30,7 @@ interface LeftSidebarProps {
   onLoadAssetToCanvas?: (asset: Asset) => void;
   onClearWorkspace?: () => void;
   onLoadProject?: (assets: Record<string, Asset>, currentAssetId?: string) => void;
+  onOpenAIModal?: () => void;
 }
 
 export function LeftSidebar({ 
@@ -38,7 +40,8 @@ export function LeftSidebar({
   onSelectCanvas, 
   onLoadAssetToCanvas,
   onClearWorkspace,
-  onLoadProject
+  onLoadProject,
+  onOpenAIModal
 }: LeftSidebarProps) {
   const assets = useAppStore((state) => state.assets);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -108,6 +111,14 @@ export function LeftSidebar({
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Quick Access</h3>
           <div className="space-y-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={onOpenAIModal}
+            >
+              <Sparkles className="h-4 w-4 mr-3" />
+              AI Generation
+            </Button>
             <Button variant="ghost" className="w-full justify-start h-9 p-2">
               <Grid3X3 className="h-4 w-4 mr-3" />
               AI Gallery
