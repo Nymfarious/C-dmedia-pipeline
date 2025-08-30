@@ -391,17 +391,36 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
     { id: 'watercolor', name: 'Watercolor', preview: '/api/placeholder/80/80' },
   ];
 
-  const handleGenerate = () => {
-    if (prompt.trim()) {
-      onGenerate({ 
-        prompt, 
-        style: selectedStyle, 
-        quality, 
-        model: selectedModel,
-        negativePrompt: negativePrompt.trim() || undefined,
-        seed: seed
-      });
-      onClose();
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    
+    try {
+      const generatedAsset = await useAppStore.getState().generateDirectly(
+        { 
+          prompt, 
+          negativePrompt: negativePrompt.trim() || undefined,
+          seed: seed,
+          style: selectedStyle,
+          quality
+        },
+        selectedModel
+      );
+      
+      if (generatedAsset) {
+        // Save to AI gallery with metadata
+        await useAppStore.getState().saveToAIGallery(generatedAsset, {
+          prompt,
+          model: selectedModel,
+          parameters: { style: selectedStyle, quality, negativePrompt, seed },
+          category: 'generated'
+        });
+        
+        toast.success('Image generated and saved to gallery!');
+        onClose();
+      }
+    } catch (error) {
+      console.error('Generation failed:', error);
+      toast.error('Failed to generate image');
     }
   };
 

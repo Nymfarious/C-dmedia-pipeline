@@ -91,13 +91,19 @@ export function LeftSidebar({ canvases, activeCanvas, onCreateCanvas, onSelectCa
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Recent Projects</h3>
           <div className="space-y-2">
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <Card 
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => console.log('Navigate to Abstract Art project')}
+            >
               <CardContent className="p-3">
                 <div className="text-sm font-medium text-foreground">Abstract Art</div>
                 <div className="text-xs text-muted-foreground">2 hours ago</div>
               </CardContent>
             </Card>
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <Card 
+              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => console.log('Navigate to Logo Design project')}
+            >
               <CardContent className="p-3">
                 <div className="text-sm font-medium text-foreground">Logo Design</div>
                 <div className="text-xs text-muted-foreground">Yesterday</div>
