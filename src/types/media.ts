@@ -54,7 +54,7 @@ export interface ImageGenParams {
 export interface ImageEditParams { 
   instruction?: string; 
   maskAssetId?: string;
-  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit" | "nano-banana-edit" | "flux-inpaint" | "professional-upscale" | "advanced-object-removal" | "color-enhancement" | "pose-adjustment" | "face-enhancement" | string;
+  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit" | "nano-banana-edit" | "flux-inpaint" | "professional-upscale" | "advanced-object-removal" | "color-enhancement" | "pose-adjustment" | "face-enhancement" | "multi-image-fusion" | string;
   brushMask?: { x: number; y: number; radius: number }[];
   clickPosition?: { x: number; y: number };
   addObjectInstruction?: string;
@@ -93,6 +93,10 @@ export interface ImageEditParams {
   };
   targetImageUrl?: string;
   referenceImageUrl?: string;
+  // Multi-image combination support
+  multiImageUrls?: string[];
+  combineMode?: 'fusion' | 'collage' | 'blend' | 'composite';
+  compositionStyle?: string;
 }
 
 export interface TextOverlayParams { 

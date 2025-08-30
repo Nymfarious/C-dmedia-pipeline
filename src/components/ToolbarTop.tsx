@@ -21,6 +21,7 @@ import {
   ShapesIcon,
   CropIcon,
   Smile,
+  Edit3,
 } from 'lucide-react';
 
 interface ToolbarTopProps {
@@ -115,6 +116,11 @@ export function ToolbarTop({
     {
       title: 'AI Tools',
       tools: [
+        {
+          id: 'inpaint',
+          icon: <Edit3 size={18} />,
+          tooltip: 'AI Inpainting',
+        },
         {
           id: 'remove-bg',
           icon: <Trash size={18} />,

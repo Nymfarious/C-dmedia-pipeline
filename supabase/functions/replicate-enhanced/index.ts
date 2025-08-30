@@ -184,16 +184,33 @@ serve(async (req) => {
         break;
 
       case 'nano-banana-edit':
-        output = await replicate.run(MODEL_CONFIG['nano-banana'], {
-          input: {
-            image: body.input.image,
-            prompt: body.input.instruction || body.input.prompt, // nano-banana expects 'prompt' not 'instruction'
-            negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
-            guidance_scale: body.input.guidance_scale || 7.5,
-            num_inference_steps: body.input.num_inference_steps || 20,
-            strength: body.input.strength || 0.8
-          }
-        });
+        // Handle multi-image fusion
+        if (body.input.images && body.input.images.length > 1) {
+          output = await replicate.run(MODEL_CONFIG['nano-banana'], {
+            input: {
+              images: body.input.images,
+              prompt: body.input.prompt || body.input.instruction || 'Combine these images seamlessly',
+              composition_style: body.input.composition_style || 'seamless blend',
+              negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
+              guidance_scale: body.input.guidance_scale || 7.5,
+              num_inference_steps: body.input.num_inference_steps || 20,
+              strength: body.input.strength || 0.8
+            }
+          });
+        } else {
+          // Standard single image editing
+          output = await replicate.run(MODEL_CONFIG['nano-banana'], {
+            input: {
+              image: body.input.image,
+              prompt: body.input.instruction || body.input.prompt,
+              negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
+              guidance_scale: body.input.guidance_scale || 7.5,
+              num_inference_steps: body.input.num_inference_steps || 20,
+              strength: body.input.strength || 0.8,
+              ...(body.input.mask && { mask: body.input.mask })
+            }
+          });
+        }
         break;
 
       case 'seed-edit':
@@ -337,6 +354,21 @@ serve(async (req) => {
             content_strength: body.input.content_strength || 0.7,
             style_strength: body.input.style_strength || 0.8,
             num_inference_steps: body.input.num_inference_steps || 20
+          }
+        });
+        break;
+
+      case 'multi-image-fusion':
+        // Use nano-banana for multi-image fusion
+        output = await replicate.run(MODEL_CONFIG['nano-banana'], {
+          input: {
+            images: body.input.images || [body.input.image, body.input.target_image],
+            prompt: body.input.prompt || body.input.instruction || 'Seamlessly combine these images into one cohesive artwork',
+            composition_style: body.input.composition_style || 'seamless blend',
+            negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality, separated images",
+            guidance_scale: body.input.guidance_scale || 7.5,
+            num_inference_steps: body.input.num_inference_steps || 25,
+            strength: body.input.strength || 0.8
           }
         });
         break;

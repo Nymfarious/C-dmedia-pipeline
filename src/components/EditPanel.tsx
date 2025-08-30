@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { EnhancedBrushTool } from './Canvas/EnhancedBrushTool';
 import { ColorAdjustmentPanel } from './Canvas/ColorAdjustmentPanel';
 import { PoseEditor } from './Canvas/PoseEditor';
+import { InpaintingTool } from './Canvas/InpaintingTool';
+import { AssetCombiner } from './Canvas/AssetCombiner';
 import { 
   Wand2, 
   Palette, 
@@ -192,10 +194,18 @@ export function EditPanel({ selectedAsset, onEditComplete, className }: EditPane
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">
               <Sparkles className="h-4 w-4 mr-1" />
               General
+            </TabsTrigger>
+            <TabsTrigger value="inpaint">
+              <Edit3 className="h-4 w-4 mr-1" />
+              Inpaint
+            </TabsTrigger>
+            <TabsTrigger value="combine">
+              <Layers className="h-4 w-4 mr-1" />
+              Combine
             </TabsTrigger>
             <TabsTrigger value="color">
               <Palette className="h-4 w-4 mr-1" />
@@ -204,10 +214,6 @@ export function EditPanel({ selectedAsset, onEditComplete, className }: EditPane
             <TabsTrigger value="pose">
               <User className="h-4 w-4 mr-1" />
               Pose
-            </TabsTrigger>
-            <TabsTrigger value="advanced">
-              <Layers className="h-4 w-4 mr-1" />
-              Advanced
             </TabsTrigger>
           </TabsList>
 
@@ -352,6 +358,19 @@ export function EditPanel({ selectedAsset, onEditComplete, className }: EditPane
             </Button>
           </TabsContent>
 
+          <TabsContent value="inpaint">
+            <InpaintingTool
+              asset={selectedAsset}
+              onComplete={onEditComplete}
+            />
+          </TabsContent>
+
+          <TabsContent value="combine">
+            <AssetCombiner
+              onComplete={onEditComplete}
+            />
+          </TabsContent>
+
           <TabsContent value="color">
             <ColorAdjustmentPanel onAdjustment={handleColorAdjustment} />
           </TabsContent>
@@ -362,30 +381,24 @@ export function EditPanel({ selectedAsset, onEditComplete, className }: EditPane
               onPoseAdjust={handlePoseAdjustment}
             />
           </TabsContent>
-
-          <TabsContent value="advanced" className="space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Advanced editing features and batch processing coming soon...
-            </div>
-            
-            {/* Edit History */}
-            {editHistory.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Edit History</Label>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {editHistory.slice(-5).map((edit, index) => (
-                      <div key={index} className="text-xs bg-muted p-2 rounded">
-                        {edit}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </TabsContent>
         </Tabs>
+        
+        {/* Edit History */}
+        {editHistory.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <Label>Edit History</Label>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {editHistory.slice(-5).map((edit, index) => (
+                  <div key={index} className="text-xs bg-muted p-2 rounded">
+                    {edit}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
