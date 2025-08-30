@@ -16,6 +16,7 @@ import {
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
 import { Asset } from '@/types/media';
 import { ApiKeySettings } from '@/components/Settings/ApiKeySettings';
+import UserHeader from '@/components/UserHeader';
 
 export function Dashboard() {
   const [canvases, setCanvases] = useState<Array<{
@@ -53,21 +54,7 @@ export function Dashboard() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Frame Fuser</h1>
-            <p className="text-muted-foreground">AI-powered media creation studio</p>
-          </div>
-          <div className="flex gap-2">
-            <ApiKeySettings />
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        </div>
-      </div>
+      <UserHeader />
 
       {/* Main Content */}
       <div className="flex-1 flex">

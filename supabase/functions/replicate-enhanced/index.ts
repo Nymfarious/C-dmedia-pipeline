@@ -37,6 +37,27 @@ serve(async (req) => {
   }
 
   try {
+    // Get user from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authorization required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verify the JWT token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN')
     if (!REPLICATE_API_TOKEN) {
       throw new Error('REPLICATE_API_TOKEN is not set')
@@ -46,7 +67,15 @@ serve(async (req) => {
     const body = await req.json()
     console.log("Enhanced Replicate request:", JSON.stringify(body, null, 2))
 
-    // Create operation tracking record
+    // Validate input
+    if (!body.operation) {
+      return new Response(JSON.stringify({ error: 'Operation type required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create operation tracking record with authenticated user
     const operationId = crypto.randomUUID()
     const { error: insertError } = await supabase
       .from('ai_operations')
@@ -56,6 +85,7 @@ serve(async (req) => {
         provider: 'replicate',
         model: body.model || body.operation,
         input_params: body.input,
+        user_id: user.id,
         status: 'pending'
       })
 

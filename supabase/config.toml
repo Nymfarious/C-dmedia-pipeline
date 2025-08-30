@@ -1,10 +1,10 @@
 project_id = "ghfrddcmkexifhcwyupu"
 
 [functions.replicate]
-verify_jwt = false
+verify_jwt = true
 
 [functions.replicate-enhanced]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gemini-nano]
-verify_jwt = false
+verify_jwt = true

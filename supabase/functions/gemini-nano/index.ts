@@ -18,8 +18,37 @@ serve(async (req) => {
   }
 
   try {
+    // Get user from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authorization required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verify the JWT token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid authorization' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json()
     console.log("Gemini Nano request:", JSON.stringify(body, null, 2))
+
+    // Validate input
+    if (!body.operation) {
+      return new Response(JSON.stringify({ error: 'Operation type required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // For now, route through Replicate until direct Gemini integration
     const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN')
@@ -29,7 +58,7 @@ serve(async (req) => {
 
     const replicate = new Replicate({ auth: REPLICATE_API_TOKEN })
 
-    // Create operation tracking record
+    // Create operation tracking record with authenticated user
     const operationId = crypto.randomUUID()
     const { error: insertError } = await supabase
       .from('ai_operations')
@@ -39,6 +68,7 @@ serve(async (req) => {
         provider: 'gemini',
         model: 'nano-banana',
         input_params: body.input,
+        user_id: user.id,
         status: 'pending'
       })
 
