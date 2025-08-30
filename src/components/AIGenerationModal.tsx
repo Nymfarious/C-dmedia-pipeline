@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { X, SparklesIcon, ImageIcon, Settings, Wand2, Clock, Zap, Palette, DollarSign } from 'lucide-react';
 import { providers } from '@/adapters/registry';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ModelInfo {
   key: string;
@@ -164,41 +171,59 @@ export function AIGenerationModal({ isOpen, onClose, onGenerate }: AIGenerationM
         <div className="p-4 space-y-6">
           <div>
             <label className="block text-sm font-medium mb-2">Model Selection</label>
-            <div className="grid grid-cols-1 gap-2 mb-4">
-              {availableModels.map((modelKey) => {
-                const model = MODEL_INFO[modelKey];
-                if (!model) return null;
-                
-                return (
-                  <button
-                    key={modelKey}
-                    onClick={() => setSelectedModel(modelKey)}
-                    className={`p-3 text-left border rounded-lg transition-colors ${
-                      selectedModel === modelKey
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:bg-muted'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-sm">{model.name}</div>
-                        <div className="text-xs text-muted-foreground">{model.description}</div>
-                        <div className="text-xs text-primary mt-1">{model.specialty}</div>
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a model">
+                  {MODEL_INFO[selectedModel] && (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">{MODEL_INFO[selectedModel].name}</span>
+                        <span className="text-xs text-muted-foreground">{MODEL_INFO[selectedModel].specialty}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {getSpeedIcon(model.speed)}
-                        {getCostIcon(model.cost)}
+                        {getSpeedIcon(MODEL_INFO[selectedModel].speed)}
+                        {getCostIcon(MODEL_INFO[selectedModel].cost)}
                         <div className="flex items-center space-x-1">
-                          {Array.from({ length: model.quality === 'ultra' ? 3 : model.quality === 'high' ? 2 : 1 }).map((_, i) => (
+                          {Array.from({ 
+                            length: MODEL_INFO[selectedModel].quality === 'ultra' ? 3 : 
+                                   MODEL_INFO[selectedModel].quality === 'high' ? 2 : 1 
+                          }).map((_, i) => (
                             <div key={i} className="w-1 h-3 bg-primary rounded-full" />
                           ))}
                         </div>
                       </div>
                     </div>
-                  </button>
-                );
-              })}
-            </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-96 bg-popover border border-border">
+                {availableModels.map((modelKey) => {
+                  const model = MODEL_INFO[modelKey];
+                  if (!model) return null;
+                  
+                  return (
+                    <SelectItem key={modelKey} value={modelKey} className="cursor-pointer">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex flex-col items-start">
+                          <div className="font-medium text-sm">{model.name}</div>
+                          <div className="text-xs text-muted-foreground">{model.description}</div>
+                          <div className="text-xs text-primary mt-1">{model.specialty}</div>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                          {getSpeedIcon(model.speed)}
+                          {getCostIcon(model.cost)}
+                          <div className="flex items-center space-x-1">
+                            {Array.from({ length: model.quality === 'ultra' ? 3 : model.quality === 'high' ? 2 : 1 }).map((_, i) => (
+                              <div key={i} className="w-1 h-3 bg-primary rounded-full" />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
