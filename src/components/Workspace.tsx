@@ -312,20 +312,7 @@ export function Workspace({
           {/* Canvas controls */}
           
           {/* AI Quick Actions - Only show on hover */}
-          {showAIActions && <div className="absolute left-4 top-4 bg-card rounded-md shadow-lg border border-border">
-              <button className="p-2 hover:bg-muted flex items-center" onClick={() => handleAIAction('remove_bg')} disabled={processingAction !== null}>
-                <Trash size={16} className="mr-1.5" />
-                <span className="text-xs">Remove BG</span>
-              </button>
-              <button className="p-2 hover:bg-muted flex items-center border-t border-border" onClick={() => handleAIAction('enhance')} disabled={processingAction !== null}>
-                <SparklesIcon size={16} className="mr-1.5" />
-                <span className="text-xs">Enhance</span>
-              </button>
-              <button className="p-2 hover:bg-muted flex items-center border-t border-border" onClick={() => handleAIAction('style_transfer')} disabled={processingAction !== null}>
-                <Wand2 size={16} className="mr-1.5" />
-                <span className="text-xs">Style</span>
-              </button>
-            </div>}
+          {showAIActions}
         </div>}
       {/* AI Generation Modal now handled at App level */}
     </div>;
