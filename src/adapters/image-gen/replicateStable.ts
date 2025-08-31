@@ -5,33 +5,37 @@ export const replicateStable: ImageGenAdapter = {
   key: "replicate.sd",
   
   async generate(params: ImageGenParams): Promise<Asset> {
-    const { data, error } = await supabase.functions.invoke('replicate', {
+    console.log('ReplicateStable - Generating with params:', params);
+    
+    const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        model: "stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc",
         operation: 'generate',
+        model: 'sdxl',
         input: {
           prompt: params.prompt,
           negative_prompt: params.negativePrompt || "",
           width: 1024,
           height: 1024,
           num_outputs: 1,
-          scheduler: "K_EULER",
-          num_inference_steps: 50,
           guidance_scale: 5,
+          num_inference_steps: 50,
           seed: params.seed
         }
       }
     });
 
+    console.log('ReplicateStable - Response:', { data, error });
+
     if (error) {
       throw new Error(`Generation failed: ${error.message}`);
     }
 
-    if (!data?.output || !Array.isArray(data.output) || data.output.length === 0) {
+    if (!data?.output) {
+      console.error('ReplicateStable - No output received:', { data, error });
       throw new Error('No output received from generation');
     }
 
-    const imageUrl = data.output[0];
+    const imageUrl = data.output;
     
     return {
       id: crypto.randomUUID(),

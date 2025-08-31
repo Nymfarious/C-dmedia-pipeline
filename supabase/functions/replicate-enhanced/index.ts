@@ -9,6 +9,14 @@ const corsHeaders = {
 
 // Working Replicate model configurations
 const MODEL_CONFIG = {
+  // Generation models
+  'flux-schnell': 'black-forest-labs/flux-schnell',
+  'flux-dev': 'black-forest-labs/flux-dev', 
+  'flux-pro': 'black-forest-labs/flux-pro',
+  'sdxl': 'stability-ai/sdxl:7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc',
+  'stable-diffusion': 'stability-ai/stable-diffusion:27b93a2413e7f36cd83da926f3656280b2931564ff050bf9575f1fdf9bcd7478',
+  
+  // Editing models
   'nano-banana': 'google-research/nano-banana',
   'background-remove': 'cjwbw/rembg',
   'flux-inpaint': 'black-forest-labs/flux-fill-dev',
@@ -82,6 +90,44 @@ serve(async (req) => {
     console.log(`Running operation: ${body.operation}`)
 
     switch (body.operation) {
+      case 'generate':
+        // Handle image generation
+        const generationModel = body.model || 'flux-schnell';
+        modelKey = generationModel;
+        
+        if (!MODEL_CONFIG[modelKey]) {
+          throw new Error(`Unsupported generation model: ${generationModel}`);
+        }
+        
+        console.log(`Generating image with model: ${generationModel}`);
+        
+        // Build generation input based on model type
+        const generationInput: any = {
+          prompt: body.input.prompt,
+          num_outputs: body.input.num_outputs || 1,
+          guidance_scale: body.input.guidance_scale || 3.5,
+          num_inference_steps: body.input.num_inference_steps || 4
+        };
+        
+        // Add model-specific parameters
+        if (generationModel.includes('flux')) {
+          generationInput.aspect_ratio = body.input.aspect_ratio || "1:1";
+          generationInput.output_format = body.input.output_format || "webp";
+          generationInput.output_quality = body.input.output_quality || 80;
+          if (body.input.seed) generationInput.seed = body.input.seed;
+        } else if (generationModel.includes('sdxl') || generationModel.includes('stable')) {
+          generationInput.width = body.input.width || 1024;
+          generationInput.height = body.input.height || 1024;
+          generationInput.scheduler = "K_EULER";
+          if (body.input.negative_prompt) generationInput.negative_prompt = body.input.negative_prompt;
+          if (body.input.seed) generationInput.seed = body.input.seed;
+        }
+        
+        output = await replicate.run(MODEL_CONFIG[modelKey], {
+          input: generationInput
+        });
+        break;
+
       case 'nano-banana-edit':
         modelKey = 'nano-banana';
         if (body.input.images && body.input.images.length > 1) {

@@ -5,6 +5,8 @@ export const replicateAdapter: ImageGenAdapter = {
   key: "replicate.flux",
   
   async generate(params: ImageGenParams): Promise<Asset> {
+    console.log('ReplicateAdapter - Generating with params:', params);
+    
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
         operation: 'generate',
@@ -23,15 +25,18 @@ export const replicateAdapter: ImageGenAdapter = {
       }
     });
 
+    console.log('ReplicateAdapter - Response:', { data, error });
+
     if (error) {
       throw new Error(`Generation failed: ${error.message}`);
     }
 
-    if (!data?.output || !Array.isArray(data.output) || data.output.length === 0) {
+    if (!data?.output) {
+      console.error('ReplicateAdapter - No output received:', { data, error });
       throw new Error('No output received from generation');
     }
 
-    const imageUrl = data.output[0];
+    const imageUrl = data.output;
     
     return {
       id: crypto.randomUUID(),
