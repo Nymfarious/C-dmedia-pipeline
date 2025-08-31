@@ -24,6 +24,9 @@ import {
   Edit3,
 } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import useAppStore from '@/store/appStore';
+
 interface ToolbarTopProps {
   activeTab: string;
   selectedTool: string;
@@ -40,6 +43,7 @@ export function ToolbarTop({
   onOpenAIModal,
 }: ToolbarTopProps) {
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
+  const { setActiveTool } = useAppStore();
 
   const handleToolClick = (tool: string) => {
     console.log('ToolbarTop - Tool clicked:', tool);
@@ -55,8 +59,10 @@ export function ToolbarTop({
       onOpenAIModal();
     }
     
-    // Log inpaint tool activation
+    // Activate inpaint tool in the store
     if (tool === 'inpaint') {
+      console.log('ToolbarTop - Tool clicked: inpaint');
+      setActiveTool('inpaint');
       console.log('ToolbarTop - Inpaint tool activated');
     }
   };

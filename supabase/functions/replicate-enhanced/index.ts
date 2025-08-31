@@ -129,33 +129,21 @@ serve(async (req) => {
         break;
 
       case 'nano-banana-edit':
-        modelKey = 'nano-banana';
-        if (body.input.images && body.input.images.length > 1) {
-          // Multi-image fusion
-          output = await replicate.run(MODEL_CONFIG[modelKey], {
-            input: {
-              images: body.input.images,
-              prompt: body.input.instruction || body.input.prompt || 'Seamlessly combine these images',
-              negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
-              guidance_scale: body.input.guidance_scale || 7.5,
-              num_inference_steps: body.input.num_inference_steps || 20,
-              strength: body.input.strength || 0.8
-            }
-          });
-        } else {
-          // Single image editing with instruction-based editing
-          output = await replicate.run(MODEL_CONFIG[modelKey], {
-            input: {
-              input_image: body.input.image, // Note: nano-banana uses input_image, not image
-              prompt: body.input.instruction || body.input.prompt || 'Edit this image',
-              negative_prompt: body.input.negative_prompt || "blurred, distorted, artifacts, low quality",
-              guidance_scale: body.input.guidance_scale || 7.5,
-              num_inference_steps: body.input.num_inference_steps || 20,
-              strength: body.input.strength || 0.8,
-              ...(body.input.mask && { mask: body.input.mask })
-            }
-          });
+        // Use FLUX inpaint instead of broken nano-banana
+        modelKey = 'flux-inpaint';
+        if (!body.input.mask) {
+          throw new Error('Mask required for inpainting operation');
         }
+        output = await replicate.run(MODEL_CONFIG[modelKey], {
+          input: {
+            image: body.input.image,
+            mask: body.input.mask,
+            prompt: body.input.instruction || body.input.prompt || 'Edit the masked area',
+            guidance_scale: body.input.guidance_scale || 3.5,
+            num_inference_steps: body.input.num_inference_steps || 28,
+            strength: body.input.strength || 0.8
+          }
+        });
         break;
 
       case 'background-removal':

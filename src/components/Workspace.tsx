@@ -17,6 +17,7 @@ import useAppStore from '@/store/appStore';
 // Modal now handled at App level
 import { Asset, PipelineStep } from '@/types/media';
 import { toast } from 'sonner';
+import { ImageCanvas } from './Canvas/ImageCanvas';
 
 interface WorkspaceProps {
   activeTab: string;
@@ -49,8 +50,10 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
   const enqueueStep = useAppStore(state => state.enqueueStep);
   const runStep = useAppStore(state => state.runStep);
   const generateDirectly = useAppStore(state => state.generateDirectly);
+  const activeTool = useAppStore(state => state.activeTool);
 
   console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvases.length);
+  console.log('Workspace render - activeTool:', activeTool);
 
   // Sync canvas state to local state - with proper memoization
   useEffect(() => {
@@ -185,6 +188,27 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
     }
   };
 
+  // If inpaint tool is active and we have content, show ImageCanvas
+  if (activeTool === 'inpaint' && hasContent && generatedImage) {
+    console.log('Workspace - Showing ImageCanvas for inpaint tool');
+    return (
+      <div className="flex-1 bg-background">
+        <ImageCanvas 
+          asset={generatedImage}
+          onAssetUpdate={(updatedAsset) => {
+            console.log('Workspace - Asset updated from ImageCanvas:', updatedAsset.id);
+            setGeneratedImage(updatedAsset);
+            // Update the canvas in the store as well
+            const currentCanvas = canvases.find(c => c.id === activeCanvas);
+            if (currentCanvas) {
+              updateCanvasAsset(currentCanvas.id, updatedAsset);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 bg-background flex items-center justify-center relative">
       {!hasContent ? (
@@ -228,9 +252,12 @@ export function Workspace({ activeTab, selectedTool, addToHistory }: WorkspacePr
               onDrop={async (e) => {
                 e.preventDefault();
                 try {
-                  const assetData = JSON.parse(
-                    e.dataTransfer.getData('application/json'),
-                  ) as Asset;
+                  const transferData = e.dataTransfer.getData('application/json');
+                  if (!transferData) {
+                    console.error('No transfer data available');
+                    return;
+                  }
+                  const assetData = JSON.parse(transferData) as Asset;
                   
                   console.log('Workspace - Asset dropped:', assetData.name);
                   

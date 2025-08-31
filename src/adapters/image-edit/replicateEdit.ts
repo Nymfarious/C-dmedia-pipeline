@@ -5,15 +5,19 @@ export const replicateEdit: ImageEditAdapter = {
   key: "replicate.edit",
   
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
+    if (!params.maskPngDataUrl) {
+      throw new Error('Mask is required for inpainting. Please create a mask by painting the area to edit.');
+    }
+
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        operation: 'nano-banana-edit',
+        operation: 'flux-inpaint',
         input: {
           image: asset.src,
-          instruction: params.instruction || 'Edit this image',
-          negative_prompt: "blurred, distorted, artifacts, low quality",
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
+          mask: params.maskPngDataUrl,
+          prompt: params.instruction || 'Edit the masked area',
+          guidance_scale: 3.5,
+          num_inference_steps: 28,
           strength: 0.8
         }
       }
@@ -23,11 +27,12 @@ export const replicateEdit: ImageEditAdapter = {
       throw new Error(`Edit failed: ${error.message}`);
     }
 
-    if (!data?.output || !Array.isArray(data.output) || data.output.length === 0) {
+    if (!data?.output) {
       throw new Error('No output received from edit');
     }
 
-    const imageUrl = data.output[0];
+    // Handle both single URL and array responses
+    const imageUrl = Array.isArray(data.output) ? data.output[0] : data.output;
     
     return {
       id: crypto.randomUUID(),

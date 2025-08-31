@@ -64,6 +64,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   // Force state debugging on every render
   console.log('🔍 ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
   console.log('🔍 ImageCanvas render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
+  console.log('🔍 ImageCanvas render - will show inpaint tool:', activeTool === 'inpaint');
   
   // Add useEffect to track state changes
   React.useEffect(() => {
