@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Upload, Search, Image, Music, Film, Check, CheckSquare, Square, Download, FolderPlus, Sparkles, Edit, MoreVertical } from 'lucide-react';
+import { Upload, Search, Image, Music, Film, Check, CheckSquare, Square, Download, FolderPlus, Sparkles, Edit, MoreVertical, Trash2 } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { MediaType, Asset, DEFAULT_CATEGORIES } from '@/types/media';
 import { cn } from '@/lib/utils';
@@ -40,7 +40,7 @@ async function getImageDimensions(file: File): Promise<{ width: number; height: 
 }
 
 export function Gallery() {
-  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory, allCategories, createCanvas, setActiveCanvas } = useAppStore();
+  const { assets, selectedAssetIds, setSelected, addAssets, exportAssets, updateAssetCategory, allCategories, createCanvas, setActiveCanvas, deleteAssets } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -134,6 +134,19 @@ export function Gallery() {
     }
   };
 
+  const handleBatchDelete = async () => {
+    if (selectedAssetIds.length === 0) return;
+    
+    try {
+      deleteAssets(selectedAssetIds);
+      setSelected([]);
+      toast.success(`Deleted ${selectedAssetIds.length} asset${selectedAssetIds.length > 1 ? 's' : ''}`);
+    } catch (error) {
+      toast.error('Failed to delete assets');
+      console.error('Delete error:', error);
+    }
+  };
+
   const getTypeIcon = (type: MediaType) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
@@ -173,14 +186,20 @@ export function Gallery() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4" />
-                    Export
+                    Actions ({selectedAssetIds.length})
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={handleBatchExport}>
                     <Download className="h-4 w-4 mr-2" />
-                    Export Selected ({selectedAssetIds.length})
+                    Export Selected
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleBatchDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -1,5 +1,6 @@
 import { Asset, ImageEditAdapter, ImageEditParams } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
+import { enhanceGeminiNanoPrompt, getOptimizedGeminiNanoParams } from '@/lib/geminiNanoPromptEnhancer';
 
 export const geminiNanoAdapter: ImageEditAdapter = {
   key: "replicate.nano-banana",
@@ -9,29 +10,42 @@ export const geminiNanoAdapter: ImageEditAdapter = {
     
     let instruction = params.instruction || "Edit this image";
     let operation = params.operation || 'nano-banana-edit';
+    let mode: 'remove' | 'add' | 'replace' | 'enhance' | 'style' = 'enhance';
     
-    // Enhanced instruction generation based on edit type
+    // Determine operation mode and enhance instruction
     if (params.brushMask && params.brushMask.length > 0) {
-      instruction = `Remove the objects marked by ${params.brushMask.length} brush strokes. ${instruction}`;
+      mode = 'remove';
+      instruction = params.removeObjectInstruction || instruction;
     }
     
-    // Handle mask-based operations
+    // Handle mask-based operations with enhanced prompting
     if (params.maskPngDataUrl && params.operation) {
       switch (params.operation) {
         case 'remove-object':
         case 'advanced-object-removal':
           operation = 'advanced-object-removal';
-          instruction = params.removeObjectInstruction || `Remove the objects in the masked area. ${instruction}`;
+          mode = 'remove';
+          instruction = params.removeObjectInstruction || instruction;
           break;
         case 'add-object':
           operation = 'add-object';
-          instruction = params.addObjectInstruction || `Add ${instruction} in the masked area`;
+          mode = 'add';
+          instruction = params.addObjectInstruction || instruction;
           break;
         case 'flux-inpaint':
           operation = 'flux-inpaint';
+          // Determine mode from instruction
+          if (instruction.toLowerCase().includes('remove') || instruction.toLowerCase().includes('delete')) {
+            mode = 'remove';
+          } else if (instruction.toLowerCase().includes('add') || instruction.toLowerCase().includes('insert')) {
+            mode = 'add';
+          } else if (instruction.toLowerCase().includes('change') || instruction.toLowerCase().includes('replace')) {
+            mode = 'replace';
+          }
           break;
         case 'multi-image-fusion':
           operation = 'nano-banana-edit';
+          mode = 'enhance';
           instruction = `Combine and blend these images: ${instruction}`;
           break;
       }
@@ -66,16 +80,33 @@ export const geminiNanoAdapter: ImageEditAdapter = {
     
     if (params.poseAdjustments) {
       instruction = `Adjust the pose according to the keypoint modifications. ${instruction}`;
+      mode = 'enhance';
     }
 
-    // Prepare input for enhanced replicate function
+    // Enhanced prompt processing with Gemini Nano optimization
+    const promptOptions = {
+      mode,
+      userPrompt: instruction,
+      context: asset.meta?.originalPrompt,
+      operation: params.operation,
+      imageAnalysis: {
+        lighting: 'natural' as const,
+        style: 'realistic' as const,
+        scene: asset.meta?.originalPrompt ? `scene from: ${asset.meta.originalPrompt}` : 'the image'
+      }
+    };
+
+    const enhancedPrompt = enhanceGeminiNanoPrompt(promptOptions);
+    const optimizedParams = getOptimizedGeminiNanoParams(mode);
+
+    // Prepare input for enhanced replicate function with optimized parameters
     const input: any = {
       image: asset.src,
-      prompt: instruction, // nano-banana uses 'prompt' not 'instruction'
-      negative_prompt: "blurred, distorted, artifacts, low quality",
-      guidance_scale: params.guidance_scale || 7.5,
-      num_inference_steps: params.num_inference_steps || 20,
-      strength: params.strength || 0.8
+      prompt: enhancedPrompt.prompt,
+      negative_prompt: enhancedPrompt.negativePrompt,
+      guidance_scale: params.guidance_scale || enhancedPrompt.guidance_scale,
+      num_inference_steps: params.num_inference_steps || enhancedPrompt.num_inference_steps,
+      strength: params.strength || enhancedPrompt.strength
     };
 
     // Add mask if provided
@@ -89,7 +120,13 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       input.composition_style = params.compositionStyle || 'seamless blend';
     }
 
-    console.log('Calling replicate-enhanced with:', { operation, input });
+    console.log('Calling Gemini Nano with enhanced prompt:', { 
+      operation, 
+      mode, 
+      originalInstruction: instruction,
+      enhancedPrompt: enhancedPrompt.prompt,
+      parameters: optimizedParams 
+    });
 
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
@@ -119,7 +156,10 @@ export const geminiNanoAdapter: ImageEditAdapter = {
         model: 'google/nano-banana',
         originalAsset: asset.id,
         editType: operation,
-        instruction,
+        editMode: mode,
+        originalInstruction: instruction,
+        enhancedPrompt: enhancedPrompt.prompt,
+        parameters: optimizedParams,
         editedAt: Date.now()
       },
       createdAt: Date.now(),

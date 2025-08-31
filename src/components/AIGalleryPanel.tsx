@@ -3,6 +3,7 @@ import { ArrowLeft, Download, Star, StarOff, Grid, List, Search, Trash2, Externa
 import useAppStore from '@/store/appStore';
 import { downloadAsset } from '@/lib/download';
 import { toast } from 'sonner';
+import { BulkGalleryActions } from './BulkGalleryActions';
 
 interface AIGalleryPanelProps {
   onSelectImage: (image: any) => void;
@@ -12,6 +13,7 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedImageIds, setSelectedImageIds] = useState<string[]>([]);
 
   const categories = [
     { id: 'all', name: 'All' },
@@ -23,7 +25,7 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
 
   const [images, setImages] = useState([]);
   const galleryImages = useAppStore((state) => state.galleryImages);
-  const { createCanvas, setActiveCanvas, addAsset } = useAppStore();
+  const { createCanvas, setActiveCanvas, addAsset, removeFromGallery } = useAppStore();
 
   useEffect(() => {
     setImages(galleryImages || []);
@@ -49,8 +51,11 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
   };
 
   const handleDelete = (id: string) => {
-    useAppStore.getState().removeFromGallery(id);
-    toast.success('Image removed from gallery');
+    const confirmed = window.confirm('Are you sure you want to delete this image from the gallery?');
+    if (confirmed) {
+      removeFromGallery(id);
+      toast.success('Image removed from gallery');
+    }
   };
 
   const handleOpenInCanvas = (image: any) => {
@@ -84,6 +89,26 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
       console.error('Failed to open in canvas:', error);
       toast.error('Failed to open image in canvas');
     }
+  };
+
+  const handleImageSelect = (imageId: string, event: React.MouseEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedImageIds(prev => 
+        prev.includes(imageId) 
+          ? prev.filter(id => id !== imageId)
+          : [...prev, imageId]
+      );
+    } else {
+      setSelectedImageIds([imageId]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectedImageIds(filteredImages.map(img => img.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedImageIds([]);
   };
 
   return (
@@ -143,6 +168,13 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
           </div>
         </div>
 
+        <BulkGalleryActions
+          selectedImageIds={selectedImageIds}
+          onClearSelection={handleClearSelection}
+          onSelectAll={handleSelectAll}
+          totalImages={filteredImages.length}
+        />
+
         {filteredImages.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🎨</div>
@@ -154,9 +186,10 @@ export function AIGalleryPanel({ onSelectImage }: AIGalleryPanelProps) {
             {filteredImages.map((image) => (
               <div
                 key={image.id}
-                className={`group border border-border rounded-lg overflow-hidden hover:border-primary transition-colors ${
-                  viewMode === 'list' ? 'flex items-center p-4' : ''
-                }`}
+                onClick={(e) => handleImageSelect(image.id, e)}
+                className={`group border border-border rounded-lg overflow-hidden hover:border-primary transition-colors cursor-pointer ${
+                  selectedImageIds.includes(image.id) ? 'ring-2 ring-primary border-primary' : ''
+                } ${viewMode === 'list' ? 'flex items-center p-4' : ''}`}
               >
                 {viewMode === 'grid' ? (
                   <>
