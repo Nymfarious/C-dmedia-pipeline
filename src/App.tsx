@@ -15,6 +15,7 @@ import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { SimplifiedAIModal } from './components/SimplifiedAIModal';
 import { FloatingToolExit } from './components/FloatingToolExit';
 import { ProjectManagementModal } from './components/ProjectManagementModal';
+import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -22,6 +23,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function EnhancedApp() {
+  // Initialize global shortcuts inside the main app component
+  useGlobalShortcuts();
+  
   const [activeTab, setActiveTab] = useState('image');
   const [selectedTool, setSelectedTool] = useState('select');
   const [showRightPanel, setShowRightPanel] = useState(true);
