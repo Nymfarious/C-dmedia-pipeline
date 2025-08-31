@@ -226,6 +226,13 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
       // Get quality settings
       const qualitySettings = QUALITY_OPTIONS.find(q => q.id === quality);
 
+      console.log('Starting generation with:', { 
+        prompt: enhancedPrompt, 
+        model: selectedModel,
+        width, 
+        height 
+      });
+      
       const generatedAsset = await useAppStore.getState().generateDirectly(
         { 
           prompt: enhancedPrompt, 
@@ -240,6 +247,8 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
         },
         selectedModel
       );
+      
+      console.log('Generation completed:', generatedAsset);
       
       if (generatedAsset) {
         // Add to main assets store
@@ -270,7 +279,15 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
       }
     } catch (error) {
       console.error('Generation failed:', error);
-      toast.error('Failed to generate image');
+      
+      // More detailed error handling
+      if (error instanceof SyntaxError) {
+        toast.error('Invalid server response - please try again');
+      } else if (error instanceof Error) {
+        toast.error(`Generation failed: ${error.message}`);
+      } else {
+        toast.error('Failed to generate image - unknown error');
+      }
     } finally {
       setIsGenerating(false);
     }

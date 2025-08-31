@@ -488,11 +488,26 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
 
           {/* Inpainting Tool */}
           {activeTool === 'inpaint' && inpaintingMode && (
-            <InpaintingTool
-              asset={asset}
-              onComplete={handleInpaintingComplete}
-              className="w-full"
-            />
+            <div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Inpainting tool is active! Tool: {activeTool}, Mode: {inpaintingMode.toString()}
+              </p>
+              <InpaintingTool
+                asset={asset}
+                onComplete={handleInpaintingComplete}
+                className="w-full"
+              />
+            </div>
+          )}
+          
+          {/* Debug info when tool should show but doesn't */}
+          {activeTool === 'inpaint' && !inpaintingMode && (
+            <div className="p-4 bg-yellow-100 border border-yellow-300 rounded">
+              <p className="text-sm text-yellow-800">
+                Debug: Inpaint tool is selected but inpainting mode is disabled.
+                Active tool: {activeTool}, Inpainting mode: {inpaintingMode.toString()}
+              </p>
+            </div>
           )}
           
           {/* Canvas Container - Only show when no editing tool is active */}

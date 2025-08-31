@@ -42,6 +42,7 @@ export function ToolbarTop({
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
 
   const handleToolClick = (tool: string) => {
+    console.log('ToolbarTop - Tool clicked:', tool);
     // Only allow clicks on working tools
     const toolData = toolGroups.flatMap(g => g.tools).find(t => t.id === tool);
     if (!toolData?.working) return;
@@ -50,7 +51,13 @@ export function ToolbarTop({
     
     // Open AI modal for AI generation tool
     if (tool === 'smart-select' && onOpenAIModal) {
+      console.log('ToolbarTop - Opening AI modal');
       onOpenAIModal();
+    }
+    
+    // Log inpaint tool activation
+    if (tool === 'inpaint') {
+      console.log('ToolbarTop - Inpaint tool activated');
     }
   };
 

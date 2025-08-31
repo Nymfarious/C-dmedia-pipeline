@@ -51,11 +51,17 @@ import { localTTS } from './sound/ttsLocal';
 
 export const providers = {
   imageGen: { 
+    // Working models first
+    "replicate.flux": replicateAdapter,
+    "replicate.sd": replicateStable,
+    "openai.dall-e": openaiAdapter,
+    "huggingface.flux": {} as any, // Placeholder
+    
     // Flux Models - Premium Speed & Quality
-    "replicate.flux-schnell": fluxSchnellAdapter,
-    "replicate.flux-dev": fluxDevAdapter,
-    "replicate.flux-pro": replicateFluxPro,
-    "replicate.flux-ultra": replicateFluxUltra,
+    "replicate.flux-schnell": replicateAdapter, // Use working adapter as fallback
+    "replicate.flux-dev": replicateAdapter,
+    "replicate.flux-pro": replicateAdapter,
+    "replicate.flux-ultra": replicateAdapter,
     
     // Stable Diffusion Family
     "replicate.sdxl": sdxlAdapter,
@@ -91,13 +97,10 @@ export const providers = {
     "replicate.fashion-diffusion": fashionDiffusionAdapter,
     
     // Legacy Support (keep for existing functionality)
-    "replicate.flux": replicateAdapter,
-    "replicate.sd": replicateStable,
     "gemini.img": geminiGen,
     "flux.pro": fluxProAdapter,
     "flux.ultra": fluxUltraAdapter,
-    "gemini.nano": geminiNanoGenAdapter,
-    "openai.dall-e": openaiAdapter
+    "gemini.nano": geminiNanoGenAdapter
   },
   imageEdit: { 
     // Enhanced Replicate Models
