@@ -187,6 +187,20 @@ serve(async (req) => {
         if (!body.input.mask) {
           throw new Error('Mask required for inpainting operation');
         }
+        
+        // Double-check image URL accessibility before sending to Replicate
+        console.log('🔍 Final image URL validation before Replicate call:', body.input.image);
+        try {
+          const imageCheck = await fetch(body.input.image, { method: 'HEAD' });
+          if (!imageCheck.ok) {
+            throw new Error(`Image URL not accessible: ${imageCheck.status} ${imageCheck.statusText}`);
+          }
+          console.log('✅ Image URL verified accessible for FLUX inpaint');
+        } catch (urlError) {
+          console.error('❌ Image URL validation failed before FLUX inpaint:', urlError);
+          throw new Error(`Image URL validation failed: ${urlError.message}`);
+        }
+        
         output = await replicate.run(MODEL_CONFIG[modelKey], {
           input: {
             image: body.input.image,
