@@ -380,6 +380,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       const galleryImage: GalleryImage = {
         id: `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type: asset.type,
+        name: asset.name,
+        src: cloudUrl,
         url: cloudUrl,
         prompt: metadata.prompt,
         model: metadata.model,

@@ -89,8 +89,8 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       userPrompt: instruction,
       context: asset.meta?.originalPrompt,
       operation: params.operation,
-      complexity: params.complexity || 'moderate',
-      targetQuality: params.targetQuality || 'high',
+      complexity: (params.complexity as 'simple' | 'moderate' | 'complex' | 'ultra-complex') || 'moderate',
+      targetQuality: (params.targetQuality as 'standard' | 'high' | 'ultra' | 'professional') || 'high',
       preserveContext: params.preserveContext !== false,
       imageAnalysis: {
         lighting: 'natural' as const,

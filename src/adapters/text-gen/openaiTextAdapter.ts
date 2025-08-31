@@ -42,8 +42,8 @@ export const openaiTextAdapter: TextOverlayAdapter = {
         ctx.textAlign = (params.align || 'center') as CanvasTextAlign;
         
         // Position text
-        const x = params.position?.x || canvas.width / 2;
-        const y = params.position?.y || canvas.height * 0.9;
+        const x = (typeof params.position === 'object' ? params.position.x : undefined) || canvas.width / 2;
+        const y = (typeof params.position === 'object' ? params.position.y : undefined) || canvas.height * 0.9;
         
         // Add text with outline
         ctx.strokeText(enhancedText, x, y);

@@ -36,8 +36,8 @@ export const canvasOverlay: TextOverlayAdapter = {
         ctx.fillStyle = '#FFFFFF';
         
         // Calculate position
-        const x = params.position?.x || canvas.width / 2;
-        const y = params.position?.y || canvas.height / 2;
+        const x = (typeof params.position === 'object' ? params.position.x : undefined) || canvas.width / 2;
+        const y = (typeof params.position === 'object' ? params.position.y : undefined) || canvas.height / 2;
         
         // Draw text
         const lines = params.text.split('\n');

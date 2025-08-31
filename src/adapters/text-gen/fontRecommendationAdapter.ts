@@ -56,8 +56,8 @@ export const fontRecommendationAdapter: TextOverlayAdapter = {
         ctx.textAlign = (params.align || 'center') as CanvasTextAlign;
         
         // Smart positioning
-        const x = params.position?.x || canvas.width / 2;
-        const y = params.position?.y || (imageAnalysis.bestTextArea === 'top' ? canvas.height * 0.2 : canvas.height * 0.8);
+        const x = (typeof params.position === 'object' ? params.position.x : undefined) || canvas.width / 2;
+        const y = (typeof params.position === 'object' ? params.position.y : undefined) || (imageAnalysis.bestTextArea === 'top' ? canvas.height * 0.2 : canvas.height * 0.8);
         
         // Add text
         ctx.fillText(params.text, x, y);
