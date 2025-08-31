@@ -39,7 +39,7 @@ export function EnhancedBrushTool({
   const [maskWarning, setMaskWarning] = useState<string | null>(null);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
 
-  // Setup canvas to match image dimensions ONLY - no drawing operations
+  // Setup canvas dimensions and positioning ONLY - no drawing operations
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -101,7 +101,7 @@ export function EnhancedBrushTool({
       imageNaturalHeight: img.naturalHeight
     });
     
-    // Only initialize canvas if not already done
+    // Initialize canvas ONLY once - prevent repeated clearing
     if (!canvasInitialized) {
       initializeCanvas();
       setCanvasInitialized(true);
@@ -110,7 +110,7 @@ export function EnhancedBrushTool({
     setCanvasReady(true);
     setReady(true);
     
-    console.log('✅ Canvas setup complete - full image coverage enabled');
+    console.log('✅ Canvas setup complete - dimensions configured, preserving user drawings');
   }, [canvasInitialized]);
 
   // Separate function to initialize canvas with black background
@@ -204,12 +204,17 @@ export function EnhancedBrushTool({
     }
   }, [imageLoaded, setupCanvas]);
 
-  // Debounced redraw to prevent rapid cycles
+  // Debounced redraw to prevent rapid cycles and preserve user input
   const redrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const redrawRequestedRef = useRef(false);
   
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !ready || !canvasInitialized) return;
+    
+    // Prevent overlapping redraws
+    if (redrawRequestedRef.current) return;
+    redrawRequestedRef.current = true;
     
     // Clear any pending redraw
     if (redrawTimeoutRef.current) {
@@ -218,24 +223,31 @@ export function EnhancedBrushTool({
     
     redrawTimeoutRef.current = setTimeout(() => {
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        redrawRequestedRef.current = false;
+        return;
+      }
       
-      // Clear with black (preserve areas) - but only if canvas has been initialized
+      // Start fresh with black background (areas to preserve)
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Draw white strokes (inpaint areas) - FLUX expects white pixels for inpainting
-      ctx.fillStyle = '#FFFFFF';
-      ctx.globalCompositeOperation = 'source-over';
-      
-      for (const stroke of strokes) {
-        ctx.beginPath();
-        ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
-        ctx.fill();
+      // Only draw user strokes if we have them
+      if (strokes.length > 0) {
+        // Draw white strokes (areas to inpaint) - FLUX expects white pixels for inpainting
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalCompositeOperation = 'source-over';
+        
+        for (const stroke of strokes) {
+          ctx.beginPath();
+          ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       
       // Validate mask quality after redraw
       validateMaskQuality();
+      redrawRequestedRef.current = false;
     }, 16); // ~60fps
   }, [strokes, ready, canvasInitialized]);
 
@@ -391,40 +403,79 @@ export function EnhancedBrushTool({
     const canvas = canvasRef.current;
     if (!canvas || strokes.length === 0) {
       console.warn('⚠️ No mask to export');
+      setMaskWarning('⚠️ Please draw on the image first to create a mask.');
       return;
     }
     
-    // Pre-export validation
+    // Enhanced pre-export validation
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    
+    // Force a final redraw to ensure canvas state is current
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (strokes.length > 0) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.globalCompositeOperation = 'source-over';
+      
+      for (const stroke of strokes) {
+        ctx.beginPath();
+        ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     let whitePixels = 0;
+    let blackPixels = 0;
     let totalPixels = canvas.width * canvas.height;
     
-    // Count white pixels to validate mask
+    // Count white and black pixels to validate mask
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
-      if (r > 128) whitePixels++;
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (r > 128 && g > 128 && b > 128) {
+        whitePixels++;
+      } else if (r < 128 && g < 128 && b < 128) {
+        blackPixels++;
+      }
     }
     
     const coverage = (whitePixels / totalPixels) * 100;
+    const blackCoverage = (blackPixels / totalPixels) * 100;
     
-    // Prevent export of problematic masks
-    if (coverage > 95) {
-      console.error('❌ Mask covers too much of the image');
-      setMaskWarning('❌ Mask is too large. Please draw a smaller area.');
+    console.log('🔍 Mask analysis:', { 
+      whitePixels, 
+      blackPixels, 
+      totalPixels, 
+      coverage: coverage.toFixed(2) + '%',
+      blackCoverage: blackCoverage.toFixed(2) + '%'
+    });
+    
+    // Enhanced validation - prevent problematic masks
+    if (coverage > 90) {
+      console.error('❌ Mask covers almost the entire image');
+      setMaskWarning('❌ Mask is too large. This would affect most of the image. Please draw a smaller area.');
       return;
     }
     
-    if (coverage < 0.01) {
+    if (coverage < 0.1) {
       console.error('❌ Mask is too small');
-      setMaskWarning('❌ Mask is too small. Please draw a larger area.');
+      setMaskWarning('❌ Mask area is too small. Please draw a larger area or use a bigger brush.');
+      return;
+    }
+    
+    if (blackCoverage < 50) {
+      console.error('❌ Mask may be inverted or corrupted');
+      setMaskWarning('❌ Mask appears corrupted. Please clear and redraw your mask.');
       return;
     }
     
     console.log('✅ Exporting valid mask with', coverage.toFixed(2), '% coverage');
+    setMaskWarning(null);
     
     const dataUrl = canvas.toDataURL('image/png');
     const response = await fetch(dataUrl);
