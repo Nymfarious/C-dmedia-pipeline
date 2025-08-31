@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Eraser, Undo, RotateCcw, Paintbrush, Bug } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eraser, Undo, RotateCcw, Paintbrush, Bug, AlertTriangle } from 'lucide-react';
 
 type Stroke = { x: number; y: number; r: number };
 
@@ -35,8 +36,10 @@ export function EnhancedBrushTool({
   const [showDebug, setShowDebug] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [maskWarning, setMaskWarning] = useState<string | null>(null);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
 
-  // Setup canvas to match image dimensions with full coverage
+  // Setup canvas to match image dimensions ONLY - no drawing operations
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -98,16 +101,42 @@ export function EnhancedBrushTool({
       imageNaturalHeight: img.naturalHeight
     });
     
+    // Only initialize canvas if not already done
+    if (!canvasInitialized) {
+      initializeCanvas();
+      setCanvasInitialized(true);
+    }
+    
     setCanvasReady(true);
     setReady(true);
     
     console.log('✅ Canvas setup complete - full image coverage enabled');
+  }, [canvasInitialized]);
+
+  // Separate function to initialize canvas with black background
+  const initializeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    // Clear canvas and redraw
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = '#FFFFFF';
+      // Initialize with black background (preserve areas)
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      console.log('🎨 Canvas initialized with black background');
+    }
+  }, []);
+
+  // Clear canvas (for explicit user action)
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      console.log('🧹 Canvas cleared explicitly');
     }
   }, []);
 
@@ -175,27 +204,77 @@ export function EnhancedBrushTool({
     }
   }, [imageLoaded, setupCanvas]);
 
-  // Redraw the mask
+  // Debounced redraw to prevent rapid cycles
+  const redrawTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !ready) return;
+    if (!canvas || !ready || !canvasInitialized) return;
     
-    const ctx = canvas.getContext('2d')!;
-    
-    // Clear with black (preserve areas)
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw white strokes (inpaint areas) - FLUX expects white pixels for inpainting
-    ctx.fillStyle = '#FFFFFF';
-    ctx.globalCompositeOperation = 'source-over';
-    
-    for (const stroke of strokes) {
-      ctx.beginPath();
-      ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
-      ctx.fill();
+    // Clear any pending redraw
+    if (redrawTimeoutRef.current) {
+      clearTimeout(redrawTimeoutRef.current);
     }
-  }, [strokes, ready]);
+    
+    redrawTimeoutRef.current = setTimeout(() => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      // Clear with black (preserve areas) - but only if canvas has been initialized
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw white strokes (inpaint areas) - FLUX expects white pixels for inpainting
+      ctx.fillStyle = '#FFFFFF';
+      ctx.globalCompositeOperation = 'source-over';
+      
+      for (const stroke of strokes) {
+        ctx.beginPath();
+        ctx.arc(stroke.x, stroke.y, stroke.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Validate mask quality after redraw
+      validateMaskQuality();
+    }, 16); // ~60fps
+  }, [strokes, ready, canvasInitialized]);
+
+  // Validate mask quality and provide warnings
+  const validateMaskQuality = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || strokes.length === 0) {
+      setMaskWarning(null);
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let whitePixels = 0;
+    let totalPixels = canvas.width * canvas.height;
+
+    // Count white pixels (mask areas)
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (r > 128 && g > 128 && b > 128) {
+        whitePixels++;
+      }
+    }
+
+    const coverage = (whitePixels / totalPixels) * 100;
+
+    if (coverage > 80) {
+      setMaskWarning('⚠️ Large mask area detected. This will affect most of the image.');
+    } else if (coverage < 0.1) {
+      setMaskWarning('⚠️ Very small mask area. Try using a larger brush or drawing more.');
+    } else {
+      setMaskWarning(null);
+    }
+  }, [strokes]);
 
   useEffect(() => {
     redraw();
@@ -302,11 +381,50 @@ export function EnhancedBrushTool({
     }
   };
 
-  const clear = () => setStrokes([]);
+  const clear = () => {
+    setStrokes([]);
+    clearCanvas();
+    setMaskWarning(null);
+  };
 
   const exportMask = async () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || strokes.length === 0) {
+      console.warn('⚠️ No mask to export');
+      return;
+    }
+    
+    // Pre-export validation
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let whitePixels = 0;
+    let totalPixels = canvas.width * canvas.height;
+    
+    // Count white pixels to validate mask
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      if (r > 128) whitePixels++;
+    }
+    
+    const coverage = (whitePixels / totalPixels) * 100;
+    
+    // Prevent export of problematic masks
+    if (coverage > 95) {
+      console.error('❌ Mask covers too much of the image');
+      setMaskWarning('❌ Mask is too large. Please draw a smaller area.');
+      return;
+    }
+    
+    if (coverage < 0.01) {
+      console.error('❌ Mask is too small');
+      setMaskWarning('❌ Mask is too small. Please draw a larger area.');
+      return;
+    }
+    
+    console.log('✅ Exporting valid mask with', coverage.toFixed(2), '% coverage');
     
     const dataUrl = canvas.toDataURL('image/png');
     const response = await fetch(dataUrl);
@@ -381,6 +499,14 @@ export function EnhancedBrushTool({
             Apply Mask
           </Button>
         </div>
+
+        {/* Mask Quality Warning */}
+        {maskWarning && (
+          <Alert className="mt-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{maskWarning}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Debug Panel */}
         {showDebug && (
