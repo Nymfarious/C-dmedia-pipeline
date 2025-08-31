@@ -42,13 +42,77 @@ async function ensurePublicImageUrl(url: string): Promise<string> {
   try {
     const response = await fetch(url, { method: 'HEAD' });
     if (!response.ok) {
+      console.log(`⚠️ URL returned ${response.status}, attempting to recover...`);
+      
+      // If it's a Replicate URL that expired, try to download and store in Supabase
+      if (url.includes('replicate.delivery')) {
+        console.log('🔄 Attempting to recover expired Replicate URL...');
+        return await downloadAndStoreImage(url);
+      }
+      
       throw new Error(`Image URL not accessible: ${response.status}`);
     }
     console.log('✅ Image URL is accessible');
     return url;
   } catch (error) {
     console.error('❌ Image URL validation failed:', error);
+    
+    // For Replicate URLs, try recovery even if fetch fails
+    if (url.includes('replicate.delivery')) {
+      console.log('🔄 Attempting recovery for failed Replicate URL...');
+      try {
+        return await downloadAndStoreImage(url);
+      } catch (recoveryError) {
+        console.error('❌ Recovery failed:', recoveryError);
+      }
+    }
+    
     throw new Error(`Failed to access image URL: ${error.message}`);
+  }
+}
+
+// Helper function to download and store image in Supabase storage
+async function downloadAndStoreImage(originalUrl: string): Promise<string> {
+  try {
+    console.log('📥 Downloading image for storage:', originalUrl);
+    
+    // Try to download the image with a fresh fetch
+    const response = await fetch(originalUrl);
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    
+    const blob = await response.blob();
+    const timestamp = Date.now();
+    const fileName = `recovered-${timestamp}.${blob.type.split('/')[1] || 'webp'}`;
+    const filePath = `ai-images/${fileName}`;
+    
+    console.log('💾 Storing image in Supabase storage:', filePath);
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('ai-images')
+      .upload(filePath, blob, {
+        contentType: blob.type,
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (error) {
+      throw new Error(`Storage upload failed: ${error.message}`);
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('ai-images')
+      .getPublicUrl(filePath);
+    
+    console.log('✅ Image recovered and stored:', publicUrl);
+    return publicUrl;
+    
+  } catch (error) {
+    console.error('❌ Failed to download and store image:', error);
+    throw new Error(`Image recovery failed: ${error.message}`);
   }
 }
 
