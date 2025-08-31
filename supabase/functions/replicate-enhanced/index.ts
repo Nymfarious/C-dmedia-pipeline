@@ -156,29 +156,43 @@ serve(async (req) => {
         break;
 
       case 'nano-banana-edit':
-        // Enhanced Gemini Nano with smart prompt processing
+        // Enhanced Nano Banana with hybrid workflow support
         modelKey = 'flux-inpaint';
-        if (!body.input.mask) {
-          throw new Error('Mask required for inpainting operation');
-        }
         
         console.log('🎯 Enhanced Nano Banana processing with mode:', body.input.mode || 'smart-inpaint');
         
         // Use enhanced prompt if provided, otherwise use instruction/prompt
-        const enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit the masked area intelligently';
+        const enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit this image intelligently';
         const negativePrompt = body.input.negative_prompt || 'artifacts, distortion, low quality, unnatural, poor blending';
         
-        output = await replicate.run(MODEL_CONFIG[modelKey], {
-          input: {
-            image: body.input.image,
-            mask: body.input.mask,
-            prompt: enhancedPrompt,
-            negative_prompt: negativePrompt,
-            guidance_scale: body.input.guidance_scale || 10.5,
-            num_inference_steps: body.input.num_inference_steps || 40,
-            strength: body.input.strength || 0.88
-          }
-        });
+        // Support both masked and non-masked editing
+        if (body.input.mask) {
+          // Masked editing: Use FLUX inpaint with enhanced prompts
+          console.log('🎨 Masked Nano Banana editing');
+          output = await replicate.run(MODEL_CONFIG[modelKey], {
+            input: {
+              image: body.input.image,
+              mask: body.input.mask,
+              prompt: enhancedPrompt,
+              negative_prompt: negativePrompt,
+              guidance_scale: body.input.guidance_scale || 10.5,
+              num_inference_steps: body.input.num_inference_steps || 40,
+              strength: body.input.strength || 0.88
+            }
+          });
+        } else {
+          // Global editing: Use natural language model (fallback to FLUX generation)
+          console.log('🌐 Global Nano Banana editing');
+          output = await replicate.run(MODEL_CONFIG['flux-dev'], {
+            input: {
+              prompt: `${enhancedPrompt}, based on this reference image`,
+              image: body.input.image,
+              prompt_strength: body.input.strength || 0.8,
+              num_inference_steps: body.input.num_inference_steps || 30,
+              guidance_scale: body.input.guidance_scale || 8.5
+            }
+          });
+        }
         break;
 
       case 'background-removal':

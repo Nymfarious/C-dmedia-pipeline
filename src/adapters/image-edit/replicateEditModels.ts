@@ -1,41 +1,60 @@
 import { ImageEditAdapter, ImageEditParams, Asset } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
 
-// Nano Banana - Natural language editing
+// Enhanced Nano Banana - Natural language editing with mask support
 export const nanoBananaAdapter: ImageEditAdapter = {
   key: "replicate.nano-banana",
   
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
+    // Import prompt enhancer dynamically
+    const { enhanceGeminiNanoPrompt } = await import('@/lib/geminiNanoPromptEnhancer');
+    
+    // Enhanced prompt processing with mode awareness
+    const mode = params.mode || 'smart-inpaint';
+    const baseInstruction = params.instruction || 'Edit this image intelligently';
+    
+    // Generate enhanced prompt using the advanced enhancer  
+    const enhancedPrompt = enhanceGeminiNanoPrompt({
+      userPrompt: baseInstruction,
+      mode: mode as any,
+      context: !!params.maskPngDataUrl ? 'masked-editing' : 'global-editing'
+    });
+
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
         operation: 'nano-banana-edit',
         input: {
           image: asset.src,
-          prompt: params.instruction || 'Edit this image',
-          negative_prompt: "blurred, distorted, artifacts, low quality",
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
-          strength: 0.8
+          mask: params.maskPngDataUrl, // Pass mask for context-aware editing
+          enhanced_prompt: enhancedPrompt,
+          instruction: baseInstruction, // Keep original as fallback
+          mode: mode,
+          negative_prompt: "artifacts, distortion, low quality, unnatural blending, poor composition",
+          guidance_scale: params.guidance_scale || 10.5,
+          num_inference_steps: params.num_inference_steps || 40,
+          strength: params.strength || 0.88
         }
       }
     });
 
     if (error) {
-      throw new Error(`Nano Banana edit failed: ${error.message}`);
+      throw new Error(`Enhanced Nano Banana edit failed: ${error.message}`);
     }
 
     if (!data?.output) {
-      throw new Error('No output received from Nano Banana edit');
+      throw new Error('No output received from Enhanced Nano Banana edit');
     }
 
     return {
       id: crypto.randomUUID(),
       type: 'image',
-      name: `Nano Banana Edit: ${asset.name}`,
+      name: `Enhanced Nano Banana: ${asset.name}`,
       src: data.output,
       meta: { 
         ...asset.meta,
-        instruction: params.instruction,
+        instruction: baseInstruction,
+        enhancedPrompt,
+        mode,
         originalAsset: asset.id,
         provider: 'replicate.nano-banana'
       },

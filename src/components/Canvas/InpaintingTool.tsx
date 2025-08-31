@@ -30,16 +30,16 @@ interface InpaintingToolProps {
 type InpaintMode = 'remove' | 'add' | 'replace';
 
 const INPAINT_MODELS = [
-  { key: 'flux-inpaint', name: 'FLUX Inpaint', description: 'High-quality precision inpainting' },
-  { key: 'nano-banana-edit', name: 'Nano Banana', description: 'AI-powered natural language editing' },
-  { key: 'advanced-object-removal', name: 'Advanced Remover', description: 'Clean object removal' },
+  { key: 'flux-inpaint', name: 'FLUX Inpaint (precision mask)', description: 'High-quality precision inpainting' },
+  { key: 'nano-banana', name: 'Nano Banana (natural language)', description: 'AI-powered contextual editing' },
+  { key: 'advanced-object-remover', name: 'Advanced Remover', description: 'Clean object removal' },
 ];
 
 export function InpaintingTool({ asset, onComplete, onCancel, className }: InpaintingToolProps) {
   const [mode, setMode] = useState<InpaintMode>('remove');
   const [instruction, setInstruction] = useState('');
   const [mask, setMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
-  const [selectedModel, setSelectedModel] = useState('flux-inpaint');
+  const [selectedModel, setSelectedModel] = useState('nano-banana');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
   
@@ -84,21 +84,39 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
     setIsProcessing(true);
     try {
-      const operation = mode === 'remove' ? 'advanced-object-removal' : 
-                      mode === 'add' ? 'add-object' : 
-                      'flux-inpaint';
+      // Map UI model selection to correct provider and operation
+      let operation: string;
+      let provider: string;
+
+      if (selectedModel === 'nano-banana') {
+        operation = 'nano-banana-edit';
+        provider = 'replicate.nano-banana';
+      } else if (selectedModel === 'flux-inpaint') {
+        operation = 'flux-inpaint';
+        provider = 'replicate.flux-inpaint';
+      } else if (selectedModel === 'advanced-object-remover') {
+        operation = 'advanced-object-removal';
+        provider = 'replicate.advanced-object-remover';
+      } else {
+        // Fallback logic based on mode
+        operation = mode === 'remove' ? 'advanced-object-removal' : 
+                   mode === 'add' ? 'nano-banana-edit' : 
+                   'flux-inpaint';
+        provider = `replicate.${selectedModel}`;
+      }
 
       const params: ImageEditParams = {
         operation,
         instruction,
-        provider: `replicate.${selectedModel}`,
+        provider,
         maskPngDataUrl: mask.dataUrl,
         maskBlob: mask.blob,
+        mode: mode as any, // Pass mode for context-aware processing
         // Advanced parameters
         strength: strength[0],
         guidance_scale: guidanceScale[0],
         num_inference_steps: steps[0],
-        // Mode-specific parameters
+        // Mode-specific parameters for backwards compatibility
         ...(mode === 'remove' && { removeObjectInstruction: instruction }),
         ...(mode === 'add' && { addObjectInstruction: instruction }),
       };
@@ -313,26 +331,28 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           </div>
         )}
 
-        {/* Action Button */}
-        <Button 
-          onClick={handleApplyInpaint}
-          disabled={isProcessing || !mask || !instruction.trim()}
-          className="w-full"
-          size="lg"
-        >
-          {isProcessing ? (
-            "Processing..."
-          ) : !mask ? (
-            "Create Mask First"
-          ) : !instruction.trim() ? (
-            "Add Instruction"
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
-            </>
-          )}
-        </Button>
+        {/* Action Button - Always visible with proper sizing */}
+        <div className="sticky bottom-0 bg-background pt-4 border-t">
+          <Button 
+            onClick={handleApplyInpaint}
+            disabled={isProcessing || !mask || !instruction.trim()}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? (
+              "Processing..."
+            ) : !mask ? (
+              "Create Mask First"
+            ) : !instruction.trim() ? (
+              "Add Instruction"
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
+              </>
+            )}
+          </Button>
+        </div>
 
       </CardContent>
     </Card>

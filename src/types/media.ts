@@ -52,9 +52,10 @@ export interface ImageGenParams {
 }
 
 export interface ImageEditParams { 
+  operation?: string;
   instruction?: string; 
+  provider?: string;
   maskAssetId?: string;
-  operation?: "remove-object" | "add-object" | "enhance-colors" | "style-transfer" | "face-restore" | "general-edit" | "nano-banana-edit" | "flux-inpaint" | "professional-upscale" | "advanced-object-removal" | "color-enhancement" | "pose-adjustment" | "face-enhancement" | "multi-image-fusion" | string;
   brushMask?: { x: number; y: number; radius: number }[];
   clickPosition?: { x: number; y: number };
   addObjectInstruction?: string;
@@ -69,20 +70,18 @@ export interface ImageEditParams {
     saturation?: number;
     warmth?: number;
   };
+  poseKeypoints?: any[];
+  strength?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
+  mode?: 'remove' | 'add' | 'replace' | 'precision-replace' | 'style-transfer' | 'smart-inpaint' | 'detail-enhance';
+  // Extended properties for various adapters
   stylePreset?: "film" | "pop-art" | "vintage" | "black-white" | "vivid";
   enhanceFaces?: boolean;
   upscaleFactor?: number;
   poseAdjustments?: Array<{ x: number; y: number; id: string; label: string }>;
-  poseKeypoints?: Array<{ x: number; y: number; id: string; label: string }>;
-  provider?: string;
-  scale?: number;
-  strength?: number;
-  guidance_scale?: number;
-  num_inference_steps?: number;
-  brightness?: number;
-  contrast?: number;
-  saturation?: number;
-  warmth?: number;
+  targetImageUrl?: string;
+  referenceImageUrl?: string;
   cropSettings?: {
     aspectRatio: string;
     preset: string;
@@ -91,80 +90,172 @@ export interface ImageEditParams {
     width: number;
     height: number;
   };
-  targetImageUrl?: string;
-  referenceImageUrl?: string;
-  // Multi-image combination support
   multiImageUrls?: string[];
-  combineMode?: 'fusion' | 'collage' | 'blend' | 'composite';
   compositionStyle?: string;
-  // Enhanced Gemini Nano parameters
-  complexity?: 'simple' | 'moderate' | 'complex' | 'ultra-complex';
-  targetQuality?: 'standard' | 'high' | 'ultra' | 'professional';
+  complexity?: 'low' | 'medium' | 'high';
+  targetQuality?: 'draft' | 'standard' | 'high';
   preserveContext?: boolean;
-  mode?: 'precision-replace' | 'style-transfer' | 'smart-inpaint' | 'detail-enhance';
+  scale?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  warmth?: number;
+  combineMode?: string;
 }
 
 export interface TextOverlayParams { 
   text: string; 
   font?: string; 
-  size?: number; 
-  position?: { x: number; y: number }; 
-  align?: "left" | "center" | "right"; 
+  color?: string; 
+  position?: string | { x: number; y: number; };
+  size?: number;
+  align?: 'left' | 'center' | 'right';
 }
 
-export interface AnimateParams { 
-  frames?: number; 
-  fps?: number; 
-  method?: "sprite" | "lottie"; 
+export interface AnimationParams { 
+  frameRate?: number; 
+  duration?: number; 
+  type?: string;
+  frames?: number;
+  fps?: number;
 }
 
 export interface SoundParams { 
-  ttsText?: string; 
-  sfxKind?: string; 
-  durationMs?: number; 
+  voice?: string; 
+  speed?: number; 
+  language?: string;
+  ttsText?: string;
+  durationMs?: number;
 }
 
-// Adapter interfaces
-export interface ImageGenAdapter { 
-  key: string; 
-  generate(p: ImageGenParams): Promise<Asset>; 
+// Unified adapter interfaces
+export interface ImageGenAdapter {
+  key: string;
+  generate(params: ImageGenParams): Promise<Asset>;
 }
 
-export interface ImageEditAdapter { 
-  key: string; 
-  edit(asset: Asset, p: ImageEditParams): Promise<Asset>; 
+export interface ImageEditAdapter {
+  key: string;
+  edit(asset: Asset, params: ImageEditParams): Promise<Asset>;
 }
 
-export interface TextOverlayAdapter { 
-  key: string; 
-  addText(asset: Asset, p: TextOverlayParams): Promise<Asset>; 
+export interface TextOverlayAdapter {
+  key: string;
+  overlay?(asset: Asset, params: TextOverlayParams): Promise<Asset>;
+  addText?(asset: Asset, params: TextOverlayParams): Promise<Asset>;
 }
 
-export interface AnimateAdapter { 
-  key: string; 
-  animate(asset: Asset, p: AnimateParams): Promise<Asset>; 
+export interface AnimationAdapter {
+  key: string;
+  animate(asset: Asset, params: AnimationParams): Promise<Asset>;
 }
 
-export interface SoundAdapter { 
-  key: string; 
-  addSound(target: Asset, p: SoundParams): Promise<Asset>; 
+export interface SoundAdapter {
+  key: string;
+  addSound(asset: Asset, params: SoundParams): Promise<Asset>;
 }
 
-export interface GalleryImage {
+// Project Management
+export interface Project {
   id: string;
-  url: string;
-  prompt: string;
-  model?: string;
-  parameters?: Record<string, any>;
-  category: string;
-  favorite: boolean;
-  created: string;
+  name: string;
+  description?: string;
+  assetIds: string[];
+  steps: PipelineStep[];
   createdAt: number;
+  updatedAt: number;
+  thumbnailUrl?: string;
+  metadata?: Record<string, any>;
 }
 
-export interface GalleryMetadata {
-  prompt: string;
-  model: string;
-  parameters: Record<string, any>;
-  category: string;
+// Gallery and Search
+export interface SearchFilters {
+  categories?: string[];
+  subcategories?: string[];
+  tags?: string[];
+  dateRange?: { start: number; end: number };
+  providers?: string[];
+  hasMetadata?: string[];
 }
+
+export interface SortOptions {
+  field: 'createdAt' | 'name' | 'category' | 'subcategory';
+  direction: 'asc' | 'desc';
+}
+
+// Enhanced Gallery Features
+export interface GalleryViewMode {
+  type: 'grid' | 'list' | 'masonry';
+  size: 'small' | 'medium' | 'large';
+  showMetadata: boolean;
+  showActions: boolean;
+}
+
+export interface BulkAction {
+  type: 'delete' | 'categorize' | 'tag' | 'export';
+  targetIds: string[];
+  params?: Record<string, any>;
+}
+
+// Analytics and Insights
+export interface UsageStats {
+  totalAssets: number;
+  byCategory: Record<string, number>;
+  byProvider: Record<string, number>;
+  recentActivity: Array<{
+    type: 'generated' | 'edited' | 'uploaded';
+    count: number;
+    date: string;
+  }>;
+}
+
+// Export/Import
+export interface ExportOptions {
+  format: 'json' | 'zip';
+  includeMetadata: boolean;
+  includeAssets: boolean;
+  compression?: 'none' | 'standard' | 'maximum';
+}
+
+export interface ImportResult {
+  successful: number;
+  failed: number;
+  errors: string[];
+  importedAssets: Asset[];
+}
+
+// Settings and Preferences
+export interface UserPreferences {
+  defaultCategory: string;
+  autoTagging: boolean;
+  galleryView: GalleryViewMode;
+  notifications: {
+    onComplete: boolean;
+    onError: boolean;
+    onImport: boolean;
+  };
+  shortcuts: Record<string, string>;
+}
+
+// Real-time collaboration (future)
+export interface CollaborationEvent {
+  type: 'asset_added' | 'asset_edited' | 'asset_deleted' | 'project_updated';
+  userId: string;
+  timestamp: number;
+  data: any;
+}
+
+// Legacy compatibility exports
+export interface GalleryImage extends Asset {
+  url?: string;
+  prompt?: string;
+  favorite?: boolean;
+  model?: string;
+  parameters?: any;
+  created?: string;
+}
+export interface GalleryMetadata extends Record<string, any> {}
+
+// Legacy adapter type aliases
+export interface AnimateAdapter extends AnimationAdapter {}
+export interface AnimateParams extends AnimationParams {}
