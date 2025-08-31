@@ -44,8 +44,6 @@ interface ImageCanvasProps {
 }
 
 export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
-  console.log('ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
-  
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [history, setHistory] = useState<Asset[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -61,6 +59,9 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { enqueueStep, runStep, generateDirectly, assets, addAsset, activeTool, inpaintingMode } = useAppStore();
+
+  console.log('ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
+  console.log('ImageCanvas render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
 
   const tools = [
     { id: 'background-remove', label: 'Remove Background', icon: Eraser, needsAsset: true },
@@ -486,15 +487,22 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
             </div>
           )}
 
-          {/* Inpainting Tool */}
-          {activeTool === 'inpaint' && inpaintingMode && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Inpainting tool is active! Tool: {activeTool}, Mode: {inpaintingMode.toString()}
-              </p>
+          {/* Inpainting Tool - Simplified condition to show more reliably */}
+          {activeTool === 'inpaint' && (
+            <div className="space-y-4 bg-card border border-border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">AI Inpainting</h3>
+                <p className="text-sm text-muted-foreground">
+                  Tool: {activeTool} | Mode: {inpaintingMode ? 'Active' : 'Inactive'}
+                </p>
+              </div>
               <InpaintingTool
                 asset={asset}
                 onComplete={handleInpaintingComplete}
+                onCancel={() => {
+                  const { setActiveTool } = useAppStore.getState();
+                  setActiveTool('select');
+                }}
                 className="w-full"
               />
             </div>
@@ -511,7 +519,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           )}
           
           {/* Canvas Container - Only show when no editing tool is active */}
-          {!showObjectEditTool && !showColorPanel && !showStyleGallery && !(activeTool === 'inpaint' && inpaintingMode) && (
+          {!showObjectEditTool && !showColorPanel && !showStyleGallery && activeTool !== 'inpaint' && (
             <div className="relative bg-card rounded-lg border border-border">
               <div className="relative min-h-[400px] rounded-lg overflow-hidden">
                 <img
