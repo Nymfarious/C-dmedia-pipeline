@@ -33,6 +33,8 @@ export function EnhancedBrushTool({
   const [canvasReady, setCanvasReady] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>({});
   const [showDebug, setShowDebug] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // Setup canvas to match image dimensions
   const setupCanvas = useCallback(() => {
@@ -107,21 +109,60 @@ export function EnhancedBrushTool({
     }
   }, []);
 
-  // Load and setup image
+  // Load and setup image with CORS fallback
   useEffect(() => {
-    console.log('🖼️ Loading image:', imageUrl);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      console.log('✅ Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
-      imageRef.current = img;
-      setImageLoaded(true);
-      // Don't call setupCanvas here - wait for proper timing
+    setImageLoaded(false);
+    setImageError(null);
+    setLoadAttempt(0);
+    
+    const tryLoadImage = (withCors: boolean = true) => {
+      console.log(`🖼️ Loading image (attempt ${loadAttempt + 1}, CORS: ${withCors}):`, imageUrl);
+      
+      const img = new Image();
+      
+      if (withCors) {
+        img.crossOrigin = 'anonymous';
+      }
+      
+      img.onload = () => {
+        console.log('✅ Image loaded:', img.naturalWidth, 'x', img.naturalHeight);
+        imageRef.current = img;
+        setImageLoaded(true);
+        setImageError(null);
+      };
+      
+      img.onerror = (error) => {
+        const errorMsg = `Failed to load image ${withCors ? 'with CORS' : 'without CORS'}: ${error}`;
+        console.error('❌', errorMsg);
+        
+        if (withCors && loadAttempt === 0) {
+          // Try again without CORS
+          console.log('🔄 Retrying without CORS...');
+          setLoadAttempt(1);
+          setTimeout(() => tryLoadImage(false), 100);
+        } else {
+          setImageError(`Failed to load image. URL: ${imageUrl.substring(0, 100)}...`);
+        }
+      };
+      
+      // Test if URL is reachable first
+      if (imageUrl.startsWith('http')) {
+        fetch(imageUrl, { method: 'HEAD', mode: withCors ? 'cors' : 'no-cors' })
+          .then(response => {
+            console.log('🔍 URL accessibility test:', response.status, response.statusText);
+            img.src = imageUrl;
+          })
+          .catch(fetchError => {
+            console.warn('⚠️ URL accessibility test failed:', fetchError);
+            // Still try to load the image directly
+            img.src = imageUrl;
+          });
+      } else {
+        img.src = imageUrl;
+      }
     };
-    img.onerror = () => {
-      console.error('❌ Failed to load image for brush tool');
-    };
-    img.src = imageUrl;
+    
+    tryLoadImage();
   }, [imageUrl]);
 
   // Setup canvas after image loads and container is ready
@@ -351,8 +392,17 @@ export function EnhancedBrushTool({
               <div>Strokes: {strokes.length}</div>
               <div>Brush Size: {brush[0]}</div>
             </div>
+            <div className="space-y-1">
+              <div className="font-medium">Image URL:</div>
+              <div className="break-all text-xs bg-background p-1 rounded">{imageUrl}</div>
+              {imageError && (
+                <div className="text-red-500 font-medium">Error: {imageError}</div>
+              )}
+              <div>Load Attempts: {loadAttempt + 1}</div>
+            </div>
             {debugInfo.canvasWidth && (
               <div className="space-y-1">
+                <div className="font-medium">Canvas Info:</div>
                 <div>Canvas: {debugInfo.canvasWidth}x{debugInfo.canvasHeight}</div>
                 <div>Display: {debugInfo.displayWidth}x{debugInfo.displayHeight}</div>
                 <div>Scale: {debugInfo.scale?.toFixed(3)}</div>
@@ -403,7 +453,21 @@ export function EnhancedBrushTool({
         
         {!imageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-muted-foreground">Loading image...</div>
+            {imageError ? (
+              <div className="text-center space-y-2">
+                <div className="text-red-500 font-medium">Failed to load image</div>
+                <div className="text-xs text-muted-foreground max-w-md break-all">{imageError}</div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <div className="text-muted-foreground">Loading image...</div>
+            )}
           </div>
         )}
       </div>
