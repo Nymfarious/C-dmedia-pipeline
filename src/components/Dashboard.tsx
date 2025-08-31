@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Asset, ImageEditParams } from '@/types/media';
 import { Header } from '@/components/Header';
-import { Toolbar } from '@/components/Toolbar';
+import { ToolbarTop } from '@/components/ToolbarTop';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
@@ -67,7 +67,13 @@ export function Dashboard() {
       />
       
       {/* Toolbar */}
-      <Toolbar />
+      <ToolbarTop 
+        activeTab={activeCanvas || 'image'}
+        selectedTool={activeTool}
+        onToolChange={setActiveTool}
+        toggleRightPanel={() => {}}
+        onOpenAIModal={() => setShowAIModal(true)}
+      />
       
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
