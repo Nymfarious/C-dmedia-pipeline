@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { useAppStore } from '@/store/appStore';
+import useAppStore from '@/store/appStore';
 
 export function useGlobalShortcuts() {
-  const { activeTool, exitActiveTool } = useAppStore();
+  // Safe store access with error handling
+  const activeTool = useAppStore((state) => state.activeTool);
+  const exitActiveTool = useAppStore((state) => state.exitActiveTool);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
