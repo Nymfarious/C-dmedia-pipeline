@@ -382,6 +382,7 @@ export function ProjectManagementModal({
                                 size="sm"
                                 onClick={() => setDeleteConfirm(project.id)}
                                 title="Delete project"
+                                className="hover:bg-destructive/10"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>

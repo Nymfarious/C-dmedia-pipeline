@@ -97,6 +97,11 @@ export interface ImageEditParams {
   multiImageUrls?: string[];
   combineMode?: 'fusion' | 'collage' | 'blend' | 'composite';
   compositionStyle?: string;
+  // Enhanced Gemini Nano parameters
+  complexity?: 'simple' | 'moderate' | 'complex' | 'ultra-complex';
+  targetQuality?: 'standard' | 'high' | 'ultra' | 'professional';
+  preserveContext?: boolean;
+  mode?: 'precision-replace' | 'style-transfer' | 'smart-inpaint' | 'detail-enhance';
 }
 
 export interface TextOverlayParams { 

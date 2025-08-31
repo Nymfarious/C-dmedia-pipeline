@@ -89,24 +89,41 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       userPrompt: instruction,
       context: asset.meta?.originalPrompt,
       operation: params.operation,
+      complexity: params.complexity || 'moderate',
+      targetQuality: params.targetQuality || 'high',
+      preserveContext: params.preserveContext !== false,
       imageAnalysis: {
         lighting: 'natural' as const,
         style: 'realistic' as const,
-        scene: asset.meta?.originalPrompt ? `scene from: ${asset.meta.originalPrompt}` : 'the image'
+        scene: asset.meta?.originalPrompt ? `scene from: ${asset.meta.originalPrompt}` : 'the image',
+        mood: 'calm' as const
       }
     };
 
     const enhancedPrompt = enhanceGeminiNanoPrompt(promptOptions);
-    const optimizedParams = getOptimizedGeminiNanoParams(mode);
+    console.log('🎯 Enhanced prompt result:', {
+      original: instruction,
+      enhanced: enhancedPrompt.prompt.substring(0, 100) + '...',
+      mode,
+      parameters: {
+        guidance_scale: enhancedPrompt.guidance_scale,
+        strength: enhancedPrompt.strength,
+        steps: enhancedPrompt.num_inference_steps
+      }
+    });
 
     // Prepare input for enhanced replicate function with optimized parameters
     const input: any = {
       image: asset.src,
-      prompt: enhancedPrompt.prompt,
+      enhanced_prompt: enhancedPrompt.prompt,
+      prompt: enhancedPrompt.fallbackPrompt || enhancedPrompt.prompt,
       negative_prompt: enhancedPrompt.negativePrompt,
       guidance_scale: params.guidance_scale || enhancedPrompt.guidance_scale,
       num_inference_steps: params.num_inference_steps || enhancedPrompt.num_inference_steps,
-      strength: params.strength || enhancedPrompt.strength
+      strength: params.strength || enhancedPrompt.strength,
+      mode: mode,
+      complexity: params.complexity,
+      targetQuality: params.targetQuality
     };
 
     // Add mask if provided
@@ -120,12 +137,18 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       input.composition_style = params.compositionStyle || 'seamless blend';
     }
 
-    console.log('Calling Gemini Nano with enhanced prompt:', { 
+    console.log('🚀 Calling Enhanced Gemini Nano:', { 
       operation, 
       mode, 
       originalInstruction: instruction,
-      enhancedPrompt: enhancedPrompt.prompt,
-      parameters: optimizedParams 
+      enhancedPrompt: enhancedPrompt.prompt.substring(0, 150) + '...',
+      complexity: params.complexity,
+      quality: params.targetQuality,
+      parameters: {
+        guidance_scale: enhancedPrompt.guidance_scale,
+        strength: enhancedPrompt.strength,
+        steps: enhancedPrompt.num_inference_steps
+      }
     });
 
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
@@ -159,7 +182,16 @@ export const geminiNanoAdapter: ImageEditAdapter = {
         editMode: mode,
         originalInstruction: instruction,
         enhancedPrompt: enhancedPrompt.prompt,
-        parameters: optimizedParams,
+        fallbackPrompt: enhancedPrompt.fallbackPrompt,
+        contextualHints: enhancedPrompt.contextualHints,
+        qualityModifiers: enhancedPrompt.qualityModifiers,
+        complexity: params.complexity,
+        targetQuality: params.targetQuality,
+        parameters: {
+          guidance_scale: enhancedPrompt.guidance_scale,
+          strength: enhancedPrompt.strength,
+          steps: enhancedPrompt.num_inference_steps
+        },
         editedAt: Date.now()
       },
       createdAt: Date.now(),

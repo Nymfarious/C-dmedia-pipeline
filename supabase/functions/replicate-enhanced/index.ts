@@ -156,19 +156,27 @@ serve(async (req) => {
         break;
 
       case 'nano-banana-edit':
-        // Use FLUX inpaint instead of broken nano-banana
+        // Enhanced Gemini Nano with smart prompt processing
         modelKey = 'flux-inpaint';
         if (!body.input.mask) {
           throw new Error('Mask required for inpainting operation');
         }
+        
+        console.log('🎯 Enhanced Nano Banana processing with mode:', body.input.mode || 'smart-inpaint');
+        
+        // Use enhanced prompt if provided, otherwise use instruction/prompt
+        const enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit the masked area intelligently';
+        const negativePrompt = body.input.negative_prompt || 'artifacts, distortion, low quality, unnatural, poor blending';
+        
         output = await replicate.run(MODEL_CONFIG[modelKey], {
           input: {
             image: body.input.image,
             mask: body.input.mask,
-            prompt: body.input.instruction || body.input.prompt || 'Edit the masked area',
-            guidance_scale: body.input.guidance_scale || 3.5,
-            num_inference_steps: body.input.num_inference_steps || 28,
-            strength: body.input.strength || 0.8
+            prompt: enhancedPrompt,
+            negative_prompt: negativePrompt,
+            guidance_scale: body.input.guidance_scale || 10.5,
+            num_inference_steps: body.input.num_inference_steps || 40,
+            strength: body.input.strength || 0.88
           }
         });
         break;
