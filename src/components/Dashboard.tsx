@@ -28,6 +28,12 @@ export function Dashboard() {
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
   console.log('Dashboard render - canvases:', canvases);
+  console.log('Dashboard render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
+
+  const handleToolChange = (tool: string) => {
+    console.log('Dashboard - Tool changing to:', tool);
+    setActiveTool(tool);
+  };
 
   const loadAssetToCanvas = (asset: Asset) => {
     const canvasId = createCanvas(asset.type as 'image' | 'video' | 'audio', asset);
@@ -70,7 +76,7 @@ export function Dashboard() {
       <ToolbarTop 
         activeTab={activeCanvas || 'image'}
         selectedTool={activeTool}
-        onToolChange={setActiveTool}
+        onToolChange={handleToolChange}
         toggleRightPanel={() => {}}
         onOpenAIModal={() => setShowAIModal(true)}
       />

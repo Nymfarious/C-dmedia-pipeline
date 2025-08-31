@@ -39,7 +39,6 @@ export function ToolbarTop({
   toggleRightPanel,
   onOpenAIModal,
 }: ToolbarTopProps) {
-  const [activeTool, setActiveTool] = useState('select');
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
 
   const handleToolClick = (tool: string) => {
@@ -47,7 +46,6 @@ export function ToolbarTop({
     const toolData = toolGroups.flatMap(g => g.tools).find(t => t.id === tool);
     if (!toolData?.working) return;
     
-    setActiveTool(tool);
     onToolChange(tool);
     
     // Open AI modal for AI generation tool
@@ -197,7 +195,7 @@ export function ToolbarTop({
                     key={tool.id}
                     className={`p-2 rounded-md relative group transition-colors ${
                       tool.working 
-                        ? `hover:bg-muted ${activeTool === tool.id ? 'bg-primary/10 text-primary' : ''}` 
+                        ? `hover:bg-muted ${selectedTool === tool.id ? 'bg-primary/10 text-primary' : ''}` 
                         : 'opacity-50 cursor-not-allowed text-muted-foreground'
                     }`}
                     onClick={() => tool.working && handleToolClick(tool.id)}
@@ -234,7 +232,7 @@ export function ToolbarTop({
           </button>
         </div>
       </div>
-      {toolbarExpanded && activeTool === 'brush' && (
+      {toolbarExpanded && selectedTool === 'brush' && (
         <div className="px-4 py-2 border-t border-border flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div>
