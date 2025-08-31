@@ -16,9 +16,9 @@ export const replicateEdit: ImageEditAdapter = {
           image: asset.src,
           mask: params.maskPngDataUrl,
           prompt: params.instruction || 'Edit the masked area',
-          guidance_scale: 3.5,
-          num_inference_steps: 28,
-          strength: 0.8
+          guidance_scale: params.guidance_scale || 12.0,
+          num_inference_steps: params.num_inference_steps || 35,
+          strength: params.strength || 0.85
         }
       }
     });

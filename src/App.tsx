@@ -13,6 +13,8 @@ import { ToolbarTop } from './components/ToolbarTop';
 import { RightPanel } from './components/RightPanel';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { SimplifiedAIModal } from './components/SimplifiedAIModal';
+import { FloatingToolExit } from './components/FloatingToolExit';
+import { ProjectManagementModal } from './components/ProjectManagementModal';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -27,6 +29,7 @@ function EnhancedApp() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   // Initialize store once on app load
   useEffect(() => {
@@ -142,6 +145,15 @@ function EnhancedApp() {
         isOpen={isGenerationModalOpen}
         onClose={() => setIsGenerationModalOpen(false)}
       />
+      <ProjectManagementModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        onNewProject={() => {}}
+        onProjectLoad={(assets, currentAssetId) => {
+          useAppStore.getState().loadProjectData(assets, currentAssetId);
+        }}
+      />
+      <FloatingToolExit />
     </div>
   );
 }

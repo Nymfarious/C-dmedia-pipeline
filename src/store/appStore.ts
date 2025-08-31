@@ -48,11 +48,12 @@ interface AppState {
   loadProjectData(assets: Record<string, Asset>, currentAssetId?: string): void;
   setActiveTool(tool: string): void;
   setInpaintingMode(enabled: boolean): void;
+  exitActiveTool(): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
 }
 
-const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   assets: {},
   steps: {},
   selectedAssetIds: [],
@@ -508,6 +509,12 @@ const useAppStore = create<AppState>((set, get) => ({
   },
 
   setInpaintingMode: (enabled) => set({ inpaintingMode: enabled }),
+
+  exitActiveTool: () => {
+    console.log('🚪 AppStore - Exiting active tool');
+    set({ activeTool: 'select', inpaintingMode: false });
+    console.log('✅ AppStore - Returned to default state');
+  },
 
   persist: async () => {
     const state = get();

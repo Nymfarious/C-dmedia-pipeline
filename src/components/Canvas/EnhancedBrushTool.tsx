@@ -36,7 +36,7 @@ export function EnhancedBrushTool({
   const [imageError, setImageError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
-  // Setup canvas to match image dimensions
+  // Setup canvas to match image dimensions with full coverage
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -49,39 +49,43 @@ export function EnhancedBrushTool({
       return;
     }
 
-    // Get container dimensions
-    const containerRect = container.getBoundingClientRect();
-    const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
+    // Get the actual displayed image dimensions from the img element
+    const imgRect = img.getBoundingClientRect();
+    const displayWidth = imgRect.width;
+    const displayHeight = imgRect.height;
 
-    console.log('📏 Container dimensions:', { containerWidth, containerHeight });
-    console.log('🖼️ Image dimensions:', { natural: `${img.naturalWidth}x${img.naturalHeight}` });
+    console.log('📏 Image display dimensions:', { displayWidth, displayHeight });
+    console.log('🖼️ Image natural dimensions:', { natural: `${img.naturalWidth}x${img.naturalHeight}` });
 
-    // Fallback if container has no dimensions yet
-    if (containerWidth === 0 || containerHeight === 0) {
-      console.warn('⚠️ Container has no dimensions, using fallback');
+    // Fallback if image has no dimensions yet
+    if (displayWidth === 0 || displayHeight === 0) {
+      console.warn('⚠️ Image has no display dimensions, using fallback');
       setTimeout(() => setupCanvas(), 100);
       return;
     }
 
-    // Calculate scale to fit image in container
-    const scaleX = containerWidth / img.naturalWidth;
-    const scaleY = containerHeight / img.naturalHeight;
-    const scale = Math.min(scaleX, scaleY, 1); // Don't upscale
-
-    // Set canvas size to match displayed image
-    const displayWidth = Math.floor(img.naturalWidth * scale);
-    const displayHeight = Math.floor(img.naturalHeight * scale);
-    
-    console.log('🎯 Canvas setup:', { scale, displayWidth, displayHeight });
-    
-    // Set canvas internal resolution
-    canvas.width = img.naturalWidth; // Native resolution for mask
+    // Set canvas internal resolution to match the natural image resolution
+    canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     
-    // Set CSS size to match displayed image
+    // Set CSS size to exactly match the displayed image
     canvas.style.width = `${displayWidth}px`;
     canvas.style.height = `${displayHeight}px`;
+    
+    // Position canvas to cover the entire image area
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.right = '0';
+    canvas.style.bottom = '0';
+    canvas.style.margin = 'auto';
+    
+    console.log('🎯 Canvas setup:', { 
+      naturalWidth: canvas.width, 
+      naturalHeight: canvas.height,
+      displayWidth, 
+      displayHeight 
+    });
     
     // Update debug info
     setDebugInfo({
@@ -89,9 +93,7 @@ export function EnhancedBrushTool({
       canvasHeight: canvas.height,
       displayWidth,
       displayHeight,
-      scale,
-      containerWidth,
-      containerHeight,
+      scale: Math.min(displayWidth / img.naturalWidth, displayHeight / img.naturalHeight),
       imageNaturalWidth: img.naturalWidth,
       imageNaturalHeight: img.naturalHeight
     });
@@ -99,7 +101,7 @@ export function EnhancedBrushTool({
     setCanvasReady(true);
     setReady(true);
     
-    console.log('✅ Canvas setup complete');
+    console.log('✅ Canvas setup complete - full image coverage enabled');
     
     // Clear canvas and redraw
     const ctx = canvas.getContext('2d');
@@ -420,25 +422,27 @@ export function EnhancedBrushTool({
         style={{ minHeight: '400px', maxHeight: '70vh' }}
       >
         {imageLoaded && (
-          <>
+          <div className="relative w-full h-full flex items-center justify-center">
             {/* Background Image */}
             <img
+              ref={imageRef}
               src={imageUrl}
               alt="Reference"
-              className="w-full h-full object-contain"
+              className="max-w-full max-h-full object-contain"
               style={{ maxHeight: '70vh' }}
               draggable={false}
             />
             
-            {/* Drawing Canvas Overlay */}
+            {/* Drawing Canvas Overlay - covers entire image */}
             <canvas
               ref={canvasRef}
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 cursor-crosshair border-2 border-red-500/20"
+              className="absolute cursor-crosshair"
               style={{ 
                 mixBlendMode: 'multiply',
                 opacity: 0.7,
                 touchAction: 'none',
-                pointerEvents: canvasReady ? 'auto' : 'none'
+                pointerEvents: canvasReady ? 'auto' : 'none',
+                zIndex: 10
               }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
@@ -448,7 +452,7 @@ export function EnhancedBrushTool({
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             />
-          </>
+          </div>
         )}
         
         {!imageLoaded && (
