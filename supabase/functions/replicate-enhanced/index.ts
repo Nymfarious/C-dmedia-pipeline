@@ -30,10 +30,12 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-// Helper function to ensure URL is public and accessible
-async function ensurePublicUrl(url: string, bucket: string = 'ai-images'): Promise<string> {
+// Helper function to ensure image URLs are public and accessible
+async function ensurePublicImageUrl(url: string): Promise<string> {
+  console.log('🔍 Validating image URL:', url);
+  
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) {
-    throw new Error('Invalid or inaccessible image URL. Please ensure image is publicly accessible.');
+    throw new Error('Invalid image URL. Images must be publicly accessible HTTP/HTTPS URLs.');
   }
   
   // Test if URL is accessible
@@ -42,10 +44,35 @@ async function ensurePublicUrl(url: string, bucket: string = 'ai-images'): Promi
     if (!response.ok) {
       throw new Error(`Image URL not accessible: ${response.status}`);
     }
+    console.log('✅ Image URL is accessible');
     return url;
   } catch (error) {
+    console.error('❌ Image URL validation failed:', error);
     throw new Error(`Failed to access image URL: ${error.message}`);
   }
+}
+
+// Helper function to ensure mask URLs are valid (allows data URLs)
+function ensureMaskUrl(url: string): string {
+  console.log('🔍 Validating mask URL:', url.substring(0, 50) + '...');
+  
+  if (!url) {
+    throw new Error('Mask URL is required');
+  }
+  
+  // Allow data URLs for masks (client-side generated)
+  if (url.startsWith('data:image/')) {
+    console.log('✅ Valid data URL mask');
+    return url;
+  }
+  
+  // Also allow HTTP URLs for masks
+  if (url.startsWith('http')) {
+    console.log('✅ Valid HTTP URL mask');
+    return url;
+  }
+  
+  throw new Error('Invalid mask URL format. Expected data URL or HTTP/HTTPS URL.');
 }
 
 serve(async (req) => {
@@ -71,16 +98,16 @@ serve(async (req) => {
       )
     }
 
-    // Ensure image URLs are publicly accessible
+    // Validate URLs with appropriate functions
     if (body.input.image) {
-      body.input.image = await ensurePublicUrl(body.input.image);
+      body.input.image = await ensurePublicImageUrl(body.input.image);
     }
     if (body.input.mask) {
-      body.input.mask = await ensurePublicUrl(body.input.mask, 'ai-masks');
+      body.input.mask = ensureMaskUrl(body.input.mask);
     }
     if (body.input.images) {
       for (let i = 0; i < body.input.images.length; i++) {
-        body.input.images[i] = await ensurePublicUrl(body.input.images[i]);
+        body.input.images[i] = await ensurePublicImageUrl(body.input.images[i]);
       }
     }
 
