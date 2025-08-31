@@ -16,7 +16,8 @@ import {
   Sparkles,
   Import,
   Upload,
-  Loader2
+  Loader2,
+  Paintbrush
 } from 'lucide-react';
 import { Asset, ImageEditParams } from '@/types/media';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
@@ -58,14 +59,22 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   const [upscaleFactor, setUpscaleFactor] = useState(2);
   const [isGenerating, setIsGenerating] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { enqueueStep, runStep, generateDirectly, assets, addAsset, activeTool, inpaintingMode } = useAppStore();
+  const { enqueueStep, runStep, generateDirectly, assets, addAsset, activeTool, inpaintingMode, setActiveTool } = useAppStore();
 
-  console.log('ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
-  console.log('ImageCanvas render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
+  // Force state debugging on every render
+  console.log('🔍 ImageCanvas render - asset:', !!asset, asset?.id, asset?.name);
+  console.log('🔍 ImageCanvas render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
+  
+  // Add useEffect to track state changes
+  React.useEffect(() => {
+    console.log('🔄 ImageCanvas useEffect - activeTool changed to:', activeTool);
+    console.log('🔄 ImageCanvas useEffect - inpaintingMode changed to:', inpaintingMode);
+  }, [activeTool, inpaintingMode]);
 
   const tools = [
     { id: 'background-remove', label: 'Remove Background', icon: Eraser, needsAsset: true },
     { id: 'object-edit', label: 'Edit Objects', icon: Scissors, needsAsset: true },
+    { id: 'inpaint', label: 'AI Inpainting', icon: Paintbrush, needsAsset: true },
     { id: 'upscale', label: 'Enhanced Upscale', icon: ZoomIn, needsAsset: true },
     { id: 'color-adjust', label: 'Color & Style', icon: Sparkles, needsAsset: true },
     { id: 'rotate', label: 'Rotate', icon: RotateCw, needsAsset: true },
@@ -120,6 +129,10 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
           break;
         case 'object-edit':
           setShowObjectEditTool(true);
+          break;
+        case 'inpaint':
+          console.log('🎨 Activating inpaint tool via handleToolAction');
+          setActiveTool('inpaint');
           break;
         case 'upscale':
           await handleEnhancedUpscale();
@@ -487,24 +500,36 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
             </div>
           )}
 
-          {/* Inpainting Tool - Simplified condition to show more reliably */}
-          {activeTool === 'inpaint' && (
+          {/* Inpainting Tool - Always show when activeTool is 'inpaint' */}
+          {(() => {
+            console.log('🎯 Checking inpaint condition - activeTool:', activeTool, 'equals inpaint:', activeTool === 'inpaint');
+            return activeTool === 'inpaint';
+          })() && (
             <div className="space-y-4 bg-card border border-border rounded-lg p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">AI Inpainting</h3>
-                <p className="text-sm text-muted-foreground">
-                  Tool: {activeTool} | Mode: {inpaintingMode ? 'Active' : 'Inactive'}
-                </p>
+                <h3 className="text-lg font-semibold">🎨 AI Inpainting Tool</h3>
+                <div className="text-sm text-muted-foreground">
+                  <p>Tool: <Badge variant="outline">{activeTool}</Badge></p>
+                  <p>Mode: <Badge variant={inpaintingMode ? "default" : "secondary"}>
+                    {inpaintingMode ? 'Active' : 'Inactive'}
+                  </Badge></p>
+                </div>
               </div>
-              <InpaintingTool
-                asset={asset}
-                onComplete={handleInpaintingComplete}
-                onCancel={() => {
-                  const { setActiveTool } = useAppStore.getState();
-                  setActiveTool('select');
-                }}
-                className="w-full"
-              />
+              {asset ? (
+                <InpaintingTool
+                  asset={asset}
+                  onComplete={handleInpaintingComplete}
+                  onCancel={() => {
+                    console.log('🚫 Inpainting cancelled');
+                    setActiveTool('select');
+                  }}
+                  className="w-full"
+                />
+              ) : (
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded">
+                  <p className="text-sm text-destructive">No asset available for inpainting</p>
+                </div>
+              )}
             </div>
           )}
           

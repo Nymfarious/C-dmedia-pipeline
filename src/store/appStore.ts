@@ -492,15 +492,18 @@ const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveTool: (tool) => {
-    console.log('AppStore - Setting active tool:', tool);
+    console.log('🔧 AppStore - Setting active tool:', tool);
+    console.log('🔧 AppStore - Previous state:', { activeTool: get().activeTool, inpaintingMode: get().inpaintingMode });
     
-    // Set tool and inpainting mode atomically
+    // Set tool and inpaintingmode atomically
     if (tool === 'inpaint') {
-      console.log('AppStore - Enabling inpainting mode');
+      console.log('🎨 AppStore - Enabling inpainting mode');
       set({ activeTool: tool, inpaintingMode: true });
+      console.log('✅ AppStore - Inpainting enabled. New state:', { activeTool: get().activeTool, inpaintingMode: get().inpaintingMode });
     } else {
-      console.log('AppStore - Disabling inpainting mode for tool:', tool);
+      console.log('🔄 AppStore - Disabling inpainting mode for tool:', tool);
       set({ activeTool: tool, inpaintingMode: false });
+      console.log('✅ AppStore - Tool changed. New state:', { activeTool: get().activeTool, inpaintingMode: get().inpaintingMode });
     }
   },
 
