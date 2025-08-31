@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EnhancedBrushTool } from './EnhancedBrushTool';
+import { MaskPreview } from './MaskPreview';
 import { 
   Minus, 
   Plus, 
@@ -42,21 +43,21 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
   
-  // Advanced parameters
-  const [strength, setStrength] = useState([0.8]);
-  const [guidanceScale, setGuidanceScale] = useState([7.5]);
-  const [steps, setSteps] = useState([20]);
+  // Advanced parameters with optimized defaults
+  const [strength, setStrength] = useState([0.85]);
+  const [guidanceScale, setGuidanceScale] = useState([12.0]);
+  const [steps, setSteps] = useState([35]);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Mode-specific instructions
   const getDefaultInstruction = useCallback(() => {
     switch (mode) {
       case 'remove':
-        return 'Remove the painted objects from the image';
+        return 'Remove the painted objects';
       case 'add':
-        return 'Add a beautiful object in the painted area';
+        return 'Add a cat';
       case 'replace':
-        return 'Replace the painted objects with something new';
+        return 'Change to cat';
       default:
         return '';
     }
@@ -212,9 +213,9 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             placeholder={getDefaultInstruction()}
           />
           <div className="text-xs text-muted-foreground">
-            {mode === 'remove' && "Describe what to remove or leave empty for automatic detection"}
-            {mode === 'add' && "Describe what to add in the painted area"}
-            {mode === 'replace' && "Describe what to replace the painted objects with"}
+            {mode === 'remove' && "Simple prompts work well: 'remove dog', 'remove person', etc."}
+            {mode === 'add' && "Describe what to add: 'cat', 'tree', 'blue car', etc."}
+            {mode === 'replace' && "Describe the replacement: 'change to cat', 'turn into tree', etc."}
           </div>
         </div>
 
@@ -247,6 +248,15 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
               {mask ? "Edit Mask" : "Create Mask"}
             </Button>
           </div>
+
+          {/* Mask Preview */}
+          {mask && (
+            <MaskPreview
+              maskDataUrl={mask.dataUrl}
+              imageUrl={asset.src}
+              className="mt-3"
+            />
+          )}
         </div>
 
         {/* Advanced Parameters */}

@@ -182,12 +182,12 @@ export function EnhancedBrushTool({
     
     const ctx = canvas.getContext('2d')!;
     
-    // Clear with white (keep areas)
-    ctx.fillStyle = '#FFFFFF';
+    // Clear with black (preserve areas)
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw black strokes (edit areas)
-    ctx.fillStyle = '#000000';
+    // Draw white strokes (inpaint areas) - FLUX expects white pixels for inpainting
+    ctx.fillStyle = '#FFFFFF';
     ctx.globalCompositeOperation = 'source-over';
     
     for (const stroke of strokes) {
