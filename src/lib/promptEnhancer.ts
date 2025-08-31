@@ -116,33 +116,77 @@ function enhanceReplacementPrompt(prompt: string, context?: string): string {
 }
 
 /**
- * Get optimized parameters for different inpainting operations
+ * Get optimized parameters for different inpainting operations and quality levels
  */
-export function getOptimizedInpaintingParams(mode: 'remove' | 'add' | 'replace') {
-  switch (mode) {
-    case 'remove':
-      return {
-        guidance_scale: 15.0,
-        strength: 0.95,
-        num_inference_steps: 45
-      };
-    case 'add':
-      return {
-        guidance_scale: 12.0,
-        strength: 0.85,
-        num_inference_steps: 40
-      };
-    case 'replace':
-      return {
-        guidance_scale: 14.0,
-        strength: 0.90,
-        num_inference_steps: 42
-      };
-    default:
-      return {
-        guidance_scale: 12.0,
-        strength: 0.85,
-        num_inference_steps: 35
-      };
-  }
+export function getOptimizedInpaintingParams(
+  mode: 'remove' | 'add' | 'replace',
+  qualityLevel: 'fast' | 'balanced' | 'quality' | 'ultra' = 'balanced'
+) {
+  const baseParams = {
+    'remove': {
+      guidance_scale: 15.0,
+      strength: 0.95,
+      num_inference_steps: 45
+    },
+    'add': {
+      guidance_scale: 12.0,
+      strength: 0.85,
+      num_inference_steps: 40
+    },
+    'replace': {
+      guidance_scale: 14.0,
+      strength: 0.90,
+      num_inference_steps: 42
+    }
+  };
+
+  const qualityMultipliers = {
+    'fast': { guidance_scale: 0.7, strength: 0.9, num_inference_steps: 0.5 },
+    'balanced': { guidance_scale: 1.0, strength: 1.0, num_inference_steps: 1.0 },
+    'quality': { guidance_scale: 1.2, strength: 1.05, num_inference_steps: 1.4 },
+    'ultra': { guidance_scale: 1.4, strength: 1.1, num_inference_steps: 1.8 }
+  };
+
+  const base = baseParams[mode] || baseParams['add'];
+  const multiplier = qualityMultipliers[qualityLevel];
+
+  return {
+    guidance_scale: Math.round(base.guidance_scale * multiplier.guidance_scale * 10) / 10,
+    strength: Math.round(base.strength * multiplier.strength * 100) / 100,
+    num_inference_steps: Math.max(10, Math.round(base.num_inference_steps * multiplier.num_inference_steps))
+  };
+}
+
+/**
+ * Convert UI slider values to parameter values
+ */
+export function convertUIToParams(qualityVsSpeed: number, precisionVsCreativity: number): {
+  qualityLevel: 'fast' | 'balanced' | 'quality' | 'ultra';
+  precisionMultiplier: number;
+} {
+  // Quality vs Speed (0-100) -> Quality Level
+  const qualityLevel: 'fast' | 'balanced' | 'quality' | 'ultra' = 
+    qualityVsSpeed <= 25 ? 'fast' :
+    qualityVsSpeed <= 50 ? 'balanced' :
+    qualityVsSpeed <= 75 ? 'quality' : 'ultra';
+
+  // Precision vs Creativity affects guidance scale
+  const precisionMultiplier = 0.5 + (precisionVsCreativity / 100); // 0.5 to 1.5
+
+  return { qualityLevel, precisionMultiplier };
+}
+
+/**
+ * Enhanced negative prompts for different modes
+ */
+export function getEnhancedNegativePrompt(mode: 'remove' | 'add' | 'replace'): string {
+  const commonNegatives = "artifacts, blur, distortion, poor quality, watermark, text";
+  
+  const modeSpecific = {
+    'remove': "remnants, traces, leftover parts, duplicate shapes, hallucinations, incomplete removal, object fragments, unnatural patches, visible seams, scars, marks",
+    'add': "poor integration, mismatched lighting, inconsistent perspective, floating objects, unnatural placement, wrong scale, lighting mismatch, shadow inconsistency",
+    'replace': "partial transformation, mixed objects, incomplete change, original remnants, hybrid artifacts, poor replacement, mismatched style, inconsistent integration"
+  };
+
+  return `${commonNegatives}, ${modeSpecific[mode]}`;
 }

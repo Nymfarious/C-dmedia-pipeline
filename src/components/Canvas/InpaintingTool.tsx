@@ -1,24 +1,33 @@
-import React, { useState, useCallback } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EnhancedBrushTool } from './EnhancedBrushTool';
 import { MaskPreview } from './MaskPreview';
+import { InpaintingModeSelector } from './InpaintingModeSelector';
+import { AdvancedInpaintingControls } from './AdvancedInpaintingControls';
+import { MaskQualityFeedback } from './MaskQualityFeedback';
 import { 
-  Minus, 
-  Plus, 
-  Replace, 
   Paintbrush,
   Settings,
   Undo,
-  Save
+  Save,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { Asset, ImageEditParams } from '@/types/media';
+import { processMask, MaskQualityInfo } from '@/lib/maskProcessor';
+import { 
+  getOptimizedInpaintingParams, 
+  convertUIToParams, 
+  getEnhancedNegativePrompt,
+  enhanceInpaintingPrompt 
+} from '@/lib/promptEnhancer';
+import { useToast } from '@/hooks/use-toast';
 
 interface InpaintingToolProps {
   asset: Asset;
@@ -36,18 +45,25 @@ const INPAINT_MODELS = [
 ];
 
 export function InpaintingTool({ asset, onComplete, onCancel, className }: InpaintingToolProps) {
+  const { toast } = useToast();
+  
+  // Core state
   const [mode, setMode] = useState<InpaintMode>('remove');
   const [instruction, setInstruction] = useState('');
   const [mask, setMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
+  const [processedMask, setProcessedMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
+  const [maskQuality, setMaskQuality] = useState<MaskQualityInfo | null>(null);
   const [selectedModel, setSelectedModel] = useState('nano-banana');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
   
-  // Advanced parameters with optimized defaults
-  const [strength, setStrength] = useState([0.85]);
-  const [guidanceScale, setGuidanceScale] = useState([12.0]);
-  const [steps, setSteps] = useState([35]);
+  // Advanced UI controls
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [qualityVsSpeed, setQualityVsSpeed] = useState([50]); // 0-100 slider
+  const [precisionVsCreativity, setPrecisionVsCreativity] = useState([50]); // 0-100 slider
+  const [enableCleanupPass, setEnableCleanupPass] = useState(true);
+  const [maskPadding, setMaskPadding] = useState([12]);
+  const [maskFeathering, setMaskFeathering] = useState([3]);
 
   // Mode-specific instructions
   const getDefaultInstruction = useCallback(() => {
@@ -62,6 +78,42 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
         return '';
     }
   }, [mode]);
+
+  // Process mask when raw mask changes
+  useEffect(() => {
+    if (!mask) {
+      setProcessedMask(null);
+      setMaskQuality(null);
+      return;
+    }
+    
+    const processRawMask = async () => {
+      try {
+        const result = await processMask(mask.dataUrl, {
+          padding: maskPadding[0],
+          featherRadius: maskFeathering[0],
+          qualityCheck: true
+        });
+        
+        setProcessedMask({ dataUrl: result.dataUrl, blob: result.blob });
+        setMaskQuality(result.quality);
+        
+        // Show quality warnings
+        if (!result.quality.isValid || result.quality.warnings.length > 0) {
+          toast({
+            title: "Mask Quality Check",
+            description: result.quality.warnings[0] || "Consider improving the mask for better results",
+            variant: result.quality.isValid ? "default" : "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Mask processing failed:', error);
+        setProcessedMask(mask); // Fallback to original
+      }
+    };
+    
+    processRawMask();
+  }, [mask, maskPadding, maskFeathering, toast]);
 
   const handleMaskExport = (maskData: { dataUrl: string; blob: Blob }) => {
     setMask(maskData);
@@ -80,10 +132,33 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   };
 
   const handleApplyInpaint = async () => {
-    if (!mask || !instruction) return;
+    const finalMask = processedMask || mask;
+    if (!finalMask || !instruction.trim()) return;
 
     setIsProcessing(true);
     try {
+      // Convert UI controls to parameters
+      const { qualityLevel, precisionMultiplier } = convertUIToParams(
+        qualityVsSpeed[0], 
+        precisionVsCreativity[0]
+      );
+      
+      // Get optimized parameters for mode and quality
+      const optimizedParams = getOptimizedInpaintingParams(mode, qualityLevel);
+      
+      // Apply precision multiplier to guidance scale
+      optimizedParams.guidance_scale *= precisionMultiplier;
+      
+      // Enhance the prompt
+      const enhancedPrompt = enhanceInpaintingPrompt({
+        mode,
+        userPrompt: instruction,
+        context: asset.meta?.originalPrompt
+      });
+      
+      // Get enhanced negative prompt
+      const negativePrompt = getEnhancedNegativePrompt(mode);
+      
       // Map UI model selection to correct provider and operation
       let operation: string;
       let provider: string;
@@ -98,7 +173,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
         operation = 'advanced-object-removal';
         provider = 'replicate.advanced-object-remover';
       } else {
-        // Fallback logic based on mode
+        // Smart fallback based on mode
         operation = mode === 'remove' ? 'advanced-object-removal' : 
                    mode === 'add' ? 'nano-banana-edit' : 
                    'flux-inpaint';
@@ -107,21 +182,40 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
       const params: ImageEditParams = {
         operation,
-        instruction,
+        instruction: enhancedPrompt.prompt,
         provider,
-        maskPngDataUrl: mask.dataUrl,
-        maskBlob: mask.blob,
-        mode: mode as any, // Pass mode for context-aware processing
-        // Advanced parameters
-        strength: strength[0],
-        guidance_scale: guidanceScale[0],
-        num_inference_steps: steps[0],
+        maskPngDataUrl: finalMask.dataUrl,
+        maskBlob: finalMask.blob,
+        mode: mode as any,
+        
+        // Enhanced parameters
+        strength: optimizedParams.strength,
+        guidance_scale: optimizedParams.guidance_scale,
+        num_inference_steps: optimizedParams.num_inference_steps,
+        negative_prompt: negativePrompt,
+        
+        // Cleanup pass
+        enableCleanupPass,
+        
         // Mode-specific parameters for backwards compatibility
         ...(mode === 'remove' && { removeObjectInstruction: instruction }),
         ...(mode === 'add' && { addObjectInstruction: instruction }),
       };
 
       await onComplete(params);
+      
+      toast({
+        title: "Processing Complete",
+        description: `Successfully applied ${mode} operation with ${qualityLevel} quality`,
+      });
+      
+    } catch (error) {
+      console.error('Inpainting failed:', error);
+      toast({
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -129,6 +223,20 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
   const handleClearMask = () => {
     setMask(null);
+    setProcessedMask(null);
+    setMaskQuality(null);
+  };
+  
+  const handleResetAdvanced = () => {
+    setQualityVsSpeed([50]);
+    setPrecisionVsCreativity([50]);
+    setEnableCleanupPass(true);
+    setMaskPadding([12]);
+    setMaskFeathering([3]);
+    toast({
+      title: "Settings Reset",
+      description: "Advanced controls reset to default values"
+    });
   };
 
   if (showBrushTool) {
@@ -179,23 +287,11 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
         
         {/* Mode Selection */}
         <div className="space-y-3">
-          <Label>Inpainting Mode</Label>
-          <Tabs value={mode} onValueChange={(value) => handleModeChange(value as InpaintMode)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="remove" className="flex items-center gap-1">
-                <Minus className="h-4 w-4" />
-                Remove
-              </TabsTrigger>
-              <TabsTrigger value="add" className="flex items-center gap-1">
-                <Plus className="h-4 w-4" />
-                Add
-              </TabsTrigger>
-              <TabsTrigger value="replace" className="flex items-center gap-1">
-                <Replace className="h-4 w-4" />
-                Replace
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <Label>Choose Operation</Label>
+          <InpaintingModeSelector 
+            mode={mode} 
+            onModeChange={handleModeChange} 
+          />
         </div>
 
         {/* Model Selection */}
@@ -267,68 +363,52 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             </Button>
           </div>
 
-          {/* Mask Preview */}
-          {mask && (
-            <MaskPreview
-              maskDataUrl={mask.dataUrl}
-              imageUrl={asset.src}
-              className="mt-3"
-            />
-          )}
+          {/* Mask Preview and Quality */}
+          <div className="space-y-3">
+            {(mask || processedMask) && (
+              <MaskPreview
+                maskDataUrl={processedMask?.dataUrl || mask!.dataUrl}
+                imageUrl={asset.src}
+                className="mt-3"
+              />
+            )}
+            
+            {maskQuality && (
+              <MaskQualityFeedback quality={maskQuality} />
+            )}
+          </div>
         </div>
 
-        {/* Advanced Parameters */}
+        {/* Advanced Controls */}
         {showAdvanced && (
-          <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-            <Label className="text-sm font-medium">Advanced Parameters</Label>
-            
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="text-sm">Strength: {strength[0]}</Label>
-                <Slider
-                  value={strength}
-                  onValueChange={setStrength}
-                  min={0.1}
-                  max={1.0}
-                  step={0.1}
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  How much to change the original image (higher = more change)
-                </div>
-              </div>
+          <AdvancedInpaintingControls
+            qualityVsSpeed={qualityVsSpeed}
+            onQualityVsSpeedChange={setQualityVsSpeed}
+            precisionVsCreativity={precisionVsCreativity}
+            onPrecisionVsCreativityChange={setPrecisionVsCreativity}
+            enableCleanupPass={enableCleanupPass}
+            onEnableCleanupPassChange={setEnableCleanupPass}
+            maskPadding={maskPadding}
+            onMaskPaddingChange={setMaskPadding}
+            maskFeathering={maskFeathering}
+            onMaskFeatheringChange={setMaskFeathering}
+            onResetToDefaults={handleResetAdvanced}
+          />
+        )}
 
-              <div className="space-y-2">
-                <Label className="text-sm">Guidance Scale: {guidanceScale[0]}</Label>
-                <Slider
-                  value={guidanceScale}
-                  onValueChange={setGuidanceScale}
-                  min={1}
-                  max={20}
-                  step={0.5}
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  How closely to follow the instruction (higher = more precise)
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">Steps: {steps[0]}</Label>
-                <Slider
-                  value={steps}
-                  onValueChange={setSteps}
-                  min={10}
-                  max={50}
-                  step={5}
-                  className="w-full"
-                />
-                <div className="text-xs text-muted-foreground">
-                  Quality vs speed trade-off (higher = better quality)
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Quality warnings */}
+        {maskQuality && !maskQuality.isValid && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <div className="font-medium mb-1">Mask needs attention:</div>
+              <ul className="text-xs space-y-1">
+                {maskQuality.warnings.map((warning, idx) => (
+                  <li key={idx}>• {warning}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Action Button - Always visible with proper sizing */}
@@ -340,7 +420,10 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             size="lg"
           >
             {isProcessing ? (
-              "Processing..."
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Processing with {convertUIToParams(qualityVsSpeed[0], precisionVsCreativity[0]).qualityLevel} quality...
+              </>
             ) : !mask ? (
               "Create Mask First"
             ) : !instruction.trim() ? (

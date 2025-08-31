@@ -74,6 +74,8 @@ export interface ImageEditParams {
   strength?: number;
   guidance_scale?: number;
   num_inference_steps?: number;
+  negative_prompt?: string;
+  enableCleanupPass?: boolean;
   mode?: 'remove' | 'add' | 'replace' | 'precision-replace' | 'style-transfer' | 'smart-inpaint' | 'detail-enhance';
   // Extended properties for various adapters
   stylePreset?: "film" | "pop-art" | "vintage" | "black-white" | "vivid";
