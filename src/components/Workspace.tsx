@@ -29,8 +29,9 @@ export function Workspace({
   const [generatedImage, setGeneratedImage] = useState<any>(null);
   const [showAIActions, setShowAIActions] = useState(false);
 
-  // Use individual store subscriptions to avoid object recreation
+  // Use narrow store selectors to prevent unnecessary rerenders
   const activeCanvas = useAppStore(state => state.activeCanvas);
+  const canvasesLength = useAppStore(state => state.canvases.length);
   const canvases = useAppStore(state => state.canvases);
   const createCanvas = useAppStore(state => state.createCanvas);
   const setActiveCanvas = useAppStore(state => state.setActiveCanvas);
@@ -40,22 +41,35 @@ export function Workspace({
   const runStep = useAppStore(state => state.runStep);
   const generateDirectly = useAppStore(state => state.generateDirectly);
   const activeTool = useAppStore(state => state.activeTool);
-  console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvases.length);
+  console.log('Workspace render - activeCanvas:', activeCanvas, 'canvases:', canvasesLength);
   console.log('Workspace render - activeTool:', activeTool);
 
-  // Sync canvas state to local state - with proper memoization
+  // Sync canvas state to local state - with proper guarding to prevent loops
+  const prevAppliedRef = React.useRef<string | null>(null);
+  
   useEffect(() => {
+    if (!activeCanvas) {
+      setHasContent(false);
+      setGeneratedImage(null);
+      return;
+    }
+    
+    // Prevent re-applying the same canvas
+    if (prevAppliedRef.current === activeCanvas) return;
+    
     const currentCanvas = canvases.find(c => c.id === activeCanvas);
     if (currentCanvas?.asset) {
       console.log('Workspace - Setting content from canvas:', currentCanvas.asset.name);
       setHasContent(true);
       setGeneratedImage(currentCanvas.asset);
-    } else if (activeCanvas && !currentCanvas) {
+      prevAppliedRef.current = activeCanvas;
+    } else if (!currentCanvas) {
       console.log('Workspace - Active canvas not found, clearing content');
       setHasContent(false);
       setGeneratedImage(null);
+      prevAppliedRef.current = null;
     }
-  }, [activeCanvas, canvases.length]); // Use canvases.length instead of canvases array
+  }, [activeCanvas, canvasesLength, canvases]);
 
   // Fix brush options with functional update to avoid stale closure
   useEffect(() => {

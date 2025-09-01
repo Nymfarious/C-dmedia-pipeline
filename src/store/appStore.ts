@@ -442,10 +442,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveCanvas: (canvasId) => {
+    const current = get().activeCanvas;
+    if (current === canvasId) return; // Prevent redundant updates
     console.log('Store setActiveCanvas called:', canvasId);
     set({ activeCanvas: canvasId });
-    // Remove persist call here to prevent loops
-    // get().persist();
   },
 
   updateCanvasAsset: (canvasId, asset) => {
@@ -496,6 +496,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setActiveTool: (tool) => {
+    const current = get().activeTool;
+    if (current === tool) return; // Prevent redundant updates
+    
     console.log('🔧 AppStore - Setting active tool:', tool);
     console.log('🔧 AppStore - Previous state:', { activeTool: get().activeTool, inpaintingMode: get().inpaintingMode });
     
@@ -511,7 +514,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  setInpaintingMode: (enabled) => set({ inpaintingMode: enabled }),
+  setInpaintingMode: (enabled) => {
+    const current = get().inpaintingMode;
+    if (current === enabled) return; // Prevent redundant updates
+    set({ inpaintingMode: enabled });
+  },
 
   exitActiveTool: () => {
     console.log('🚪 AppStore - Exiting active tool');

@@ -509,12 +509,12 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
             <div className="space-y-4 bg-card border border-border rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">🎨 AI Inpainting Tool</h3>
-                <div className="text-sm text-muted-foreground">
-                  <p>Tool: <Badge variant="outline">{activeTool}</Badge></p>
-                  <p>Mode: <Badge variant={inpaintingMode ? "default" : "secondary"}>
-                    {inpaintingMode ? 'Active' : 'Inactive'}
-                  </Badge></p>
-                </div>
+                <div className="text-sm text-muted-foreground space-y-1">
+                   <div>Tool: <Badge variant="outline">{activeTool}</Badge></div>
+                   <div>Mode: <Badge variant={inpaintingMode ? "default" : "secondary"}>
+                     {inpaintingMode ? 'Active' : 'Inactive'}
+                   </Badge></div>
+                 </div>
               </div>
               {asset ? (
                 <InpaintingTool
