@@ -10,7 +10,8 @@ import {
   Grid3X3,
   Save,
   FolderOpen,
-  Sparkles
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
@@ -118,6 +119,15 @@ export function LeftSidebar({
             >
               <Sparkles className="h-4 w-4 mr-3" />
               AI Generation
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => window.location.href = '/image-gen-studio'}
+            >
+              <Wand2 className="h-4 w-4 mr-3" />
+              ImageGen Studio
             </Button>
             <Button 
               variant="ghost" 
