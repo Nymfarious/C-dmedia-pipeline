@@ -158,7 +158,7 @@ export function ImageCanvas({
       <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
             <ProjectSaveLoad currentAsset={asset} onProjectLoad={(loadedAssets, currentAssetId) => {
             Object.values(loadedAssets).forEach(addAsset);
             if (currentAssetId && loadedAssets[currentAssetId]) {
