@@ -27,6 +27,7 @@ export const openaiAdapter: ImageGenAdapter = {
       id: crypto.randomUUID(),
       type: 'image',
       name: `OpenAI: ${params.prompt.slice(0, 30)}...`,
+      // Note: OpenAI adapter should also be updated to persist to storage
       src: data.image,
       meta: { 
         width: 1024, 

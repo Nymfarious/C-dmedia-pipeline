@@ -1,9 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Supabase client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
+/**
+ * Persist image to Supabase storage
+ */
+async function persistToSupabase(dataUrl: string, fileName: string): Promise<{ publicUrl: string }> {
+  console.log('💾 Persisting image to Supabase storage:', fileName);
+  
+  // Convert data URL to blob
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  
+  const filePath = `edits/${fileName}`;
+  
+  // Upload to Supabase storage
+  const { data, error } = await supabase.storage
+    .from('ai-images')
+    .upload(filePath, blob, {
+      contentType: blob.type || 'image/png',
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error('❌ Storage upload failed:', error);
+    throw new Error(`Storage upload failed: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage
+    .from('ai-images')
+    .getPublicUrl(filePath);
+
+  console.log('✅ Image persisted to storage:', publicUrl);
+  return { publicUrl };
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -47,9 +89,15 @@ serve(async (req) => {
     const imageBlob = await response.blob();
     const arrayBuffer = await imageBlob.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const dataUrl = `data:image/png;base64,${base64}`;
+
+    // Persist to Supabase storage to prevent data URL issues
+    const timestamp = Date.now();
+    const fileName = `hf-flux-${timestamp}.png`;
+    const persisted = await persistToSupabase(dataUrl, fileName);
 
     return new Response(JSON.stringify({ 
-      image: `data:image/png;base64,${base64}`
+      image: persisted.publicUrl
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

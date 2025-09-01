@@ -27,7 +27,8 @@ export const backgroundRemoverAdapter: ImageEditAdapter = {
       id: crypto.randomUUID(),
       type: asset.type,
       name: `${asset.name} (Background Removed)`,
-      src: typeof data.output === 'string' ? data.output : data.output[0],
+      // Use the persisted Supabase URL directly (already handled by edge function)
+      src: data.output,
       meta: {
         ...asset.meta,
         provider: 'replicate.rembg',

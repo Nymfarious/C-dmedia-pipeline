@@ -25,6 +25,7 @@ export const huggingfaceAdapter: ImageGenAdapter = {
       id: crypto.randomUUID(),
       type: 'image',
       name: `HF Flux: ${params.prompt.slice(0, 30)}...`,
+      // Note: Hugging Face adapter should also be updated to persist to storage
       src: data.image,
       meta: { 
         width: 1024, 

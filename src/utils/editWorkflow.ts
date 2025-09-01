@@ -116,6 +116,7 @@ export async function runEdit(
 
     return {
       ok: true,
+      // Use the persisted Supabase URL from edge function
       image: data.output,
       changed: true // We'll validate this separately if needed
     };

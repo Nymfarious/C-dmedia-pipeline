@@ -67,7 +67,7 @@ export const fluxInpaintAdapter: ImageEditAdapter = {
       throw new Error(`FLUX inpainting failed: ${error.message}`);
     }
 
-    if (!data?.output?.[0]) {
+    if (!data?.output) {
       throw new Error('No output received from FLUX inpainting');
     }
 
@@ -75,7 +75,8 @@ export const fluxInpaintAdapter: ImageEditAdapter = {
       id: crypto.randomUUID(),
       type: 'image',
       name: `${asset.name || 'image'} - ${mode}d`,
-      src: Array.isArray(data.output) ? data.output[0] : data.output,
+      // Use the persisted Supabase URL directly (already handled by edge function)
+      src: data.output,
       meta: {
         ...asset.meta,
         provider: 'replicate.flux-inpaint',

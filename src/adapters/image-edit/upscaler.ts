@@ -29,6 +29,7 @@ export const upscalerAdapter: ImageEditAdapter = {
       id: crypto.randomUUID(),
       type: asset.type,
       name: `${asset.name} (Upscaled)`,
+      // Use the persisted Supabase URL directly (already handled by edge function)
       src: data.output,
       meta: {
         ...asset.meta,

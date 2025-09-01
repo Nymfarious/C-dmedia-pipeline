@@ -35,6 +35,7 @@ export const replicateStable: ImageGenAdapter = {
       throw new Error('No output received from generation');
     }
 
+    // Use the persisted Supabase URL (not the temporary replicate.delivery URL)
     const imageUrl = data.output;
     
     return {
