@@ -51,7 +51,7 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
     // Check if URL is accessible
     const isAccessible = await isUrlAccessible(asset.src);
     if (!isAccessible) {
-      console.warn(`❌ Asset URL not accessible: ${asset.src}`);
+      // Silent logging for better UX - no need to spam console
       return null;
     }
     

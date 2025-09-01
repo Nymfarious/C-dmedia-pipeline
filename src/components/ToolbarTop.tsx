@@ -49,6 +49,13 @@ export function ToolbarTop({
     const toolData = essentialTools.find(t => t.id === tool) || advancedTools.find(t => t.id === tool);
     if (!toolData?.working) return;
     
+    // Toggle tool if clicking same tool
+    if (selectedTool === tool) {
+      onToolChange('select');
+      setActiveTool('select');
+      return;
+    }
+    
     onToolChange(tool);
     
     // Activate tools in the store
@@ -60,6 +67,8 @@ export function ToolbarTop({
       setActiveTool('video');
     } else if (tool === 'text') {
       setActiveTool('text');
+    } else {
+      setActiveTool(tool);
     }
   };
 
@@ -190,8 +199,8 @@ export function ToolbarTop({
         </div>
       </div>
       {toolbarExpanded && selectedTool === 'brush' && (
-        <div className="px-4 py-2 border-t border-border flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="px-4 py-2 border-t border-border flex flex-wrap items-center gap-4 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-4 min-w-0">
             <div>
               <label className="block text-xs mb-1">Size</label>
               <div className="flex items-center space-x-2">
@@ -200,9 +209,9 @@ export function ToolbarTop({
                   min="1"
                   max="100"
                   defaultValue="12"
-                  className="w-32 accent-primary"
+                  className="w-24 sm:w-32 accent-primary"
                 />
-                <span className="text-xs">12px</span>
+                <span className="text-xs whitespace-nowrap">12px</span>
               </div>
             </div>
             <div>
@@ -213,9 +222,9 @@ export function ToolbarTop({
                   min="1"
                   max="100"
                   defaultValue="100"
-                  className="w-32 accent-primary"
+                  className="w-24 sm:w-32 accent-primary"
                 />
-                <span className="text-xs">100%</span>
+                <span className="text-xs whitespace-nowrap">100%</span>
               </div>
             </div>
             <div>
@@ -226,9 +235,9 @@ export function ToolbarTop({
                   min="0"
                   max="100"
                   defaultValue="50"
-                  className="w-32 accent-primary"
+                  className="w-24 sm:w-32 accent-primary"
                 />
-                <span className="text-xs">50%</span>
+                <span className="text-xs whitespace-nowrap">50%</span>
               </div>
             </div>
           </div>

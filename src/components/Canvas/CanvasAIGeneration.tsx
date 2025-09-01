@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Wand2, X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Wand2, Loader2, Download, X, Sparkles } from 'lucide-react';
+import { FloatingCloseButton } from '@/components/ui/FloatingCloseButton';
 import { Asset } from '@/types/media';
 import { CanvasImageGeneration } from './CanvasImageGeneration';
 import useAppStore from '@/store/appStore';
 
 interface CanvasAIGenerationProps {
   onAssetGenerated: (asset: Asset) => void;
+  onClose?: () => void;
+  position?: { x: number; y: number };
+  className?: string;
 }
 
-export function CanvasAIGeneration({ onAssetGenerated }: CanvasAIGenerationProps) {
+export function CanvasAIGeneration({ onAssetGenerated, onClose, position, className = "" }: CanvasAIGenerationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { activeTool, setActiveTool } = useAppStore();
 
@@ -18,24 +23,40 @@ export function CanvasAIGeneration({ onAssetGenerated }: CanvasAIGenerationProps
     onAssetGenerated(asset);
     setIsOpen(false);
     setActiveTool(null);
+    onClose?.();
   };
 
   const handleCancel = () => {
     setIsOpen(false);
     setActiveTool(null);
+    onClose?.();
   };
 
   // Show AI generation panel when smart-select tool is active - integrate inline
   if (activeTool === 'smart-select' || isOpen) {
     return (
-      <div className="absolute inset-4 z-40 flex justify-end">
-        <div className="w-96 max-h-full">
-          <CanvasImageGeneration
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-            className="max-h-[calc(100vh-8rem)] overflow-y-auto"
-          />
+      <div 
+        className={`relative bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4 w-full max-w-md mx-auto ${className}`}
+        style={{
+          left: position?.x,
+          top: position?.y,
+          transform: position ? 'none' : undefined,
+        }}
+      >
+        {(onClose || activeTool === 'smart-select') && (
+          <FloatingCloseButton onClose={handleCancel} />
+        )}
+        
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h3 className="font-medium">AI Generation</h3>
         </div>
+
+        <CanvasImageGeneration
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+          className="max-h-[calc(100vh-12rem)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
+        />
       </div>
     );
   }

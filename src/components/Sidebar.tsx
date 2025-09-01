@@ -45,18 +45,21 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       label: 'Assets',
       icon: <ImageIcon size={18} />,
       description: 'Manage your assets',
+      working: true,
     },
     {
       id: 'ai-gallery',
       label: 'AI Gallery',
       icon: <SparklesIcon size={18} />,
-      description: 'Your AI generations',
+      description: 'Coming Soon',
+      working: false,
     },
     {
       id: 'saved',
       label: 'Saved Projects',
       icon: <BookmarkIcon size={18} />,
-      description: 'Your saved work',
+      description: 'Coming Soon',
+      working: false,
     },
   ];
   
@@ -115,14 +118,25 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             {quickLinks.map((link) => (
               <button
                 key={link.id}
-                className="flex items-start w-full p-2 rounded-lg text-left hover:bg-muted transition-colors"
-                onClick={() => onTabChange(link.id)}
+                className={`flex items-start w-full p-2 rounded-lg text-left transition-colors ${
+                  link.working 
+                    ? 'hover:bg-muted' 
+                    : 'cursor-not-allowed opacity-60 text-muted-foreground'
+                }`}
+                onClick={() => link.working && onTabChange(link.id)}
+                disabled={!link.working}
+                title={link.working ? link.description : "Coming Soon - Feature in development"}
               >
-                <div className="mr-2 mt-0.5 text-primary">{link.icon}</div>
-                <div>
+                <div className={`mr-2 mt-0.5 ${link.working ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {link.icon}
+                </div>
+                <div className="flex-1">
                   <div className="font-medium text-sm">{link.label}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {link.description}
+                  <div className="text-xs text-muted-foreground flex items-center justify-between">
+                    <span>{link.description}</span>
+                    {!link.working && (
+                      <span className="bg-muted text-muted-foreground px-1.5 py-0.5 rounded text-xs">Soon</span>
+                    )}
                   </div>
                 </div>
               </button>
@@ -130,7 +144,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </div>
         </div>
       </div>
-      <div className="mt-2 p-4 border-t border-border flex-1 overflow-y-auto">
+      <div className="mt-2 p-4 border-t border-border flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-medium text-sm text-muted-foreground">Recent Projects</h2>
           <button className="p-1 rounded-full hover:bg-muted text-primary">

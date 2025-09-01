@@ -63,8 +63,8 @@ export function LeftSidebar({
     }
   };
   return (
-    <div className="w-64 border-r border-border bg-card flex flex-col overflow-hidden">
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+    <div className="w-64 min-w-64 max-w-64 border-r border-border bg-card flex flex-col overflow-hidden">
+      <div className="p-4 space-y-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
         {/* Create Canvas Section */}
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Create Canvas</h3>
@@ -119,13 +119,25 @@ export function LeftSidebar({
               <Sparkles className="h-4 w-4 mr-3" />
               AI Generation
             </Button>
-            <Button variant="ghost" className="w-full justify-start h-9 p-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-9 p-2 text-muted-foreground cursor-not-allowed opacity-60"
+              disabled
+              title="Coming Soon - Feature in development"
+            >
               <Grid3X3 className="h-4 w-4 mr-3" />
               AI Gallery
+              <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Soon</span>
             </Button>
-            <Button variant="ghost" className="w-full justify-start h-9 p-2">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start h-9 p-2 text-muted-foreground cursor-not-allowed opacity-60"
+              disabled
+              title="Coming Soon - Feature in development"
+            >
               <Save className="h-4 w-4 mr-3" />
               Saved Projects
+              <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Soon</span>
             </Button>
           </div>
         </div>
@@ -133,7 +145,7 @@ export function LeftSidebar({
         {/* Recent Projects Section */}
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Recent Projects</h3>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
+          <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
             {recentAssets.length > 0 ? recentAssets.map((asset) => (
               <Card 
                 key={asset.id}
