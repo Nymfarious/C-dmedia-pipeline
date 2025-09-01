@@ -121,23 +121,19 @@ export function LeftSidebar({
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-muted-foreground cursor-not-allowed opacity-60"
-              disabled
-              title="Coming Soon - Feature in development"
+              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => window.location.href = '/ai-gallery'}
             >
               <Grid3X3 className="h-4 w-4 mr-3" />
               AI Gallery
-              <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Soon</span>
             </Button>
             <Button 
               variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-muted-foreground cursor-not-allowed opacity-60"
-              disabled
-              title="Coming Soon - Feature in development"
+              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => setShowProjectModal(true)}
             >
               <Save className="h-4 w-4 mr-3" />
               Saved Projects
-              <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Soon</span>
             </Button>
           </div>
         </div>

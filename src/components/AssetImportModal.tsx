@@ -1,97 +1,91 @@
-import React, { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { FolderOpen, Search, Check, Image, Film, Music } from "lucide-react";
 import useAppStore from "@/store/appStore";
-import { Asset, MediaType } from "@/types/media";
-import { Search, Image, Play, Volume2, Clock, Star } from "lucide-react";
-import { format } from "date-fns";
+import { Asset } from "@/types/media";
+import { cn } from "@/lib/utils";
 
 interface AssetImportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   onImport: (asset: Asset) => void;
-  allowMultiple?: boolean;
+  triggerText?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const AssetImportModal = ({ isOpen, onClose, onImport, allowMultiple = false }: AssetImportModalProps) => {
-  const { assets, selectedAssetIds, setSelected, allCategories } = useAppStore();
+export const AssetImportModal = ({ onImport, triggerText = "Import Asset", isOpen: externalIsOpen, onClose: externalOnClose }: AssetImportModalProps) => {
+  const { assets, allCategories } = useAppStore();
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
-  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set());
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
-  // Get available subcategories for selected category
-  const availableSubcategories = useMemo(() => {
-    if (categoryFilter === 'all') return [];
-    const category = allCategories.find(cat => cat.name === categoryFilter);
-    return category?.subcategories || [];
-  }, [categoryFilter, allCategories]);
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalOnClose !== undefined ? externalOnClose : setInternalIsOpen;
 
-  // Filter and sort assets
-  const filteredAssets = useMemo(() => {
-    return Object.values(assets)
-      .filter(asset => {
-        if (filterType !== 'all' && asset.type !== filterType) return false;
-        if (categoryFilter !== 'all' && asset.category !== categoryFilter) return false;
-        if (subcategoryFilter !== 'all' && asset.subcategory !== subcategoryFilter) return false;
-        if (searchQuery && !asset.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        return true;
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [assets, filterType, categoryFilter, subcategoryFilter, searchQuery]);
+  const assetArray = Object.values(assets);
 
-  const handleAssetClick = (asset: Asset) => {
-    if (allowMultiple) {
-      const newSelected = new Set(selectedAssets);
-      if (newSelected.has(asset.id)) {
-        newSelected.delete(asset.id);
-      } else {
-        newSelected.add(asset.id);
+  const filteredAssets = assetArray.filter(asset => {
+    const matchesSearch = !searchQuery || asset.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || asset.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleImport = () => {
+    if (selectedAssetId) {
+      const asset = assets[selectedAssetId];
+      if (asset) {
+        onImport(asset);
+        if (externalOnClose) {
+          externalOnClose();
+        } else {
+          setInternalIsOpen(false);
+        }
+        setSelectedAssetId(null);
       }
-      setSelectedAssets(newSelected);
-    } else {
-      onImport(asset);
-      onClose();
     }
   };
 
-  const handleImportSelected = () => {
-    if (!allowMultiple || selectedAssets.size === 0) return;
-    
-    selectedAssets.forEach(assetId => {
-      const asset = assets[assetId];
-      if (asset) onImport(asset);
-    });
-    
-    setSelectedAssets(new Set());
-    onClose();
-  };
-
-  const getTypeIcon = (type: MediaType) => {
+  const getTypeIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
-      case 'animation': return <Play className="h-4 w-4" />;
-      case 'audio': return <Volume2 className="h-4 w-4" />;
+      case 'animation': return <Film className="h-4 w-4" />;
+      case 'audio': return <Music className="h-4 w-4" />;
       default: return <Image className="h-4 w-4" />;
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Import Assets to Canvas</DialogTitle>
-        </DialogHeader>
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'image': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'animation': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'audio': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
 
-        {/* Search and Filters */}
-        <div className="space-y-4 border-b pb-4">
-          <div className="relative">
+  return (
+    <Dialog open={isOpen} onOpenChange={externalOnClose || setInternalIsOpen}>
+      {!externalIsOpen && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <FolderOpen className="h-4 w-4" />
+            {triggerText}
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Import Asset</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex gap-4 mb-4">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search assets..."
@@ -100,160 +94,109 @@ export const AssetImportModal = ({ isOpen, onClose, onImport, allowMultiple = fa
               className="pl-10"
             />
           </div>
-
-          <div className="flex gap-4">
-            <Tabs value={filterType} onValueChange={(value) => setFilterType(value as MediaType | 'all')} className="flex-1">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="image">Images</TabsTrigger>
-                <TabsTrigger value="animation">Animations</TabsTrigger>
-                <TabsTrigger value="audio">Audio</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {allCategories.map(category => (
-                  <SelectItem key={category.name} value={category.name}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {availableSubcategories.length > 0 && (
-              <Select value={subcategoryFilter} onValueChange={setSubcategoryFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All Subcategories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subcategories</SelectItem>
-                  {availableSubcategories.map(subcategory => (
-                    <SelectItem key={subcategory} value={subcategory}>
-                      {subcategory}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+          
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {allCategories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Asset Grid */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-auto">
           {filteredAssets.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Image className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No assets found matching your criteria</p>
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <FolderOpen className="h-12 w-12 mb-4" />
+              <p className="text-lg font-medium">No assets found</p>
+              <p className="text-sm">Try adjusting your search or category filter</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {filteredAssets.map((asset) => (
-                <AssetCard
+                <Card
                   key={asset.id}
-                  asset={asset}
-                  isSelected={allowMultiple && selectedAssets.has(asset.id)}
-                  onClick={() => handleAssetClick(asset)}
-                  getTypeIcon={getTypeIcon}
-                />
+                  className={cn(
+                    "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]",
+                    selectedAssetId === asset.id 
+                      ? "ring-2 ring-primary shadow-md bg-primary/5" 
+                      : "hover:border-primary/50"
+                  )}
+                  onClick={() => setSelectedAssetId(asset.id)}
+                >
+                  <CardContent className="p-3">
+                    <div className="space-y-2">
+                      {/* Asset Preview */}
+                      <div className="aspect-square rounded-md overflow-hidden bg-muted relative">
+                        <img
+                          src={asset.src}
+                          alt={asset.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {selectedAssetId === asset.id && (
+                          <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                            <Check className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Asset Info */}
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium truncate" title={asset.name}>
+                          {asset.name}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-xs border", getTypeColor(asset.type))}
+                          >
+                            {getTypeIcon(asset.type)}
+                            {asset.type}
+                          </Badge>
+                          {asset.category && (
+                            <Badge variant="secondary" className="text-xs">
+                              {asset.category}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        {/* Footer */}
-        {allowMultiple && (
-          <div className="border-t pt-4 flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">
-              {selectedAssets.size} asset{selectedAssets.size !== 1 ? 's' : ''} selected
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>Cancel</Button>
-              <Button 
-                onClick={handleImportSelected} 
-                disabled={selectedAssets.size === 0}
-              >
-                Import Selected
-              </Button>
-            </div>
+        <div className="flex justify-between pt-4 border-t">
+          <p className="text-sm text-muted-foreground">
+            {selectedAssetId ? `Selected: ${assets[selectedAssetId]?.name}` : 'Select an asset to import'}
+          </p>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => {
+              if (externalOnClose) {
+                externalOnClose();
+              } else {
+                setInternalIsOpen(false);
+              }
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleImport} 
+              disabled={!selectedAssetId}
+            >
+              Import Selected
+            </Button>
           </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
-  );
-};
-
-interface AssetCardProps {
-  asset: Asset;
-  isSelected: boolean;
-  onClick: () => void;
-  getTypeIcon: (type: MediaType) => React.ReactNode;
-}
-
-const AssetCard = ({ asset, isSelected, onClick, getTypeIcon }: AssetCardProps) => {
-  return (
-    <div
-      className={`group relative bg-card rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-card ${
-        isSelected ? 'ring-2 ring-primary shadow-card' : ''
-      }`}
-      onClick={onClick}
-    >
-      {/* Asset Preview */}
-      <div className="aspect-square bg-muted relative overflow-hidden">
-        {asset.type === 'image' ? (
-          <img
-            src={asset.src}
-            alt={asset.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-secondary">
-            {getTypeIcon(asset.type)}
-          </div>
-        )}
-        
-        {/* Selection Overlay */}
-        {isSelected && (
-          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-            <div className="bg-primary text-primary-foreground rounded-full p-2">
-              <Star className="h-4 w-4 fill-current" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Asset Info */}
-      <div className="p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          {getTypeIcon(asset.type)}
-          <h3 className="font-medium truncate flex-1">{asset.name}</h3>
-        </div>
-        
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {format(new Date(asset.createdAt), 'MMM d')}
-          </span>
-          {asset.meta?.width && asset.meta?.height && (
-            <span>{asset.meta.width}×{asset.meta.height}</span>
-          )}
-        </div>
-        
-        {(asset.category || asset.subcategory) && (
-          <div className="flex flex-wrap gap-1">
-            {asset.category && (
-              <Badge variant="outline" className="text-xs">{asset.category}</Badge>
-            )}
-            {asset.subcategory && (
-              <Badge variant="secondary" className="text-xs">{asset.subcategory}</Badge>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
   );
 };

@@ -10,6 +10,7 @@ import { X, Plus, Upload, Trash2, Wand2, Type, ImageIcon } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { fluxTextAdapter } from '@/adapters/text-gen/fluxTextAdapter';
+import { AssetImportModal } from '../AssetImportModal';
 import { toast } from 'sonner';
 
 interface CanvasImageGenerationProps {
@@ -26,7 +27,7 @@ interface ReferenceImage {
 }
 
 export function CanvasImageGeneration({ onComplete, onCancel, className }: CanvasImageGenerationProps) {
-  const { generateDirectly, assets } = useAppStore();
+  const { generateDirectly, assets, allCategories } = useAppStore();
   
   // Generation mode: 'generate' or 'add-text'
   const [mode, setMode] = useState<'generate' | 'add-text'>('generate');
@@ -39,6 +40,10 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
   const [quality, setQuality] = useState([80]);
   const [guidanceScale, setGuidanceScale] = useState([7.5]);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Category state
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   
   // Text Generation State
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
@@ -132,6 +137,13 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
 
       console.log('CanvasImageGeneration - Generating with params:', params);
       const asset = await generateDirectly(params, selectedModel);
+      
+      // Apply category if selected
+      if (selectedCategory) {
+        asset.category = selectedCategory;
+        asset.subcategory = selectedSubcategory || undefined;
+      }
+      
       console.log('CanvasImageGeneration - Generated asset:', asset);
       
       onComplete(asset);
@@ -271,11 +283,58 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
               </div>
             </div>
 
+            {/* Category Selection */}
+            <div className="space-y-2">
+              <Label>Category (for organization)</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCategories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCategory && (
+                <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subcategory..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allCategories.find(c => c.id === selectedCategory)?.subcategories.map(sub => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             {/* Reference Images */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Reference Images (Max 10)</Label>
-                <Badge variant="secondary">{referenceImages.length}/10</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{referenceImages.length}/10</Badge>
+                  <AssetImportModal 
+                    onImport={(asset) => {
+                      if (referenceImages.length < 10) {
+                        const newRef: ReferenceImage = {
+                          id: crypto.randomUUID(),
+                          url: asset.src,
+                          weight: 0.5,
+                          name: asset.name
+                        };
+                        setReferenceImages(prev => [...prev, newRef]);
+                      }
+                    }}
+                    triggerText="Import"
+                  />
+                </div>
               </div>
               
               <div

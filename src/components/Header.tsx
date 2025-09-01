@@ -61,6 +61,10 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
             Gallery ({Object.keys(assets).length})
           </Button>
         )}
+        <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/assets'}>
+          <FolderOpen className="h-4 w-4 mr-2" />
+          Assets ({Object.keys(assets).length})
+        </Button>
         <Button variant="outline" size="sm" className="h-8" onClick={() => setShowProjectModal(true)}>
           <Archive className="h-4 w-4 mr-2" />
           Projects
