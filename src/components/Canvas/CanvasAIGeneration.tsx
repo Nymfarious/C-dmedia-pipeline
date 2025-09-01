@@ -35,29 +35,33 @@ export function CanvasAIGeneration({ onAssetGenerated, onClose, position, classN
   // Show AI generation panel when smart-select tool is active - integrate inline
   if (activeTool === 'smart-select' || isOpen) {
     return (
-      <div 
-        className={`relative bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4 w-full max-w-md mx-auto ${className}`}
+      <Card 
+        className={`relative w-full max-w-md mx-auto ${className}`}
         style={{
           left: position?.x,
           top: position?.y,
           transform: position ? 'none' : undefined,
         }}
       >
-        {(onClose || activeTool === 'smart-select') && (
-          <FloatingCloseButton onClose={handleCancel} />
-        )}
-        
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-medium">AI Generation</h3>
-        </div>
-
-        <CanvasImageGeneration
-          onComplete={handleComplete}
-          onCancel={handleCancel}
-          className="max-h-[calc(100vh-12rem)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
-        />
-      </div>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Generation
+            </div>
+            {(onClose || activeTool === 'smart-select') && (
+              <FloatingCloseButton onClose={handleCancel} />
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CanvasImageGeneration
+            onComplete={handleComplete}
+            onCancel={handleCancel}
+            className="max-h-[calc(100vh-12rem)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
+          />
+        </CardContent>
+      </Card>
     );
   }
 

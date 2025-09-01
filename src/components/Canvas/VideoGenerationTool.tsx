@@ -162,9 +162,15 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
       imageUrl = selectedAsset.src;
     }
 
+    // Show upload progress for blob URLs
     if (!imageUrl) {
       toast.error('Please select an image for video generation');
       return;
+    }
+
+    // Show upload progress for blob URLs
+    if (imageUrl.startsWith('blob:')) {
+      toast.info('Processing image for video generation...');
     }
 
     setIsGenerating(true);
