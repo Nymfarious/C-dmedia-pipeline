@@ -19,6 +19,7 @@ import { PoseEditor } from './PoseEditor';
 import { CropTool } from './CropTool';
 import { FaceSwapTool } from './FaceSwapTool';
 import { InpaintingTool } from './InpaintingTool';
+import { TextGenerationTool } from './TextGenerationTool';
 import { ProjectSaveLoad } from '../ProjectSaveLoad';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
 import { objectAdderAdapter } from '@/adapters/image-edit/objectAdder';
@@ -309,6 +310,14 @@ export function ImageCanvas({
       toast.error('Failed to complete inpainting');
     }
   };
+
+  const handleTextGenerationComplete = (newAsset: Asset) => {
+    addAsset(newAsset);
+    onAssetUpdate?.(newAsset);
+    addToHistory(newAsset);
+    setActiveTool(null);
+    toast.success('Text added successfully!');
+  };
   const handleRotate = async () => {
     console.log('Rotate tool selected');
     toast.info('Rotation coming soon!');
@@ -385,7 +394,8 @@ export function ImageCanvas({
               const isActive = selectedTool === tool.id || 
                 (tool.id === 'object-edit' && showObjectEditTool) || 
                 (tool.id === 'color-adjust' && (showColorPanel || showStyleGallery)) ||
-                (tool.id === 'inpaint' && activeTool === 'inpaint');
+                (tool.id === 'inpaint' && activeTool === 'inpaint') ||
+                (tool.id === 'text' && activeTool === 'text');
               
               return (
                 <Button
@@ -438,26 +448,26 @@ export function ImageCanvas({
             </div>}
 
           {/* Inpainting Tool - Always show when activeTool is 'inpaint' */}
-          {(() => {
-          console.log('🎯 Checking inpaint condition - activeTool:', activeTool, 'equals inpaint:', activeTool === 'inpaint');
-          return activeTool === 'inpaint';
-        })() && <div className="space-y-4 bg-card border border-border rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">🎨 AI Inpainting Tool</h3>
-                <div className="text-sm text-muted-foreground space-y-1">
-                   <div>Tool: <Badge variant="outline">{activeTool}</Badge></div>
-                   <div>Mode: <Badge variant={inpaintingMode ? "default" : "secondary"}>
-                     {inpaintingMode ? 'Active' : 'Inactive'}
-                   </Badge></div>
-                 </div>
-              </div>
-              {asset ? <InpaintingTool asset={asset} onComplete={handleInpaintingComplete} onCancel={() => {
-            console.log('🚫 Inpainting cancelled');
-            setActiveTool('select');
-          }} className="w-full" /> : <div className="p-4 bg-destructive/10 border border-destructive/20 rounded">
-                  <p className="text-sm text-destructive">No asset available for inpainting</p>
-                </div>}
-            </div>}
+          {activeTool === 'inpaint' && asset && (
+            <div className="max-h-[80vh] overflow-y-auto">
+              <InpaintingTool 
+                asset={asset} 
+                onComplete={handleInpaintingComplete} 
+                onCancel={() => setActiveTool(null)} 
+                className="w-full" 
+              />
+            </div>
+          )}
+
+          {/* Text Generation Tool - Show when activeTool is 'text' */}
+          {activeTool === 'text' && asset && (
+            <TextGenerationTool
+              asset={asset}
+              onComplete={handleTextGenerationComplete}
+              onCancel={() => setActiveTool(null)}
+              className="w-full"
+            />
+          )}
           
           {/* Debug info when tool should show but doesn't */}
           {activeTool === 'inpaint' && !inpaintingMode && <div className="p-4 bg-yellow-100 border border-yellow-300 rounded">
@@ -468,16 +478,18 @@ export function ImageCanvas({
             </div>}
           
           {/* Canvas Container - Only show when no editing tool is active */}
-          {!showObjectEditTool && !showColorPanel && !showStyleGallery && activeTool !== 'inpaint' && <div className="relative bg-card rounded-lg border border-border">
+          {!showObjectEditTool && !showColorPanel && !showStyleGallery && activeTool !== 'inpaint' && activeTool !== 'text' && (
+            <div className="relative bg-card rounded-lg border border-border">
               <div className="relative min-h-[400px] rounded-lg overflow-hidden">
                 <img src={asset.src} alt={asset.name} className="w-full h-full object-contain" style={{
-              maxHeight: '70vh'
-            }} />
+                  maxHeight: '70vh'
+                }} />
                 <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{
-              display: 'none'
-            }} />
+                  display: 'none'
+                }} />
               </div>
-            </div>}
+            </div>
+          )}
 
           {/* Asset Info */}
           <div className="space-y-4">

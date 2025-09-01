@@ -60,12 +60,16 @@ export function ToolbarTop({
       console.log('ToolbarTop - Tool clicked: smart-select');
       setActiveTool('smart-select');
       console.log('ToolbarTop - Smart-select tool activated for AI generation');
+    } else if (tool === 'text') {
+      console.log('ToolbarTop - Tool clicked: text');
+      setActiveTool('text');
+      console.log('ToolbarTop - Text tool activated for text generation');
     }
   };
 
   // Define which tools are functional vs coming soon
-  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg', 'inpaint'];
-  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'enhance', 'style', 'text', 'stickers', 'adjust'];
+  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg', 'inpaint', 'text'];
+  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'enhance', 'style', 'stickers', 'adjust'];
 
   const toolGroups = [
     {
@@ -172,8 +176,8 @@ export function ToolbarTop({
         {
           id: 'text',
           icon: <TypeIcon size={18} />,
-          tooltip: 'Add Text - Coming Soon',
-          working: false,
+          tooltip: 'Add Text with AI',
+          working: true,
         },
         {
           id: 'stickers',

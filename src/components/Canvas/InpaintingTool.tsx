@@ -375,38 +375,39 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   }
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Paintbrush className="h-5 w-5" />
-            AI Inpainting Tool
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowRecipes(!showRecipes)}
-              title="Quick recipe templates"
-            >
-              📋
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            {onCancel && (
-              <Button variant="outline" size="sm" onClick={onCancel}>
-                Cancel
+    <div className={`${className} max-h-none`}>
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Paintbrush className="h-5 w-5" />
+              AI Inpainting Tool
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowRecipes(!showRecipes)}
+                title="Quick recipe templates"
+              >
+                📋
               </Button>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              {onCancel && (
+                <Button variant="outline" size="sm" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 pb-6">
         
         {/* Quick Recipe Panel */}
         {showRecipes && (
@@ -577,36 +578,35 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
         {/* Quality warnings removed - simplified validation */}
 
-        </CardContent>
-        
-        {/* Fixed Action Buttons */}
-        <div className="flex-shrink-0 p-6 border-t bg-card">
-          <div className="flex gap-2">
-            <Button
-              onClick={handleApplyInpaint}
-              disabled={!instruction.trim() || !mask || isProcessing}
-              className="flex-1"
-            >
-              {isProcessing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  {processingStatus || 'Processing...'}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
-                </>
-              )}
-            </Button>
-            
-            {onCancel && (
-              <Button variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-4">
+          <Button
+            onClick={handleApplyInpaint}
+            disabled={!instruction.trim() || !mask || isProcessing}
+            className="flex-1"
+          >
+            {isProcessing ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                {processingStatus || 'Processing...'}
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
+              </>
             )}
-          </div>
+          </Button>
+          
+          {onCancel && (
+            <Button variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
         </div>
+
+        </CardContent>
       </Card>
+    </div>
   );
 }
