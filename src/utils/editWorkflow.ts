@@ -99,8 +99,8 @@ export async function runEdit(
         input: {
           image: asset.src,
           mask: params.maskPngDataUrl,
-          prompt: params.instruction,
-          negative_prompt: params.negative_prompt,
+          prompt: typeof params.instruction === 'string' ? params.instruction : String(params.instruction || ''),
+          negative_prompt: typeof params.negative_prompt === 'string' ? params.negative_prompt : String(params.negative_prompt || ''),
           guidance_scale: params.guidance_scale,
           num_inference_steps: params.num_inference_steps,
           strength: params.strength

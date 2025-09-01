@@ -343,8 +343,42 @@ serve(async (req) => {
       case 'nano-banana-edit':
         console.log('🎯 Using Google Nano-Banana model for editing');
         
-        // Use enhanced prompt if provided, otherwise use instruction/prompt
-        const enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit this image intelligently';
+        // **CRITICAL TYPE SAFETY**: Ensure prompt is always a string
+        let enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit this image intelligently';
+        
+        // Phase 1: Strict type validation and defensive conversion
+        if (typeof enhancedPrompt !== 'string') {
+          console.error('🚨 Type validation error - enhanced_prompt is not a string:', {
+            type: typeof enhancedPrompt,
+            value: enhancedPrompt,
+            fullInput: JSON.stringify(body.input, null, 2)
+          });
+          
+          // Defensive type conversion
+          if (enhancedPrompt && typeof enhancedPrompt === 'object') {
+            if (enhancedPrompt.prompt) {
+              enhancedPrompt = String(enhancedPrompt.prompt);
+              console.log('⚠️ Extracted prompt from object:', enhancedPrompt);
+            } else {
+              enhancedPrompt = JSON.stringify(enhancedPrompt);
+              console.log('⚠️ Converted object to JSON string:', enhancedPrompt);
+            }
+          } else {
+            enhancedPrompt = String(enhancedPrompt || 'Edit this image intelligently');
+            console.log('⚠️ Forced string conversion:', enhancedPrompt);
+          }
+        }
+        
+        // Additional validation for other prompt fields
+        const instruction = typeof body.input.instruction === 'string' ? body.input.instruction : String(body.input.instruction || '');
+        const basePrompt = typeof body.input.prompt === 'string' ? body.input.prompt : String(body.input.prompt || '');
+        
+        console.log('✅ Validated prompt types:', {
+          enhanced_prompt_type: typeof enhancedPrompt,
+          instruction_type: typeof instruction,
+          prompt_type: typeof basePrompt,
+          enhanced_prompt_preview: enhancedPrompt.substring(0, 100)
+        });
         
         // Support both masked and non-masked editing with true Nano-Banana
         if (body.input.mask) {

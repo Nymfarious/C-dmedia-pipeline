@@ -101,10 +101,22 @@ export const geminiNanoAdapter: ImageEditAdapter = {
     };
 
     const enhancedPrompt = enhanceGeminiNanoPrompt(promptOptions);
+    
+    // Phase 2: Client-side validation - ensure prompt is always a string
+    const validatedPrompt = typeof enhancedPrompt.prompt === 'string' 
+      ? enhancedPrompt.prompt 
+      : String(enhancedPrompt.prompt || instruction);
+    
+    const validatedFallback = typeof enhancedPrompt.fallbackPrompt === 'string'
+      ? enhancedPrompt.fallbackPrompt
+      : String(enhancedPrompt.fallbackPrompt || validatedPrompt);
+    
     console.log('🎯 Enhanced prompt result:', {
       original: instruction,
-      enhanced: enhancedPrompt.prompt.substring(0, 100) + '...',
+      enhanced: validatedPrompt.substring(0, 100) + '...',
       mode,
+      promptType: typeof validatedPrompt,
+      fallbackType: typeof validatedFallback,
       parameters: {
         guidance_scale: enhancedPrompt.guidance_scale,
         strength: enhancedPrompt.strength,
@@ -113,11 +125,14 @@ export const geminiNanoAdapter: ImageEditAdapter = {
     });
 
     // Prepare input for enhanced replicate function with optimized parameters
+    // Phase 2: Ensure all prompt fields are strings before sending
     const input: any = {
       image: asset.src,
-      enhanced_prompt: enhancedPrompt.prompt,
-      prompt: enhancedPrompt.fallbackPrompt || enhancedPrompt.prompt,
-      negative_prompt: enhancedPrompt.negativePrompt,
+      enhanced_prompt: validatedPrompt, // Use validated string
+      prompt: validatedFallback, // Use validated fallback
+      negative_prompt: typeof enhancedPrompt.negativePrompt === 'string' 
+        ? enhancedPrompt.negativePrompt 
+        : String(enhancedPrompt.negativePrompt || ''),
       guidance_scale: params.guidance_scale || enhancedPrompt.guidance_scale,
       num_inference_steps: params.num_inference_steps || enhancedPrompt.num_inference_steps,
       strength: params.strength || enhancedPrompt.strength,
@@ -125,6 +140,15 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       complexity: params.complexity,
       targetQuality: params.targetQuality
     };
+    
+    // Phase 3: Enhanced debugging - log exact structure being sent
+    console.log('📤 Request validation check:', {
+      enhanced_prompt_type: typeof input.enhanced_prompt,
+      prompt_type: typeof input.prompt,
+      negative_prompt_type: typeof input.negative_prompt,
+      enhanced_prompt_length: input.enhanced_prompt?.length,
+      structure_valid: typeof input.enhanced_prompt === 'string' && typeof input.prompt === 'string'
+    });
 
     // Add mask if provided
     if (params.maskPngDataUrl) {
@@ -160,6 +184,19 @@ export const geminiNanoAdapter: ImageEditAdapter = {
 
     if (error) {
       console.error('Nano Banana editing error:', error);
+      
+      // Phase 3: Enhanced error handling with fallback
+      if (error.message?.includes('Invalid type') && error.message?.includes('prompt')) {
+        console.error('🚨 Prompt type validation failed on server:', {
+          sentInput: input,
+          promptTypes: {
+            enhanced_prompt: typeof input.enhanced_prompt,
+            prompt: typeof input.prompt,
+            negative_prompt: typeof input.negative_prompt
+          }
+        });
+      }
+      
       throw new Error(`Nano Banana editing failed: ${error.message}`);
     }
 
