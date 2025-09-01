@@ -21,8 +21,14 @@ class BananaService {
   constructor() {
     this.apiKey = process.env.BANANA_API_KEY || '';
     this.modelKey = process.env.BANANA_MODEL_KEY || '';
-    if (!this.apiKey) {
-      console.warn('BANANA_API_KEY not set - using stub responses');
+    
+    // Fail fast in production if API keys are missing
+    if ((!this.apiKey || !this.modelKey) && process.env.NODE_ENV === 'production') {
+      throw new Error('BANANA_API_KEY and BANANA_MODEL_KEY are required in production');
+    }
+    
+    if (!this.apiKey || !this.modelKey) {
+      console.warn('Banana API keys not set - using stub responses in development');
     }
   }
 
@@ -67,17 +73,8 @@ class BananaService {
     if (output.image_url) {
       url = output.image_url;
     } else if (output.image_base64) {
-      // Convert base64 to blob URL
-      const base64Data = output.image_base64;
-      const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: 'image/png' });
-      url = URL.createObjectURL(blob);
+      // Convert base64 to data URL for Node.js compatibility
+      url = `data:image/png;base64,${output.image_base64}`;
     } else {
       throw new Error('No image data in Banana response');
     }

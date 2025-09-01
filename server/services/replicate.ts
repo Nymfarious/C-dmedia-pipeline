@@ -29,8 +29,14 @@ class ReplicateService {
 
   constructor() {
     this.apiKey = process.env.REPLICATE_API_TOKEN || '';
+    
+    // Fail fast in production if API key is missing
+    if (!this.apiKey && process.env.NODE_ENV === 'production') {
+      throw new Error('REPLICATE_API_TOKEN is required in production');
+    }
+    
     if (!this.apiKey) {
-      console.warn('REPLICATE_API_TOKEN not set - using stub responses');
+      console.warn('REPLICATE_API_TOKEN not set - using stub responses in development');
     }
   }
 

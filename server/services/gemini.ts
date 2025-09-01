@@ -26,8 +26,14 @@ class GeminiService {
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
+    
+    // Fail fast in production if API key is missing
+    if (!this.apiKey && process.env.NODE_ENV === 'production') {
+      throw new Error('GEMINI_API_KEY is required in production');
+    }
+    
     if (!this.apiKey) {
-      console.warn('GEMINI_API_KEY not set - using stub responses');
+      console.warn('GEMINI_API_KEY not set - using stub responses in development');
     }
   }
 
@@ -78,18 +84,10 @@ class GeminiService {
       throw new Error('No image data in Gemini response');
     }
 
-    // Convert base64 to blob URL for consistent handling
+    // Convert base64 to data URL for Node.js compatibility - no browser APIs
     const base64Data = imagePart.inlineData.data;
     const mimeType = imagePart.inlineData.mimeType;
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    const blob = new Blob([bytes], { type: mimeType });
-    const url = URL.createObjectURL(blob);
+    const url = `data:${mimeType};base64,${base64Data}`;
     
     return {
       id: crypto.randomUUID(),
@@ -138,7 +136,7 @@ class GeminiService {
   async editImage(request: UnifiedImageEditRequest): Promise<AssetResponse> {
     const modelName = this.getModelName(request.model);
     
-    // Fetch the source image to include in the request
+    // Fetch the source image to include in the request - Node.js compatible
     const imageResponse = await fetch(request.imageUrl);
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64Image = Buffer.from(imageBuffer).toString('base64');
