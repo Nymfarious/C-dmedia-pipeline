@@ -380,32 +380,22 @@ serve(async (req) => {
           enhanced_prompt_preview: enhancedPrompt.substring(0, 100)
         });
         
-        // Support both masked and non-masked editing with true Nano-Banana
+        // Route to proper inpainting model based on mask presence
         if (body.input.mask) {
-          console.log('🎨 Masked Nano Banana editing with smart-inpaint mode');
+          console.log('🎨 Using Flux Fill Pro for true masked inpainting');
           console.log('🔍 Final image URL validation before Replicate call:', body.input.image);
           console.log('🔍 Final mask URL validation before Replicate call:', body.input.mask);
           
-          // Upload input image to Supabase storage to ensure accessibility
-          const timestamp = Date.now();
-          const inputFileName = `input-${timestamp}.webp`;
-          const inputImageResult = await persistToSupaFromUrlOrBuffer(body.input.image, inputFileName);
-          const publicImageUrl = inputImageResult.publicUrl;
-          console.log('✅ Input image uploaded to storage:', publicImageUrl);
-          
-          output = await replicate.run("google/nano-banana", {
+          // Use Flux Fill Pro for true inpainting that respects masks
+          modelKey = 'flux-inpaint-pro';
+          output = await replicate.run(MODEL_CONFIG[modelKey], {
             input: {
-              image: publicImageUrl,
-              mask: body.input.mask,
-              mode: "smart-inpaint",
-              // **CRITICAL**: Context-preserving prompt structure for inpainting
-              prompt: `INPAINT ONLY THE MASKED AREA while preserving the rest of the image exactly as it is. Original scene context: ${enhancedPrompt}. Only modify what is covered by the mask, keep everything else unchanged.`,
-              guidance_scale: body.input.guidance_scale || 8.0, // Higher guidance for better adherence
-              strength: body.input.strength || 0.75, // Lower strength to preserve context
-              num_inference_steps: body.input.num_inference_steps || 30, // More steps for precision
-              // Add context preservation parameters
-              preserve_original: true,
-              inpaint_mode: "replace_masked_only"
+              image: body.input.image,              // original waterfall
+              mask: body.input.mask,                // white = edit area
+              prompt: enhancedPrompt,               // "add small birds near the fall..."
+              num_inference_steps: body.input.num_inference_steps || 30,
+              guidance_scale: body.input.guidance_scale || 7.5,
+              // Flux Fill preserves context automatically, no strength needed
             }
           });
         } else {
@@ -418,6 +408,7 @@ serve(async (req) => {
           const publicImageUrl = inputImageResult.publicUrl;
           console.log('✅ Input image uploaded to storage:', publicImageUrl);
           
+          // Keep nano-banana for global edits only
           output = await replicate.run("google/nano-banana", {
             input: {
               image: publicImageUrl,
