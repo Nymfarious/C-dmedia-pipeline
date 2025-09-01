@@ -162,10 +162,10 @@ function ensureMaskUrl(url: string): string {
   throw new Error('Invalid mask URL format. Expected data URL or HTTP/HTTPS URL.');
 }
 
-// Helper function to persist image to Supabase storage instead of using temporary URLs
+// Helper function to persist image/video to Supabase storage instead of using temporary URLs
 async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Promise<{ publicUrl: string }> {
   try {
-    console.log('💾 Persisting image to Supabase storage:', fileName);
+    console.log('💾 Persisting media to Supabase storage:', fileName);
     
     let blob: Blob;
     let contentType = 'image/webp'; // Default
@@ -177,6 +177,12 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
       contentType = 'image/jpeg';
     } else if (fileName.endsWith('.webp')) {
       contentType = 'image/webp';
+    } else if (fileName.endsWith('.mp4')) {
+      contentType = 'video/mp4';
+    } else if (fileName.endsWith('.mov')) {
+      contentType = 'video/quicktime';
+    } else if (fileName.endsWith('.avi')) {
+      contentType = 'video/x-msvideo';
     }
     
     if (url.startsWith('data:')) {
@@ -193,7 +199,7 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
       // Download from URL
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status}`);
+        throw new Error(`Failed to fetch media: ${response.status}`);
       }
       blob = await response.blob();
       
@@ -203,13 +209,17 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
       }
     }
     
-    const filePath = `edits/${fileName}`;
+    // Determine bucket and path based on content type
+    const isVideo = contentType.startsWith('video/');
+    const bucket = isVideo ? 'ai-videos' : 'ai-images';
+    const folder = isVideo ? 'videos' : 'edits';
+    const filePath = `${folder}/${fileName}`;
     
-    console.log(`📄 Uploading with content type: ${contentType}`);
+    console.log(`📄 Uploading ${isVideo ? 'video' : 'image'} to bucket '${bucket}' with content type: ${contentType}`);
     
-    // Upload to Supabase storage
+    // Upload to appropriate Supabase storage bucket
     const { data, error } = await supabase.storage
-      .from('ai-images')
+      .from(bucket)
       .upload(filePath, blob, {
         contentType: contentType,
         cacheControl: '3600',
@@ -222,14 +232,14 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
     
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('ai-images')
+      .from(bucket)
       .getPublicUrl(filePath);
     
-    console.log('✅ Image persisted to storage:', publicUrl);
+    console.log(`✅ ${isVideo ? 'Video' : 'Image'} persisted to storage: ${publicUrl}`);
     return { publicUrl };
     
   } catch (error) {
-    console.error('❌ Failed to persist image:', error);
+    console.error(`❌ Failed to persist media:`, error);
     throw error;
   }
 }

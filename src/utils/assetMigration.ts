@@ -36,22 +36,80 @@ export async function isUrlAccessible(url: string): Promise<boolean> {
 }
 
 /**
+ * Migration state tracking to prevent retry loops
+ */
+const migrationAttempts = new Map<string, { count: number; lastAttempt: number; failed: boolean }>();
+
+/**
+ * Check if an asset should be migrated (not already failed or in cooldown)
+ */
+function shouldMigrateAsset(asset: Asset): boolean {
+  const attempts = migrationAttempts.get(asset.id);
+  
+  // Skip if marked as failed
+  if (attempts?.failed) {
+    return false;
+  }
+  
+  // Skip if in cooldown period (exponential backoff)
+  if (attempts && attempts.count > 0) {
+    const cooldownTime = Math.min(1000 * Math.pow(2, attempts.count), 30000); // Max 30s
+    const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
+    if (timeSinceLastAttempt < cooldownTime) {
+      return false;
+    }
+  }
+  
+  // Skip if too many attempts
+  if (attempts && attempts.count >= 3) {
+    migrationAttempts.set(asset.id, { ...attempts, failed: true });
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Record a migration attempt
+ */
+function recordMigrationAttempt(assetId: string, success: boolean) {
+  const attempts = migrationAttempts.get(assetId) || { count: 0, lastAttempt: 0, failed: false };
+  
+  if (success) {
+    migrationAttempts.delete(assetId); // Clear on success
+  } else {
+    migrationAttempts.set(assetId, {
+      count: attempts.count + 1,
+      lastAttempt: Date.now(),
+      failed: false
+    });
+  }
+}
+
+/**
  * Migrate an asset to use a persistent Supabase URL
  */
 export async function migrateAsset(asset: Asset): Promise<Asset | null> {
   try {
+    // Check if migration should be attempted
+    if (!shouldMigrateAsset(asset)) {
+      return null;
+    }
+    
     console.log(`🔄 Migrating asset: ${asset.name}`);
     
     // Skip if already migrated to Supabase
     if (asset.src.includes('supabase.co')) {
       console.log(`⏭️ Asset already migrated: ${asset.name}`);
+      recordMigrationAttempt(asset.id, true);
       return asset;
     }
     
     // Check if URL is accessible
     const isAccessible = await isUrlAccessible(asset.src);
     if (!isAccessible) {
-      // Silent logging for better UX - no need to spam console
+      console.log(`❌ Asset URL not accessible: ${asset.name}`);
+      recordMigrationAttempt(asset.id, false);
       return null;
     }
     
@@ -65,10 +123,12 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
     
     if (uploadResult.error) {
       console.error(`❌ Failed to migrate asset: ${uploadResult.error}`);
+      recordMigrationAttempt(asset.id, false);
       return null;
     }
     
     console.log(`✅ Asset migrated: ${uploadResult.url}`);
+    recordMigrationAttempt(asset.id, true);
     
     return {
       ...asset,
@@ -83,6 +143,7 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
     
   } catch (error) {
     console.error(`❌ Error migrating asset:`, error);
+    recordMigrationAttempt(asset.id, false);
     return null;
   }
 }

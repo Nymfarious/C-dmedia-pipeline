@@ -581,6 +581,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   hydrate: async () => {
     try {
+      // Prevent multiple simultaneous hydrations
+      const hydratingKey = 'app-hydrating';
+      if (localStorage.getItem(hydratingKey) === 'true') {
+        console.log('⏭️ Hydration already in progress, skipping...');
+        return;
+      }
+      
+      localStorage.setItem(hydratingKey, 'true');
+      
       const stored = await idbGet('app-state');
       if (stored) {
         set({
@@ -601,15 +610,31 @@ export const useAppStore = create<AppState>((set, get) => ({
         await get().persist();
       }
       
-      // Automatically optimize storage on startup
-      await get().optimizeStorage();
+      // Automatically optimize storage on startup (debounced)
+      setTimeout(async () => {
+        await get().optimizeStorage();
+        localStorage.removeItem(hydratingKey);
+      }, 100);
       
     } catch (error) {
       console.error('Failed to hydrate state:', error);
+      localStorage.removeItem('app-hydrating');
     }
   },
 
   migrateExpiredAssets: async () => {
+    // Debounce migration attempts - only run if not attempted in last 30 seconds
+    const lastMigrationKey = 'last-migration-attempt';
+    const now = Date.now();
+    const lastAttempt = localStorage.getItem(lastMigrationKey);
+    
+    if (lastAttempt && (now - parseInt(lastAttempt)) < 30000) {
+      console.log('⏭️ Skipping migration - too soon since last attempt');
+      return;
+    }
+    
+    localStorage.setItem(lastMigrationKey, now.toString());
+    
     const { analyzeAssets, migrateAsset } = await import('@/utils/assetMigration');
     const state = get();
     const assetsArray = Object.values(state.assets);
@@ -640,6 +665,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ assets: migratedAssets });
       await get().persist();
       console.log(`✅ Successfully migrated ${migratedCount} assets`);
+      
+      // Show user-friendly notification
+      const { useToastManager } = await import('@/hooks/useToastManager');
+      const { showMigrationSuccess } = useToastManager();
+      showMigrationSuccess(migratedCount);
     }
   },
 
