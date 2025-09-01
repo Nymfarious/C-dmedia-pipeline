@@ -16,6 +16,7 @@ import { SimplifiedAIModal } from './components/SimplifiedAIModal';
 import { FloatingToolExit } from './components/FloatingToolExit';
 import { ProjectManagementModal } from './components/ProjectManagementModal';
 import { StorageIndicator } from './components/StorageIndicator';
+import { AssetMigrationToast } from './components/AssetMigrationToast';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
@@ -179,6 +180,7 @@ function EnhancedApp() {
         }}
       />
       <FloatingToolExit />
+      <AssetMigrationToast />
     </div>
   );
 }

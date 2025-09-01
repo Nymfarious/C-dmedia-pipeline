@@ -302,8 +302,18 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           if (!result.ok) {
             throw new Error(result.error || 'Edit operation failed');
           }
-          // The workflow returns a URL, but we need to call onComplete with params
-          // The actual image processing is handled by the parent component
+          
+          // Create updated params - the result URL will be handled by the calling component
+          const successParams: ImageEditParams = {
+            ...params,
+            // Pass any migration info in metadata
+            ...(result.migratedAsset && { 
+              migratedFrom: asset.src,
+              migratedTo: result.migratedAsset.src 
+            })
+          };
+          
+          await onComplete(successParams);
         } else {
           await onComplete(params);
         }

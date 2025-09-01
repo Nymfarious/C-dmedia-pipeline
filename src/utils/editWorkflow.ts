@@ -4,6 +4,8 @@
 
 import { Asset, ImageEditParams } from '@/types/media';
 import { supabase } from '@/integrations/supabase/client';
+import { validateAssetForEditing } from './assetValidation';
+import { migrateAsset } from './assetMigration';
 
 export interface EditResult {
   ok: boolean;
@@ -131,30 +133,59 @@ export async function runEdit(
 }
 
 /**
- * Robust edit workflow: Primary model first, fallback on failure
+ * Robust edit workflow: Asset validation, migration, then editing with fallback
  */
 export async function runEditWithFallback(
   asset: Asset,
   params: ImageEditParams,
   onProgress?: (status: string) => void
-): Promise<EditResult> {
+): Promise<EditResult & { migratedAsset?: Asset }> {
   console.log('🚀 Starting robust edit workflow...');
   
-  onProgress?.('Trying primary model...');
+  // Step 1: Validate asset
+  onProgress?.('Validating asset...');
+  const validation = await validateAssetForEditing(asset);
   
-  // Try primary model (usually Nano-Banana for its versatility)
-  const primaryResult = await runEdit(asset, params);
+  let workingAsset = asset;
+  
+  if (!validation.valid && validation.needsMigration) {
+    onProgress?.('Asset needs migration, attempting to migrate...');
+    console.log('🔄 Asset needs migration, attempting to migrate...');
+    
+    const migratedAsset = await migrateAsset(asset);
+    if (!migratedAsset) {
+      return {
+        ok: false,
+        error: `Asset migration failed: ${validation.error}`,
+        migratedAsset: undefined
+      };
+    }
+    
+    workingAsset = migratedAsset;
+    console.log('✅ Asset migration successful');
+  } else if (!validation.valid) {
+    return {
+      ok: false,
+      error: validation.error || 'Asset validation failed',
+      migratedAsset: undefined
+    };
+  }
+  
+  // Step 2: Try primary model
+  onProgress?.('Trying primary model...');
+  const primaryResult = await runEdit(workingAsset, params);
   
   if (primaryResult.ok && primaryResult.image) {
     // Check if the edit actually changed anything
-    const hasChanged = await detectImageChange(asset.src, primaryResult.image);
+    const hasChanged = await detectImageChange(workingAsset.src, primaryResult.image);
     
     if (hasChanged) {
       console.log('✅ Primary model succeeded');
       onProgress?.('Edit completed successfully');
       return {
         ...primaryResult,
-        changed: true
+        changed: true,
+        migratedAsset: workingAsset !== asset ? workingAsset : undefined
       };
     } else {
       console.log('⚠️ Primary model returned unchanged image, trying fallback...');
@@ -165,28 +196,30 @@ export async function runEditWithFallback(
     onProgress?.('Primary model failed, trying fallback...');
   }
   
-  // Fallback to FLUX inpaint with same parameters
+  // Step 3: Fallback to FLUX inpaint with same parameters
   const fallbackParams: ImageEditParams = {
     ...params,
     operation: 'flux-inpaint',
     provider: 'replicate.flux-inpaint'
   };
   
-  const fallbackResult = await runEdit(asset, fallbackParams);
+  const fallbackResult = await runEdit(workingAsset, fallbackParams);
   
   if (fallbackResult.ok) {
     console.log('✅ Fallback model succeeded');
     onProgress?.('Fallback completed successfully');
     return {
       ...fallbackResult,
-      changed: true
+      changed: true,
+      migratedAsset: workingAsset !== asset ? workingAsset : undefined
     };
   } else {
     console.log('❌ Both models failed');
     onProgress?.('Both models failed');
     return {
       ok: false,
-      error: `Both primary (${params.provider}) and fallback (FLUX) failed. Primary: ${primaryResult.error}, Fallback: ${fallbackResult.error}`
+      error: `Both primary (${params.provider}) and fallback (FLUX) failed. Primary: ${primaryResult.error}, Fallback: ${fallbackResult.error}`,
+      migratedAsset: workingAsset !== asset ? workingAsset : undefined
     };
   }
 }

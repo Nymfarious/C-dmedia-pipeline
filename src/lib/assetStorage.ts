@@ -106,8 +106,25 @@ export async function downloadAndUploadImage(
       throw new Error(`Failed to download image: ${response.statusText}`);
     }
     
-    const blob = await response.blob();
-    return uploadAsset(blob, 'image', fileName);
+    const originalBlob = await response.blob();
+    
+    // Fix mime type issue - ensure we have a proper content type
+    let contentType = originalBlob.type;
+    if (!contentType || contentType === 'application/octet-stream') {
+      // Infer from URL or default to webp
+      if (imageUrl.includes('.png')) {
+        contentType = 'image/png';
+      } else if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg')) {
+        contentType = 'image/jpeg';
+      } else {
+        contentType = 'image/webp';
+      }
+    }
+    
+    // Create a new blob with the correct content type
+    const fixedBlob = new Blob([originalBlob], { type: contentType });
+    
+    return uploadAsset(fixedBlob, 'image', fileName);
   } catch (error) {
     console.error('Download and upload error:', error);
     return { 

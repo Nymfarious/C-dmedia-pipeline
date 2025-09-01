@@ -42,6 +42,12 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
   try {
     console.log(`🔄 Migrating asset: ${asset.name}`);
     
+    // Skip if already migrated to Supabase
+    if (asset.src.includes('supabase.co')) {
+      console.log(`⏭️ Asset already migrated: ${asset.name}`);
+      return asset;
+    }
+    
     // Check if URL is accessible
     const isAccessible = await isUrlAccessible(asset.src);
     if (!isAccessible) {
@@ -49,8 +55,13 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
       return null;
     }
     
+    // Generate a better filename with proper extension
+    const extension = asset.src.includes('.png') ? 'png' : 
+                     asset.src.includes('.jpg') || asset.src.includes('.jpeg') ? 'jpg' : 'webp';
+    const fileName = `migrated-${asset.id}.${extension}`;
+    
     // Download and re-upload to our storage
-    const uploadResult = await downloadAndUploadImage(asset.src, `migrated-${asset.id}.webp`);
+    const uploadResult = await downloadAndUploadImage(asset.src, fileName);
     
     if (uploadResult.error) {
       console.error(`❌ Failed to migrate asset: ${uploadResult.error}`);
