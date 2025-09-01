@@ -149,6 +149,22 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
     setEnableAudio(item.enableAudio);
   };
 
+  const convertBlobToDataUrl = async (blobUrl: string): Promise<string> => {
+    try {
+      const response = await fetch(blobUrl);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Failed to convert blob to data URL:', error);
+      throw new Error('Failed to process image. Please try uploading a different image.');
+    }
+  };
+
   const generateVideo = async () => {
     if (!prompt.trim()) {
       toast.error('Please enter a prompt for video generation');
@@ -168,9 +184,18 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
       return;
     }
 
-    // Show upload progress for blob URLs
+    let processedImageUrl = imageUrl;
+    
+    // Convert blob URLs to data URLs before sending to server
     if (imageUrl.startsWith('blob:')) {
       toast.info('Processing image for video generation...');
+      try {
+        processedImageUrl = await convertBlobToDataUrl(imageUrl);
+        console.log('Converted blob URL to data URL for video generation');
+      } catch (error) {
+        toast.error('Failed to process image. Please try uploading a different image.');
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -179,7 +204,7 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
       const adapter = providers.videoGen['replicate.veo-3'];
       const result = await adapter.generate({
         prompt,
-        imageUrl,
+        imageUrl: processedImageUrl,
         duration,
         aspectRatio,
         motionStrength: motionStrength[0],

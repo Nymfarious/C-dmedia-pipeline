@@ -41,50 +41,24 @@ async function ensurePublicImageUrl(url: string): Promise<string> {
     throw new Error('Invalid image URL. Images must be publicly accessible HTTP/HTTPS URLs.');
   }
   
-  // Handle blob URLs by converting them to storage URLs
-  if (url.startsWith('blob:')) {
-    console.log('🔄 Converting blob URL to storage URL...');
+  // Handle data URLs by uploading them to storage
+  if (url.startsWith('data:')) {
+    console.log('🔄 Converting data URL to storage URL...');
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch blob: ${response.status}`);
-      }
-      const blob = await response.blob();
       const timestamp = Date.now();
-      const fileName = `blob-convert-${timestamp}.${blob.type.split('/')[1] || 'webp'}`;
-      const filePath = `ai-images/${fileName}`;
-      
-      console.log('💾 Storing blob image in Supabase storage:', filePath);
-      
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('ai-images')
-        .upload(filePath, blob, {
-          contentType: blob.type,
-          cacheControl: '3600',
-          upsert: true
-        });
-      
-      if (error) {
-        throw new Error(`Storage upload failed: ${error.message}`);
-      }
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('ai-images')
-        .getPublicUrl(filePath);
-      
-      console.log('✅ Blob converted to storage URL:', publicUrl);
-      return publicUrl;
+      const fileName = `data-convert-${timestamp}.webp`;
+      const uploadResult = await persistToSupaFromUrlOrBuffer(url, fileName);
+      console.log('✅ Data URL converted to storage URL:', uploadResult.publicUrl);
+      return uploadResult.publicUrl;
     } catch (error) {
-      console.error('❌ Failed to convert blob URL:', error);
-      throw new Error(`Blob URL conversion failed: ${error.message}`);
+      console.error('❌ Failed to convert data URL:', error);
+      throw new Error(`Data URL conversion failed: ${error.message}`);
     }
   }
   
-  // Reject data URLs (too large for API calls)
-  if (url.startsWith('data:')) {
-    throw new Error('Data URLs not supported. Please use blob URLs or HTTP/HTTPS URLs.');
+  // Reject blob URLs (can't be accessed from server context)
+  if (url.startsWith('blob:')) {
+    throw new Error('Blob URLs not supported. Please convert to data URL first.');
   }
   
   // Test if URL is accessible
