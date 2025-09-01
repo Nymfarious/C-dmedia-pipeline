@@ -381,10 +381,27 @@ export function ImageCanvas({
         <div className="py-4 border-b border-border">
           <div className="flex flex-wrap gap-2">
             {tools.map(tool => {
-            const Icon = tool.icon;
-            const isActive = selectedTool === tool.id || tool.id === 'object-edit' && showObjectEditTool || tool.id === 'color-adjust' && (showColorPanel || showStyleGallery);
-            return;
-          })}
+              const Icon = tool.icon;
+              const isActive = selectedTool === tool.id || 
+                (tool.id === 'object-edit' && showObjectEditTool) || 
+                (tool.id === 'color-adjust' && (showColorPanel || showStyleGallery)) ||
+                (tool.id === 'inpaint' && activeTool === 'inpaint');
+              
+              return (
+                <Button
+                  key={tool.id}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleToolAction(tool.id)}
+                  disabled={tool.needsAsset && !asset}
+                  className="flex items-center gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {tool.label}
+                  {selectedTool === tool.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                </Button>
+              );
+            })}
           </div>
           
           {/* Enhanced Upscale Options */}
