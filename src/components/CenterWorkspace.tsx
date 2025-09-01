@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Wand2, Upload, Plus, Sparkles } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
+import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 
@@ -164,6 +165,15 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
           </div>
         </Card>
       )}
+      
+      {/* AI Generation Modal */}
+      <CanvasAIGeneration
+        onAssetGenerated={(asset) => {
+          if (currentCanvas) {
+            onCanvasAssetUpdate(currentCanvas.id, asset);
+          }
+        }}
+      />
     </div>
   );
 }

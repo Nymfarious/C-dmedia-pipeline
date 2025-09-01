@@ -375,7 +375,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[80vh]">
+    <div className="flex flex-col h-full">
       <Card className={className}>
         <CardHeader className="flex-shrink-0 pb-4">
           <CardTitle className="flex items-center justify-between">
@@ -407,7 +407,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto space-y-6 max-h-[60vh]">
+        <CardContent className="flex-1 overflow-y-auto space-y-6">
         
         {/* Quick Recipe Panel */}
         {showRecipes && (
@@ -613,33 +613,31 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
         </CardContent>
         
         {/* Fixed Action Buttons */}
-        <div className="flex-shrink-0 p-4 border-t bg-card">
-          <div className="flex gap-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={handleClearMask}
-              disabled={!mask}
-            >
-              <Undo className="h-4 w-4 mr-2" />
-              Clear Mask
-            </Button>
+        <div className="flex-shrink-0 p-6 border-t bg-card">
+          <div className="flex gap-2">
             <Button
               onClick={handleApplyInpaint}
-              disabled={isProcessing || !instruction.trim() || !mask}
-              className="min-w-[120px]"
+              disabled={!instruction.trim() || !mask || isProcessing}
+              className="flex-1"
             >
               {isProcessing ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  {processingStatus || 'Processing...'}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Apply Edit
+                  Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
                 </>
               )}
             </Button>
+            
+            {onCancel && (
+              <Button variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
           </div>
         </div>
       </Card>

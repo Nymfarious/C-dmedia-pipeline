@@ -32,7 +32,6 @@ interface ToolbarTopProps {
   selectedTool: string;
   onToolChange: (tool: string) => void;
   toggleRightPanel: () => void;
-  onOpenAIModal?: () => void;
 }
 
 export function ToolbarTop({
@@ -40,7 +39,6 @@ export function ToolbarTop({
   selectedTool,
   onToolChange,
   toggleRightPanel,
-  onOpenAIModal,
 }: ToolbarTopProps) {
   const [toolbarExpanded, setToolbarExpanded] = useState(true);
   const { setActiveTool } = useAppStore();
@@ -52,12 +50,6 @@ export function ToolbarTop({
     if (!toolData?.working) return;
     
     onToolChange(tool);
-    
-    // Open AI modal for AI generation tool
-    if (tool === 'smart-select' && onOpenAIModal) {
-      console.log('ToolbarTop - Opening AI modal');
-      onOpenAIModal();
-    }
     
     // Activate inpaint tool in the store
     if (tool === 'inpaint') {

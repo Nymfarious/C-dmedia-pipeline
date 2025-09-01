@@ -321,6 +321,26 @@ serve(async (req) => {
           num_inference_steps: body.input.num_inference_steps || 4
         };
         
+        // Handle reference images for img2img
+        if (body.input.reference_images && body.input.reference_images.length > 0) {
+          console.log('🖼️ Processing reference images for generation...');
+          
+          // For now, use the first reference image as the base image for img2img
+          const primaryReference = body.input.reference_images[0];
+          
+          if (primaryReference.url) {
+            generationInput.image = await ensurePublicImageUrl(primaryReference.url);
+            generationInput.strength = 1.0 - (primaryReference.weight || 0.7); // Convert weight to strength
+            console.log(`✅ Using reference image with strength: ${generationInput.strength}`);
+          }
+          
+          // For multiple references, we could blend them or use as style references
+          if (body.input.reference_images.length > 1) {
+            console.log(`ℹ️ Multiple references detected (${body.input.reference_images.length}), using first as primary`);
+            // Future enhancement: blend multiple references or use advanced models
+          }
+        }
+        
         // Add model-specific parameters
         if (generationModel.includes('flux')) {
           generationInput.aspect_ratio = body.input.aspect_ratio || "1:1";
@@ -352,31 +372,62 @@ serve(async (req) => {
         const textPrompt = body.input.text_prompt || 'Add stylized text';
         const textStyle = body.input.text_style || {};
         
-        // Build enhanced prompt for text generation
-        let enhancedTextPrompt = `Add beautiful, stylized text "${textPrompt}" to this image. `;
+        // Build enhanced prompt for text generation with better positioning
+        let enhancedTextPrompt = `Add beautiful, professional text "${textPrompt}" to this image. `;
         
+        // Add positioning guidance
+        if (body.input.position) {
+          const positionMap = {
+            'top-left': 'Place the text in the top-left corner',
+            'top-center': 'Place the text at the top center',
+            'top-right': 'Place the text in the top-right corner',
+            'center-left': 'Place the text on the left side center',
+            'center': 'Place the text in the center',
+            'center-right': 'Place the text on the right side center',
+            'bottom-left': 'Place the text in the bottom-left corner',
+            'bottom-center': 'Place the text at the bottom center',
+            'bottom-right': 'Place the text in the bottom-right corner'
+          };
+          enhancedTextPrompt += `${positionMap[body.input.position] || 'Place the text appropriately'}. `;
+        }
+        
+        // Add style specifications
         if (textStyle.fontSize) {
-          enhancedTextPrompt += `Font size: ${textStyle.fontSize}. `;
-        }
-        if (textStyle.color && textStyle.color !== 'auto') {
-          enhancedTextPrompt += `Text color: ${textStyle.color}. `;
-        }
-        if (textStyle.effect && textStyle.effect !== 'none') {
-          enhancedTextPrompt += `Text effect: ${textStyle.effect}. `;
+          const sizeMap = {
+            'small': 'Use small, subtle text',
+            'medium': 'Use medium-sized text',
+            'large': 'Use large, prominent text',
+            'xl': 'Use extra large, bold text'
+          };
+          enhancedTextPrompt += `${sizeMap[textStyle.fontSize] || 'Use appropriately sized text'}. `;
         }
         
-        enhancedTextPrompt += 'The text should perfectly integrate with the image style, lighting, and perspective. High quality, professional typography.';
+        if (textStyle.color && textStyle.color !== 'auto') {
+          enhancedTextPrompt += `Text color should be ${textStyle.color}. `;
+        }
+        
+        if (textStyle.effect && textStyle.effect !== 'none') {
+          const effectMap = {
+            'shadow': 'Add a subtle drop shadow effect',
+            'glow': 'Add a soft glowing effect around the text',
+            'outline': 'Add a contrasting outline around the text',
+            '3d': 'Create a 3D effect with depth and dimension'
+          };
+          enhancedTextPrompt += `${effectMap[textStyle.effect] || 'Apply stylistic effects'}. `;
+        }
+        
+        enhancedTextPrompt += 'The text should perfectly integrate with the image style, lighting, and perspective. Ensure excellent readability and professional typography. Maintain the original image composition while adding the text seamlessly.';
         
         console.log('Enhanced text prompt:', enhancedTextPrompt);
         
+        // Use img2img with Flux for better text integration
         output = await replicate.run(MODEL_CONFIG[textModel], {
           input: {
             prompt: enhancedTextPrompt,
             image: body.input.image,
-            strength: 0.8,
+            strength: 0.4, // Lower strength to preserve original image better
             guidance_scale: 7.5,
             num_inference_steps: 30,
-            aspect_ratio: "1:1",
             output_format: "webp",
             output_quality: 90
           }

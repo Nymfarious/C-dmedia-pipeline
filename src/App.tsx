@@ -122,9 +122,8 @@ function EnhancedApp() {
         <ToolbarTop
           activeTab={activeTab}
           selectedTool={selectedTool}
-          onToolChange={handleToolChange}
-          toggleRightPanel={toggleRightPanel}
-          onOpenAIModal={() => setIsGenerationModalOpen(true)}
+        onToolChange={handleToolChange}
+        toggleRightPanel={toggleRightPanel}
         />
         <div className="flex flex-1">
           <Workspace

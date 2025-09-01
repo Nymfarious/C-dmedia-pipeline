@@ -5,7 +5,7 @@ import { ToolbarTop } from '@/components/ToolbarTop';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
-import { EnhancedAIModal } from '@/components/EnhancedAIModal';
+
 import useAppStore from '@/store/appStore';
 
 export function Dashboard() {
@@ -24,7 +24,7 @@ export function Dashboard() {
     inpaintingMode 
   } = useAppStore();
 
-  const [showAIModal, setShowAIModal] = useState(false);
+  
 
   console.log('Dashboard render - activeCanvas:', activeCanvas);
   console.log('Dashboard render - canvases:', canvases);
@@ -78,7 +78,6 @@ export function Dashboard() {
         selectedTool={activeTool}
         onToolChange={handleToolChange}
         toggleRightPanel={() => {}}
-        onOpenAIModal={() => setShowAIModal(true)}
       />
       
       {/* Main Content */}
@@ -95,7 +94,6 @@ export function Dashboard() {
           onLoadAssetToCanvas={loadAssetToCanvas}
           onClearWorkspace={clearWorkspace}
           onLoadProject={loadProjectData}
-          onOpenAIModal={() => setShowAIModal(true)}
         />
         
         {/* Center Workspace */}
@@ -115,11 +113,6 @@ export function Dashboard() {
         />
       </div>
 
-      {/* Enhanced AI Modal */}
-      <EnhancedAIModal 
-        isOpen={showAIModal}
-        onClose={() => setShowAIModal(false)}
-      />
     </div>
   );
 }

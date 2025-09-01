@@ -47,10 +47,16 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="edit" className="m-0 p-4">
-            <EditPanel 
-              selectedAsset={selectedAsset || null}
-              onEditComplete={onEditComplete || (async () => {})}
-            />
+            {selectedAsset ? (
+              <EditPanel 
+                selectedAsset={selectedAsset}
+                onEditComplete={onEditComplete || (async () => {})}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Select an asset to edit
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="layers" className="m-0 p-4">
