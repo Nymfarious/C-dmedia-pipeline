@@ -12,6 +12,7 @@ import { Workspace } from './components/Workspace';
 import { ToolbarTop } from './components/ToolbarTop';
 import { RightPanel } from './components/RightPanel';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
+import { AssetsPage } from './components/AssetsPage';
 import { SimplifiedAIModal } from './components/SimplifiedAIModal';
 import { FloatingToolExit } from './components/FloatingToolExit';
 import { ProjectManagementModal } from './components/ProjectManagementModal';
@@ -108,6 +109,10 @@ function EnhancedApp() {
   };
 
   const renderMainContent = () => {
+    if (activeTab === 'assets') {
+      return <AssetsPage onSelectImage={() => setActiveTab('image')} />;
+    }
+    
     if (activeTab === 'ai-gallery') {
       return <AIGalleryPanel onSelectImage={() => setActiveTab('image')} />;
     }

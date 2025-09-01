@@ -60,7 +60,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
-    const { prompt, model = 'gpt-image-1', size = '1024x1024', quality = 'high', output_format = 'webp' } = await req.json();
+    const { prompt, model = 'gpt-image-1', size = '1024x1024', quality = 'high', output_format = 'webp', background = 'transparent' } = await req.json();
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -75,7 +75,7 @@ serve(async (req) => {
         size,
         quality,
         output_format,
-        background: 'auto'
+        background
       }),
     });
 

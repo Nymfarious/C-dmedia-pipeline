@@ -225,32 +225,40 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().persist();
   },
 
-  addAssets: (assets) => set((state) => {
-    const newAssets = { ...state.assets };
-    assets.forEach(asset => {
-      newAssets[asset.id] = asset;
+  addAssets: (assets) => {
+    set((state) => {
+      const newAssets = { ...state.assets };
+      assets.forEach(asset => {
+        newAssets[asset.id] = asset;
+      });
+      return { assets: newAssets };
     });
-    return { assets: newAssets };
-  }),
+    // Auto-persist after adding assets
+    get().persist();
+  },
 
-  deleteAssets: (ids) => set((state) => {
-    const newAssets = { ...state.assets };
-    const newSelected = state.selectedAssetIds.filter(id => !ids.includes(id));
-    
-    // Revoke blob URLs to prevent memory leaks
-    ids.forEach(id => {
-      const asset = state.assets[id];
-      if (asset && asset.src.startsWith('blob:')) {
-        URL.revokeObjectURL(asset.src);
-      }
-      delete newAssets[id];
+  deleteAssets: (ids) => {
+    set((state) => {
+      const newAssets = { ...state.assets };
+      const newSelected = state.selectedAssetIds.filter(id => !ids.includes(id));
+      
+      // Revoke blob URLs to prevent memory leaks
+      ids.forEach(id => {
+        const asset = state.assets[id];
+        if (asset && asset.src.startsWith('blob:')) {
+          URL.revokeObjectURL(asset.src);
+        }
+        delete newAssets[id];
+      });
+
+      return { 
+        assets: newAssets,
+        selectedAssetIds: newSelected
+      };
     });
-
-    return { 
-      assets: newAssets,
-      selectedAssetIds: newSelected
-    };
-  }),
+    // Auto-persist after deleting assets
+    get().persist();
+  },
 
   exportAssets: async (ids) => {
     const state = get();
@@ -282,21 +290,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     return exports;
   },
 
-  updateAssetCategory: (assetId, category, subcategory) => set((state) => {
-    const asset = state.assets[assetId];
-    if (!asset) return state;
-    
-    return {
-      assets: {
-        ...state.assets,
-        [assetId]: {
-          ...asset,
-          category,
-          subcategory
+  updateAssetCategory: (assetId, category, subcategory) => {
+    set((state) => {
+      const asset = state.assets[assetId];
+      if (!asset) return state;
+      
+      return {
+        assets: {
+          ...state.assets,
+          [assetId]: {
+            ...asset,
+            category,
+            subcategory
+          }
         }
-      }
-    };
-  }),
+      };
+    });
+    // Auto-persist after category update
+    get().persist();
+  },
 
   addCustomCategory: (category) => set((state) => ({
     customCategories: [...state.customCategories, category],

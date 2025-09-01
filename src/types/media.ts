@@ -36,10 +36,14 @@ export interface CategoryInfo {
 }
 
 export const DEFAULT_CATEGORIES: CategoryInfo[] = [
-  { id: 'generated', name: 'Generated', subcategories: ['Portraits', 'Landscapes', 'Characters', 'Objects', 'Abstract'], icon: 'Sparkles', color: 'hsl(var(--primary))' },
-  { id: 'uploaded', name: 'Uploaded', subcategories: ['Photos', 'Graphics', 'Assets', 'References'], icon: 'Upload', color: 'hsl(var(--secondary))' },
-  { id: 'edited', name: 'Edited', subcategories: ['Enhanced', 'Upscaled', 'Background Removed', 'Retouched'], icon: 'Edit', color: 'hsl(var(--accent))' },
-  { id: 'animated', name: 'Animated', subcategories: ['Sprites', 'Gifs', 'Videos'], icon: 'Film', color: 'hsl(var(--destructive))' }
+  { id: 'backgrounds', name: 'Backgrounds', subcategories: ['Landscapes', 'Textures', 'Patterns', 'Gradients'], icon: 'Image', color: 'hsl(var(--chart-1))' },
+  { id: 'characters', name: 'Characters', subcategories: ['People', 'Animals', 'Fantasy', 'Avatars'], icon: 'User', color: 'hsl(var(--chart-2))' },
+  { id: 'poses', name: 'Poses', subcategories: ['Action', 'Portrait', 'Dance', 'Sports'], icon: 'Move', color: 'hsl(var(--chart-3))' },
+  { id: 'props', name: 'Props', subcategories: ['Objects', 'Tools', 'Weapons', 'Decorations'], icon: 'Package', color: 'hsl(var(--chart-4))' },
+  { id: 'settings', name: 'Settings', subcategories: ['Interior', 'Exterior', 'Fantasy', 'Sci-Fi'], icon: 'MapPin', color: 'hsl(var(--chart-5))' },
+  { id: 'generated', name: 'Generated', subcategories: ['AI Generated', 'Upscaled', 'Enhanced'], icon: 'Sparkles', color: 'hsl(var(--primary))' },
+  { id: 'edited', name: 'Edited', subcategories: ['Background Removed', 'Color Corrected', 'Filtered'], icon: 'Edit', color: 'hsl(var(--accent))' },
+  { id: 'uploaded', name: 'Uploaded', subcategories: ['Photos', 'Assets', 'Documents'], icon: 'Upload', color: 'hsl(var(--secondary))' }
 ];
 
 // Provider-agnostic adapter contracts

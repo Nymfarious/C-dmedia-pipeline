@@ -41,6 +41,12 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const quickLinks = [
     {
+      id: 'assets',
+      label: 'Assets',
+      icon: <ImageIcon size={18} />,
+      description: 'Manage your assets',
+    },
+    {
       id: 'ai-gallery',
       label: 'AI Gallery',
       icon: <SparklesIcon size={18} />,
