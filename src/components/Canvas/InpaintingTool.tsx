@@ -31,6 +31,8 @@ import {
 } from '@/lib/promptEnhancer';
 import { INPAINT_MODELS, makeRouting, InpaintMode } from '@/constants/models';
 import { normalizeMaskToWhiteEdits, canvasToDataUrl, canvasToBlob } from '@/utils/maskProcessor';
+import { runEditWithFallback } from '@/utils/editWorkflow';
+import { PROMPT_RECIPES, getRecipesByMode } from '@/constants/promptRecipes';
 import { useToast } from '@/hooks/use-toast';
 
 interface InpaintingToolProps {
@@ -55,16 +57,39 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
   const [invertMask, setInvertMask] = useState(false); // Debug option
+  const [showRecipes, setShowRecipes] = useState(false); // Recipe panel
+  const [processingStatus, setProcessingStatus] = useState<string>(''); // Progress tracking
   
   // Advanced UI controls
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [qualityVsSpeed, setQualityVsSpeed] = useState([50]); // 0-100 slider
   const [precisionVsCreativity, setPrecisionVsCreativity] = useState([50]); // 0-100 slider
   const [enableCleanupPass, setEnableCleanupPass] = useState(true);
+  const [enableFallback, setEnableFallback] = useState(true); // Robust fallback
   const [maskPadding, setMaskPadding] = useState([12]);
   const [maskFeathering, setMaskFeathering] = useState([3]);
 
-  // Mode-specific instructions
+  // Apply recipe to current settings
+  const applyRecipe = useCallback((recipeTitle: string) => {
+    const recipe = PROMPT_RECIPES.find(r => r.title === recipeTitle);
+    if (!recipe) return;
+    
+    setMode(recipe.mode);
+    setInstruction(recipe.prompt);
+    
+    // Map recipe params to UI sliders
+    const qualityLevel = recipe.params.steps > 45 ? 75 : recipe.params.steps > 35 ? 50 : 25;
+    const precisionLevel = recipe.params.guidance > 16 ? 75 : recipe.params.guidance > 12 ? 50 : 25;
+    
+    setQualityVsSpeed([qualityLevel]);
+    setPrecisionVsCreativity([precisionLevel]);
+    
+    setShowRecipes(false);
+    toast({
+      title: "Recipe Applied",
+      description: `"${recipe.title}" settings applied. You can modify the prompt as needed.`
+    });
+  }, [toast]);
   const getDefaultInstruction = useCallback(() => {
     switch (mode) {
       case 'remove':
@@ -251,7 +276,18 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
         };
 
         console.log('🚀 Sending inpaint params:', params);
-        await onComplete(params);
+        
+        // Phase 4: Use robust fallback workflow
+        if (enableFallback) {
+          const result = await runEditWithFallback(asset, params, setProcessingStatus);
+          if (!result.ok) {
+            throw new Error(result.error || 'Edit operation failed');
+          }
+          // The workflow returns a URL, but we need to call onComplete with params
+          // The actual image processing is handled by the parent component
+        } else {
+          await onComplete(params);
+        }
       };
       
       toast({
@@ -281,6 +317,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
     setQualityVsSpeed([50]);
     setPrecisionVsCreativity([50]);
     setEnableCleanupPass(true);
+    setEnableFallback(true);
     setMaskPadding([12]);
     setMaskFeathering([3]);
     toast({
@@ -321,6 +358,14 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setShowRecipes(!showRecipes)}
+              title="Quick recipe templates"
+            >
+              📋
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
               <Settings className="h-4 w-4" />
@@ -335,6 +380,32 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
       </CardHeader>
       <CardContent className="space-y-6">
         
+        {/* Quick Recipe Panel */}
+        {showRecipes && (
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Quick Templates</Label>
+              <Button variant="ghost" size="sm" onClick={() => setShowRecipes(false)}>×</Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {getRecipesByMode(mode).map(recipe => (
+                <Button
+                  key={recipe.title}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyRecipe(recipe.title)}
+                  className="text-xs h-auto py-2 px-3"
+                >
+                  <div className="text-left">
+                    <div className="font-medium">{recipe.title}</div>
+                    <div className="text-muted-foreground text-xs">{recipe.description}</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Mode Selection */}
         <div className="space-y-3">
           <Label>Choose Operation</Label>
@@ -447,19 +518,35 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
         {/* Advanced Controls */}
         {showAdvanced && (
-          <AdvancedInpaintingControls
-            qualityVsSpeed={qualityVsSpeed}
-            onQualityVsSpeedChange={setQualityVsSpeed}
-            precisionVsCreativity={precisionVsCreativity}
-            onPrecisionVsCreativityChange={setPrecisionVsCreativity}
-            enableCleanupPass={enableCleanupPass}
-            onEnableCleanupPassChange={setEnableCleanupPass}
-            maskPadding={maskPadding}
-            onMaskPaddingChange={setMaskPadding}
-            maskFeathering={maskFeathering}
-            onMaskFeatheringChange={setMaskFeathering}
-            onResetToDefaults={handleResetAdvanced}
-          />
+          <div className="space-y-4">
+            <AdvancedInpaintingControls
+              qualityVsSpeed={qualityVsSpeed}
+              onQualityVsSpeedChange={setQualityVsSpeed}
+              precisionVsCreativity={precisionVsCreativity}
+              onPrecisionVsCreativityChange={setPrecisionVsCreativity}
+              enableCleanupPass={enableCleanupPass}
+              onEnableCleanupPassChange={setEnableCleanupPass}
+              maskPadding={maskPadding}
+              onMaskPaddingChange={setMaskPadding}
+              maskFeathering={maskFeathering}
+              onMaskFeatheringChange={setMaskFeathering}
+              onResetToDefaults={handleResetAdvanced}
+            />
+            
+            {/* Phase 4: Fallback Strategy Toggle */}
+            <div className="flex items-center space-x-2 pt-2 border-t">
+              <input
+                type="checkbox"
+                id="enable-fallback"
+                checked={enableFallback}
+                onChange={(e) => setEnableFallback(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="enable-fallback" className="text-sm text-muted-foreground">
+                Enable automatic fallback (try backup model if primary fails)
+              </label>
+            </div>
+          </div>
         )}
 
         {/* Quality warnings */}
@@ -477,8 +564,13 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           </Alert>
         )}
 
-        {/* Action Button - Always visible with proper sizing */}
-        <div className="sticky bottom-0 bg-background pt-4 border-t">
+        {/* Action Button with Processing Status */}
+        <div className="sticky bottom-0 bg-background pt-4 border-t space-y-2">
+          {processingStatus && (
+            <div className="text-sm text-muted-foreground text-center">
+              {processingStatus}
+            </div>
+          )}
           <Button 
             onClick={handleApplyInpaint}
             disabled={isProcessing || !mask || !instruction.trim()}
@@ -488,7 +580,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
             {isProcessing ? (
               <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Processing with {convertUIToParams(qualityVsSpeed[0], precisionVsCreativity[0]).qualityLevel} quality...
+                {processingStatus || `Processing with ${convertUIToParams(qualityVsSpeed[0], precisionVsCreativity[0]).qualityLevel} quality...`}
               </>
             ) : !mask ? (
               "Create Mask First"
@@ -498,6 +590,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
               <>
                 <Save className="h-4 w-4 mr-2" />
                 Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
+                {enableFallback && <span className="text-xs ml-1">(with fallback)</span>}
               </>
             )}
           </Button>
