@@ -29,7 +29,7 @@ export const replicateEdit: ImageEditAdapter = {
 
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        operation: 'flux-inpaint',
+        operation: 'nano-banana-edit',
         input: {
           image: asset.src,
           mask: params.maskPngDataUrl,

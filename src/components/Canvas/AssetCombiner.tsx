@@ -51,7 +51,7 @@ const COMBINE_MODES = [
     key: 'composite' as CombineMode, 
     name: 'Composite', 
     description: 'Layer images with precise control',
-    model: 'flux-inpaint'
+    model: 'nano-banana'
   }
 ];
 

@@ -294,7 +294,7 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
     if (!asset) return;
     
     try {
-      const stepId = enqueueStep('EDIT', [asset.id], params, 'replicate.flux-inpaint');
+      const stepId = enqueueStep('EDIT', [asset.id], params, 'replicate.nano-banana');
       await runStep(stepId);
       
       const { steps, assets: updatedAssets } = useAppStore.getState();

@@ -64,14 +64,14 @@ export const nanoBananaAdapter: ImageEditAdapter = {
   }
 };
 
-// FLUX Inpaint - Precision masked editing
+// Nano-Banana - Natural language inpainting
 export const fluxInpaintAdapter: ImageEditAdapter = {
-  key: "replicate.flux-inpaint",
+  key: "replicate.nano-banana",
   
   async edit(asset: Asset, params: ImageEditParams): Promise<Asset> {
     const { data, error } = await supabase.functions.invoke('replicate-enhanced', {
       body: {
-        operation: 'flux-inpaint',
+        operation: 'nano-banana-edit',
         input: {
           image: asset.src,
           mask: params.maskPngDataUrl,
@@ -100,7 +100,7 @@ export const fluxInpaintAdapter: ImageEditAdapter = {
         ...asset.meta,
         instruction: params.instruction,
         originalAsset: asset.id,
-        provider: 'replicate.flux-inpaint'
+        provider: 'replicate.nano-banana'
       },
       createdAt: Date.now(),
       derivedFrom: asset.id,

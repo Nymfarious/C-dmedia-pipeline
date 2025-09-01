@@ -32,8 +32,8 @@ export const geminiNanoAdapter: ImageEditAdapter = {
           mode = 'add';
           instruction = params.addObjectInstruction || instruction;
           break;
-        case 'flux-inpaint':
-          operation = 'flux-inpaint';
+        case 'nano-banana-edit':
+          operation = 'nano-banana-edit';
           // Determine mode from instruction
           if (instruction.toLowerCase().includes('remove') || instruction.toLowerCase().includes('delete')) {
             mode = 'remove';

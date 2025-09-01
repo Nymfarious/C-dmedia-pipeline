@@ -52,24 +52,9 @@ export function useInpaintingWorkflow() {
   }, [state.mask, state.instruction]);
 
   const buildInpaintingParams = useCallback((asset: Asset): ImageEditParams => {
-    // Map UI model selection to correct provider and operation
-    let operation: string;
-    let provider: string;
-
-    if (state.selectedModel === 'nano-banana') {
-      operation = 'nano-banana-edit';
-      provider = 'replicate.nano-banana';
-    } else if (state.selectedModel === 'flux-inpaint') {
-      operation = 'flux-inpaint';
-      provider = 'replicate.flux-inpaint';
-    } else if (state.selectedModel === 'advanced-object-remover') {
-      operation = 'advanced-object-removal';
-      provider = 'replicate.advanced-object-remover';
-    } else {
-      // Fallback logic
-      operation = state.mode === 'remove' ? 'advanced-object-removal' : 'nano-banana-edit';
-      provider = `replicate.${state.selectedModel}`;
-    }
+    // Always use nano-banana for inpainting operations
+    const operation = 'nano-banana-edit';
+    const provider = 'replicate.nano-banana';
 
     return {
       operation,

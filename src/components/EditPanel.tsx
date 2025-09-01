@@ -34,7 +34,6 @@ interface EditPanelProps {
 
 const EDIT_MODELS = [
   { key: 'replicate.nano-banana', name: 'Nano Banana', description: 'Natural language editing', category: 'General' },
-  { key: 'replicate.flux-inpaint', name: 'FLUX Inpaint', description: 'Precision masked editing', category: 'Precision' },
   { key: 'replicate.professional-upscaler', name: 'Professional Upscaler', description: '4x quality enhancement', category: 'Enhancement' },
   { key: 'replicate.advanced-object-remover', name: 'Object Remover', description: 'Clean object removal', category: 'Cleanup' },
   { key: 'replicate.color-enhancement', name: 'Color Enhancer', description: 'Professional color grading', category: 'Color' },
@@ -79,7 +78,7 @@ export function EditPanel({ selectedAsset, onEditComplete, className }: EditPane
   }
 
   const selectedModelInfo = EDIT_MODELS.find(m => m.key === selectedModel);
-  const requiresMask = ['replicate.flux-inpaint', 'replicate.advanced-object-remover'].includes(selectedModel);
+  const requiresMask = ['replicate.nano-banana', 'replicate.advanced-object-remover'].includes(selectedModel);
   const isColorEdit = selectedModel === 'replicate.color-enhancement';
   const isPoseEdit = selectedModel === 'replicate.pose-adjustment';
 
