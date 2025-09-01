@@ -11,7 +11,8 @@ import {
   Triangle,
   Eraser,
   Pipette,
-  Palette
+  Palette,
+  Video
 } from 'lucide-react';
 
 export function Toolbar() {
@@ -63,6 +64,21 @@ export function Toolbar() {
         </Button>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
           <Palette className="h-4 w-4" />
+        </Button>
+        
+        <Separator orientation="vertical" className="h-6 mx-2" />
+        
+        {/* Video Generation */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => {
+            // Dispatch custom event to open video generation
+            window.dispatchEvent(new CustomEvent('openVideoGeneration'));
+          }}
+        >
+          <Video className="h-4 w-4" />
         </Button>
       </div>
     </div>

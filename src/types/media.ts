@@ -144,6 +144,7 @@ export interface VideoGenParams {
   motionStrength?: number;
   style?: string;
   seed?: number;
+  enableAudio?: boolean; // Whether to generate native audio (VEO 3 supports this)
 }
 
 // Unified adapter interfaces
