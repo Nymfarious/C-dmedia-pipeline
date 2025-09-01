@@ -68,6 +68,7 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
   const [isDragOver, setIsDragOver] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState<number>(0);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('replicate.veo-3');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { assets, addAsset, selectedAssetIds } = useAppStore();
@@ -201,7 +202,7 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
     setIsGenerating(true);
     
     try {
-      const adapter = providers.videoGen['replicate.veo-3'];
+      const adapter = providers.videoGen[selectedModel as keyof typeof providers.videoGen];
       const result = await adapter.generate({
         prompt,
         imageUrl: processedImageUrl,
@@ -245,11 +246,11 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
   if (!isActive) return null;
 
   return (
-    <Card className="absolute top-16 left-4 right-4 z-50 p-6 bg-background border-border shadow-lg max-h-[80vh] overflow-y-auto">
+    <Card className="absolute top-16 left-4 right-4 z-50 p-6 bg-background border-border shadow-lg max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Video className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">Video Generation (VEO 3)</h3>
+          <h3 className="text-lg font-semibold text-foreground">Video Generation</h3>
           <Badge variant="secondary" className="text-xs">
             <Clock className="h-3 w-3 mr-1" />
             ~{Math.ceil(estimatedTime / 60)}min
@@ -276,6 +277,34 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
       </div>
 
       <div className="space-y-6">
+        {/* Model Selection */}
+        <div>
+          <Label className="text-sm font-medium text-foreground mb-3 block">
+            Video Generation Model
+          </Label>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="replicate.veo-3">VEO-3 (Google) - High Quality</SelectItem>
+              <SelectItem value="replicate.runway-ml">RunwayML Gen-3 - Cinematic</SelectItem>
+              <SelectItem value="replicate.stable-video">Stable Video Diffusion - Fast</SelectItem>
+              <SelectItem value="replicate.animatediff">AnimateDiff - Animation</SelectItem>
+              <SelectItem value="replicate.luma-dream">Luma Dream Machine - Creative</SelectItem>
+              <SelectItem value="replicate.kling-ai">Kling AI - Professional</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {selectedModel === 'replicate.veo-3' && 'Best quality, longer generation time'}
+            {selectedModel === 'replicate.runway-ml' && 'Cinematic quality, great for professional videos'}
+            {selectedModel === 'replicate.stable-video' && 'Fast generation, good for prototypes'}
+            {selectedModel === 'replicate.animatediff' && 'Specialized for character animation'}
+            {selectedModel === 'replicate.luma-dream' && 'Creative effects and surreal animations'}
+            {selectedModel === 'replicate.kling-ai' && 'High-end quality, optimized for realism'}
+          </p>
+        </div>
+
         {/* Style Presets */}
         <div>
           <Label className="text-sm font-medium text-foreground mb-3 block">

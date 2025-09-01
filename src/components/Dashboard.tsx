@@ -5,10 +5,13 @@ import { ToolbarTop } from '@/components/ToolbarTop';
 import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
+import { Gallery } from '@/components/Gallery';
 
 import useAppStore from '@/store/appStore';
 
 export function Dashboard() {
+  const [showGallery, setShowGallery] = useState(false);
+  
   const { 
     enqueueStep, 
     runStep, 
@@ -66,6 +69,7 @@ export function Dashboard() {
         redo={() => {}}
         canUndo={false}
         canRedo={false}
+        onGalleryToggle={() => setShowGallery(!showGallery)}
       />
       
       {/* Toolbar */}
@@ -78,8 +82,15 @@ export function Dashboard() {
       
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Gallery Sidebar - Conditional */}
+        {showGallery && (
+          <div className="w-80 border-r border-border bg-card">
+            <Gallery />
+          </div>
+        )}
+        
         {/* Left Sidebar */}
-        <LeftSidebar 
+        <LeftSidebar
           canvases={canvases}
           activeCanvas={activeCanvas}
           onCreateCanvas={(type) => {

@@ -40,7 +40,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
 
   if (!currentCanvas) {
     return (
-      <div className="flex-1 bg-stage-bg p-8 overflow-y-auto relative">
+      <div className="flex-1 bg-stage-bg p-8 overflow-y-auto relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Create Canvas Section */}
           <Card className="bg-card border-border">

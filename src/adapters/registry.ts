@@ -48,6 +48,11 @@ import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter'
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
 import { veo3Adapter } from './video-gen/veo3Adapter';
+import { runwayAdapter } from './video-gen/runwayAdapter';
+import { stableVideoAdapter } from './video-gen/stableVideoAdapter';
+import { animateDiffAdapter } from './video-gen/animateDiffAdapter';
+import { lumaAdapter } from './video-gen/lumaAdapter';
+import { klingAdapter } from './video-gen/klingAdapter';
 import { sedanceAdapter } from './video-edit/sedanceAdapter';
 
 export const providers = {
@@ -142,7 +147,12 @@ export const providers = {
     "tts.local": localTTS 
   },
   videoGen: {
-    "replicate.veo-3": veo3Adapter
+    "replicate.veo-3": veo3Adapter,
+    "replicate.runway-ml": runwayAdapter,
+    "replicate.stable-video": stableVideoAdapter,
+    "replicate.animatediff": animateDiffAdapter,
+    "replicate.luma-dream": lumaAdapter,
+    "replicate.kling-ai": klingAdapter
   },
   videoEdit: {
     "replicate.sedance-1-pro": sedanceAdapter

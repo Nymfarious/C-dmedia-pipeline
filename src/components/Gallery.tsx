@@ -305,7 +305,7 @@ export function Gallery() {
       </div>
 
       {/* Assets Grid */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
         <div className="grid grid-cols-2 gap-3">
           {filteredAssets.map((asset) => (
             <Card

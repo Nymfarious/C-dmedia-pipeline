@@ -1,5 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { Save, FolderOpen, Undo, Redo } from 'lucide-react';
+import { Save, FolderOpen, Undo, Redo, Images, Archive } from 'lucide-react';
+import useAppStore from '@/store/appStore';
+import { useState } from 'react';
+import { ProjectManagementModal } from './ProjectManagementModal';
 
 interface HeaderProps {
   activeTab: string;
@@ -7,9 +10,24 @@ interface HeaderProps {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onGalleryToggle?: () => void;
 }
 
-export function Header({ activeTab, undo, redo, canUndo, canRedo }: HeaderProps) {
+export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggle }: HeaderProps) {
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const { assets } = useAppStore();
+
+  const handleNewProject = () => {
+    // Clear current state and create a new project
+    // This would reset the workspace
+    setShowProjectModal(false);
+  };
+
+  const handleProjectLoad = (projectData: any) => {
+    // Handle project loading logic
+    setShowProjectModal(false);
+  };
+
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
@@ -37,15 +55,24 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo }: HeaderProps)
       </div>
       
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" className="h-8">
-          <Save className="h-4 w-4 mr-2" />
-          Save Project
-        </Button>
-        <Button variant="outline" size="sm" className="h-8">
-          <FolderOpen className="h-4 w-4 mr-2" />
-          Load Project
+        {onGalleryToggle && (
+          <Button variant="outline" size="sm" className="h-8" onClick={onGalleryToggle}>
+            <Images className="h-4 w-4 mr-2" />
+            Gallery ({Object.keys(assets).length})
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="h-8" onClick={() => setShowProjectModal(true)}>
+          <Archive className="h-4 w-4 mr-2" />
+          Projects
         </Button>
       </div>
+      
+      <ProjectManagementModal
+        isOpen={showProjectModal}
+        onClose={() => setShowProjectModal(false)}
+        onNewProject={handleNewProject}
+        onProjectLoad={handleProjectLoad}
+      />
     </header>
   );
 }
