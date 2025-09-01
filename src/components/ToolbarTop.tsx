@@ -44,154 +44,69 @@ export function ToolbarTop({
   const { setActiveTool } = useAppStore();
 
   const handleToolClick = (tool: string) => {
-    console.log('ToolbarTop - Tool clicked:', tool);
     // Only allow clicks on working tools
-    const toolData = toolGroups.flatMap(g => g.tools).find(t => t.id === tool);
+    const toolData = essentialTools.find(t => t.id === tool) || advancedTools.find(t => t.id === tool);
     if (!toolData?.working) return;
     
     onToolChange(tool);
     
     // Activate tools in the store
     if (tool === 'inpaint') {
-      console.log('ToolbarTop - Tool clicked: inpaint');
       setActiveTool('inpaint');
-      console.log('ToolbarTop - Inpaint tool activated');
     } else if (tool === 'smart-select') {
-      console.log('ToolbarTop - Tool clicked: smart-select');
       setActiveTool('smart-select');
-      console.log('ToolbarTop - Smart-select tool activated for AI generation');
     } else if (tool === 'text') {
-      console.log('ToolbarTop - Tool clicked: text');
       setActiveTool('text');
-      console.log('ToolbarTop - Text tool activated for text generation');
     }
   };
 
-  // Define which tools are functional vs coming soon
-  const workingTools = ['select', 'smart-select', 'brush', 'crop', 'remove-bg', 'inpaint', 'text'];
-  const comingSoonTools = ['lasso', 'eraser', 'colors', 'rotate', 'resize', 'enhance', 'style', 'stickers', 'adjust'];
+  // Essential tools - always visible
+  const essentialTools = [
+    {
+      id: 'select',
+      icon: <MousePointerIcon size={18} />,
+      tooltip: 'Select',
+      working: true,
+    },
+    {
+      id: 'smart-select',
+      icon: <Wand2 size={18} />,
+      tooltip: 'AI Generation',
+      working: true,
+    },
+    {
+      id: 'crop',
+      icon: <CropIcon size={18} />,
+      tooltip: 'Crop',
+      working: true,
+    },
+    {
+      id: 'inpaint',
+      icon: <Edit3 size={18} />,
+      tooltip: 'AI Inpainting',
+      working: true,
+    },
+  ];
 
-  const toolGroups = [
+  // Advanced tools - in collapsible section
+  const advancedTools = [
     {
-      title: 'Selection',
-      tools: [
-        {
-          id: 'select',
-          icon: <MousePointerIcon size={18} />,
-          tooltip: 'Select',
-          working: true,
-        },
-        {
-          id: 'smart-select',
-          icon: <Wand2 size={18} />,
-          tooltip: 'AI Generation',
-          working: true,
-        },
-        {
-          id: 'lasso',
-          icon: <ShapesIcon size={18} />,
-          tooltip: 'Lasso Selection - Coming Soon',
-          working: false,
-        },
-      ],
+      id: 'brush',
+      icon: <PaintbrushIcon size={18} />,
+      tooltip: 'Paintbrush',
+      working: true,
     },
     {
-      title: 'Draw',
-      tools: [
-        {
-          id: 'brush',
-          icon: <PaintbrushIcon size={18} />,
-          tooltip: 'Paintbrush',
-          working: true,
-        },
-        {
-          id: 'eraser',
-          icon: <EraserIcon size={18} />,
-          tooltip: 'Eraser - Coming Soon',
-          working: false,
-        },
-        {
-          id: 'colors',
-          icon: <div className="w-4 h-4 bg-gradient-to-r from-red-500 to-blue-500 rounded-full" />,
-          tooltip: 'Color & Style - Coming Soon',
-          working: false,
-        },
-      ],
+      id: 'remove-bg',
+      icon: <Trash size={18} />,
+      tooltip: 'Remove Background',
+      working: true,
     },
     {
-      title: 'Transform',
-      tools: [
-        {
-          id: 'crop',
-          icon: <CropIcon size={18} />,
-          tooltip: 'Crop',
-          working: true,
-        },
-        {
-          id: 'rotate',
-          icon: <RotateCwIcon size={18} />,
-          tooltip: 'Rotate - Coming Soon',
-          working: false,
-        },
-        {
-          id: 'resize',
-          icon: <MoveIcon size={18} />,
-          tooltip: 'Resize - Coming Soon',
-          working: false,
-        },
-      ],
-    },
-    {
-      title: 'AI Tools',
-      tools: [
-        {
-          id: 'remove-bg',
-          icon: <Trash size={18} />,
-          tooltip: 'Remove Background',
-          working: true,
-        },
-        {
-          id: 'inpaint',
-          icon: <Edit3 size={18} />,
-          tooltip: 'AI Inpainting',
-          working: true,
-        },
-        {
-          id: 'enhance',
-          icon: <SparklesIcon size={18} />,
-          tooltip: 'AI Enhance - Coming Soon',
-          working: false,
-        },
-        {
-          id: 'style',
-          icon: <Wand2 size={18} />,
-          tooltip: 'Style Transfer - Coming Soon',
-          working: false,
-        },
-      ],
-    },
-    {
-      title: 'Edit',
-      tools: [
-        {
-          id: 'text',
-          icon: <TypeIcon size={18} />,
-          tooltip: 'Add Text with AI',
-          working: true,
-        },
-        {
-          id: 'stickers',
-          icon: <Smile size={18} />,
-          tooltip: 'Stickers & Emoji - Coming Soon',
-          working: false,
-        },
-        {
-          id: 'adjust',
-          icon: <SlidersIcon size={18} />,
-          tooltip: 'Adjustments - Coming Soon',
-          working: false,
-        },
-      ],
+      id: 'text',
+      icon: <TypeIcon size={18} />,
+      tooltip: 'Add Text with AI',
+      working: true,
     },
   ];
 
@@ -199,40 +114,60 @@ export function ToolbarTop({
     <div className="bg-card border-b border-border flex flex-col">
       <div className="p-2 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          {toolGroups.map((group, index) => (
-            <Fragment key={group.title}>
-              {index > 0 && <div className="h-8 w-px bg-border mx-1"></div>}
-              <div className="flex items-center">
-                {group.tools.map((tool) => (
-                  <button
-                    key={tool.id}
-                    className={`p-2 rounded-md relative group transition-colors ${
-                      tool.working 
-                        ? `hover:bg-muted ${selectedTool === tool.id ? 'bg-primary/10 text-primary' : ''}` 
-                        : 'opacity-50 cursor-not-allowed text-muted-foreground'
-                    }`}
-                    onClick={() => tool.working && handleToolClick(tool.id)}
-                    title={tool.tooltip}
-                    disabled={!tool.working}
-                  >
-                    {tool.icon}
-                    <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-0.5 bg-popover border border-border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                      {tool.tooltip}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </Fragment>
-          ))}
+          {/* Essential Tools */}
+          <div className="flex items-center">
+            {essentialTools.map((tool) => (
+              <button
+                key={tool.id}
+                className={`p-2 rounded-md relative group transition-colors hover:bg-muted ${
+                  selectedTool === tool.id ? 'bg-primary/10 text-primary' : ''
+                }`}
+                onClick={() => handleToolClick(tool.id)}
+                title={tool.tooltip}
+              >
+                {tool.icon}
+                <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-0.5 bg-popover border border-border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  {tool.tooltip}
+                </span>
+              </button>
+            ))}
+          </div>
+          
+          <div className="h-8 w-px bg-border mx-1"></div>
+          
+          {/* Advanced Tools - Collapsible */}
+          <details className="relative">
+            <summary className="p-2 rounded-md hover:bg-muted cursor-pointer flex items-center gap-1 text-sm text-muted-foreground">
+              More Tools
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 p-1 flex">
+              {advancedTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  className={`p-2 rounded-md relative group transition-colors hover:bg-muted ${
+                    selectedTool === tool.id ? 'bg-primary/10 text-primary' : ''
+                  }`}
+                  onClick={() => handleToolClick(tool.id)}
+                  title={tool.tooltip}
+                >
+                  {tool.icon}
+                  <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-0.5 bg-popover border border-border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                    {tool.tooltip}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
+        
         <div className="flex items-center space-x-2">
           <button className="p-2 rounded-md hover:bg-muted" title="Zoom In">
             <ZoomInIcon size={18} />
           </button>
-          <button
-            className="p-2 rounded-md hover:bg-muted"
-            title="Zoom Out"
-          >
+          <button className="p-2 rounded-md hover:bg-muted" title="Zoom Out">
             <ZoomOutIcon size={18} />
           </button>
           <div className="h-8 w-px bg-border mx-1"></div>
