@@ -86,7 +86,9 @@ export const geminiNanoAdapter: ImageEditAdapter = {
     // Enhanced prompt processing with Gemini Nano optimization
     const promptOptions = {
       mode,
-      userPrompt: instruction,
+      userPrompt: mode === 'add' || mode === 'remove' || mode === 'replace' 
+        ? `In the masked area only: ${instruction}. Preserve the rest of the image exactly as it is.`
+        : instruction,
       context: asset.meta?.originalPrompt,
       operation: params.operation,
       complexity: (params.complexity as 'simple' | 'moderate' | 'complex' | 'ultra-complex') || 'moderate',
@@ -95,7 +97,7 @@ export const geminiNanoAdapter: ImageEditAdapter = {
       imageAnalysis: {
         lighting: 'natural' as const,
         style: 'realistic' as const,
-        scene: asset.meta?.originalPrompt ? `scene from: ${asset.meta.originalPrompt}` : 'the image',
+        scene: asset.meta?.originalPrompt ? `scene from: ${asset.meta.originalPrompt}` : 'the existing image scene',
         mood: 'calm' as const
       }
     };

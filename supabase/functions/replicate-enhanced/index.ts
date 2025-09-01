@@ -398,11 +398,14 @@ serve(async (req) => {
               image: publicImageUrl,
               mask: body.input.mask,
               mode: "smart-inpaint",
-              prompt: enhancedPrompt,
-              // Optimized parameters for better results
-              guidance_scale: body.input.guidance_scale || 7.5,
-              strength: body.input.strength || 0.9,
-              num_inference_steps: body.input.num_inference_steps || 25
+              // **CRITICAL**: Context-preserving prompt structure for inpainting
+              prompt: `INPAINT ONLY THE MASKED AREA while preserving the rest of the image exactly as it is. Original scene context: ${enhancedPrompt}. Only modify what is covered by the mask, keep everything else unchanged.`,
+              guidance_scale: body.input.guidance_scale || 8.0, // Higher guidance for better adherence
+              strength: body.input.strength || 0.75, // Lower strength to preserve context
+              num_inference_steps: body.input.num_inference_steps || 30, // More steps for precision
+              // Add context preservation parameters
+              preserve_original: true,
+              inpaint_mode: "replace_masked_only"
             }
           });
         } else {
