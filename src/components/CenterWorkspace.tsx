@@ -46,7 +46,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
 
   if (!currentCanvas) {
     return (
-      <div className="flex-1 bg-stage-bg p-8 overflow-y-auto">
+      <div className="flex-1 bg-stage-bg p-8 overflow-y-auto relative">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Create Canvas Section */}
           <Card className="bg-card border-border">
@@ -132,7 +132,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
   console.log('CenterWorkspace - Rendering active canvas:', currentCanvas.type, currentCanvas.asset?.id);
 
   return (
-    <div className="flex-1 bg-stage-bg p-4">
+    <div className="flex-1 bg-stage-bg p-4 relative overflow-hidden">
       {currentCanvas.type === 'image' && (
         <ImageCanvas 
           asset={currentCanvas.asset}

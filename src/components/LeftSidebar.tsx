@@ -63,8 +63,8 @@ export function LeftSidebar({
     }
   };
   return (
-    <div className="w-64 border-r border-border bg-card flex flex-col">
-      <div className="p-4 space-y-6">
+    <div className="w-64 border-r border-border bg-card flex flex-col overflow-hidden">
+      <div className="p-4 space-y-6 overflow-y-auto flex-1">
         {/* Create Canvas Section */}
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Create Canvas</h3>
@@ -133,7 +133,7 @@ export function LeftSidebar({
         {/* Recent Projects Section */}
         <div>
           <h3 className="font-semibold mb-3 text-foreground">Recent Projects</h3>
-          <div className="space-y-2">
+          <div className="space-y-3 max-h-64 overflow-y-auto">
             {recentAssets.length > 0 ? recentAssets.map((asset) => (
               <Card 
                 key={asset.id}
@@ -141,28 +141,33 @@ export function LeftSidebar({
                 onClick={() => onLoadAssetToCanvas?.(asset)}
               >
                 <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-3">
                     {asset.src && (
                       <img 
                         src={asset.src} 
                         alt={asset.name}
-                        className="w-10 h-10 rounded object-cover"
+                        className="w-full h-20 rounded object-cover"
                       />
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="space-y-1">
                       <div className="text-sm font-medium text-foreground truncate">{asset.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(asset.createdAt).toLocaleDateString()}
                       </div>
+                      {asset.meta?.prompt && (
+                        <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {asset.meta.prompt}
+                        </div>
+                      )}
+                      <Badge variant="secondary" className="text-xs w-fit">
+                        {asset.type}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {asset.type}
-                    </Badge>
                   </div>
                 </CardContent>
               </Card>
             )) : (
-              <div className="text-center text-muted-foreground py-4">
+              <div className="text-center text-muted-foreground py-6">
                 <div className="text-sm">No recent projects</div>
                 <div className="text-xs">Generate some images to see them here</div>
               </div>

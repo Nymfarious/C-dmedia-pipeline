@@ -25,16 +25,15 @@ export function CanvasAIGeneration({ onAssetGenerated }: CanvasAIGenerationProps
     setActiveTool(null);
   };
 
-  // Show AI generation panel when smart-select tool is active
+  // Show AI generation panel when smart-select tool is active - integrate inline
   if (activeTool === 'smart-select' || isOpen) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="w-full max-w-2xl max-h-[90vh] overflow-auto">
-          <CanvasImageGeneration
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
-        </div>
+      <div className="absolute top-4 right-4 w-96 z-40">
+        <CanvasImageGeneration
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+          className="max-h-[calc(100vh-8rem)] overflow-y-auto"
+        />
       </div>
     );
   }

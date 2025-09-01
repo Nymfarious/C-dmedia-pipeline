@@ -33,6 +33,12 @@ export function Dashboard() {
   const handleToolChange = (tool: string) => {
     console.log('Dashboard - Tool changing to:', tool);
     setActiveTool(tool);
+    
+    // Handle video generation tool specifically
+    if (tool === 'video') {
+      const canvasId = createCanvas('video');
+      setActiveCanvas(canvasId);
+    }
   };
 
   const loadAssetToCanvas = (asset: Asset) => {
@@ -81,7 +87,7 @@ export function Dashboard() {
       />
       
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
         <LeftSidebar 
           canvases={canvases}
