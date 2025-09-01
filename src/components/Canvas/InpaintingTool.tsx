@@ -25,8 +25,12 @@ import {
   getOptimizedInpaintingParams, 
   convertUIToParams, 
   getEnhancedNegativePrompt,
-  enhanceInpaintingPrompt 
+  enhanceInpaintingPrompt,
+  enhanceEditPrompt,
+  negativesFor
 } from '@/lib/promptEnhancer';
+import { INPAINT_MODELS, makeRouting, InpaintMode } from '@/constants/models';
+import { normalizeMaskToWhiteEdits, canvasToDataUrl, canvasToBlob } from '@/utils/maskProcessor';
 import { useToast } from '@/hooks/use-toast';
 
 interface InpaintingToolProps {
@@ -36,19 +40,13 @@ interface InpaintingToolProps {
   className?: string;
 }
 
-type InpaintMode = 'remove' | 'add' | 'replace';
-
-const INPAINT_MODELS = [
-  { key: 'flux-inpaint', name: 'FLUX Inpaint (precision mask)', description: 'High-quality precision inpainting' },
-  { key: 'nano-banana', name: 'Nano Banana (natural language)', description: 'AI-powered contextual editing' },
-  { key: 'advanced-object-remover', name: 'Advanced Remover', description: 'Clean object removal' },
-];
+// InpaintMode now imported from constants
 
 export function InpaintingTool({ asset, onComplete, onCancel, className }: InpaintingToolProps) {
   const { toast } = useToast();
   
   // Core state
-  const [mode, setMode] = useState<InpaintMode>('remove');
+  const [mode, setMode] = useState<InpaintMode>('replace'); // Default to replace for masked edit
   const [instruction, setInstruction] = useState('');
   const [mask, setMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
   const [processedMask, setProcessedMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
@@ -56,6 +54,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   const [selectedModel, setSelectedModel] = useState('nano-banana');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
+  const [invertMask, setInvertMask] = useState(false); // Debug option
   
   // Advanced UI controls
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -132,9 +131,26 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   };
 
   const handleApplyInpaint = async () => {
-    const finalMask = processedMask || mask;
-    if (!finalMask || !instruction.trim()) return;
+    // Phase 1: Input validation with specific error messages
+    if (!instruction.trim()) {
+      toast({
+        title: "Missing Instruction",
+        description: "Type what you want (e.g., \"replace with a tabby cat\").",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!mask) {
+      toast({
+        title: "Missing Mask", 
+        description: "Paint an area to edit first.",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    const finalMask = processedMask || mask;
     setIsProcessing(true);
     try {
       // Convert UI controls to parameters
@@ -149,60 +165,94 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
       // Apply precision multiplier to guidance scale
       optimizedParams.guidance_scale *= precisionMultiplier;
       
-      // Enhance the prompt
-      const enhancedPrompt = enhanceInpaintingPrompt({
+      // Phase 2: Enhanced prompt processing
+      const enhancedPrompt = enhanceEditPrompt({
+        userText: instruction,
         mode,
-        userPrompt: instruction,
-        context: asset.meta?.originalPrompt
+        sceneHints: {
+          lighting: "soft natural lighting",
+          camera: "eye level perspective", 
+          style: "photorealistic"
+        },
+        keepContext: true
       });
       
-      // Get enhanced negative prompt
-      const negativePrompt = getEnhancedNegativePrompt(mode);
+      // Get mode-specific negative prompts
+      const negativePrompt = negativesFor(mode);
       
-      // Map UI model selection to correct provider and operation
-      let operation: string;
-      let provider: string;
-
-      if (selectedModel === 'nano-banana') {
-        operation = 'nano-banana-edit';
-        provider = 'replicate.nano-banana';
-      } else if (selectedModel === 'flux-inpaint') {
-        operation = 'flux-inpaint';
-        provider = 'replicate.flux-inpaint';
-      } else if (selectedModel === 'advanced-object-remover') {
-        operation = 'advanced-object-removal';
-        provider = 'replicate.advanced-object-remover';
-      } else {
-        // Smart fallback based on mode
-        operation = mode === 'remove' ? 'advanced-object-removal' : 
-                   mode === 'add' ? 'nano-banana-edit' : 
-                   'flux-inpaint';
-        provider = `replicate.${selectedModel}`;
-      }
-
-      const params: ImageEditParams = {
-        operation,
-        instruction: enhancedPrompt.prompt,
-        provider,
-        maskPngDataUrl: finalMask.dataUrl,
-        maskBlob: finalMask.blob,
-        mode: mode as any,
+      // Phase 1.2: Normalized model routing (no more mismatches)
+      const routing = makeRouting(selectedModel, mode);
+      console.log('🎯 Model routing:', { selectedModel, mode, routing });
+      
+      // Phase 2.1: Process mask with normalization
+      const maskCanvas = document.createElement('canvas');
+      const img = new Image();
+      img.onload = () => {
+        maskCanvas.width = img.width;
+        maskCanvas.height = img.height;
+        const ctx = maskCanvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
         
-        // Enhanced parameters
-        strength: optimizedParams.strength,
-        guidance_scale: optimizedParams.guidance_scale,
-        num_inference_steps: optimizedParams.num_inference_steps,
-        negative_prompt: negativePrompt,
+        // Normalize mask semantics (white = edit, black = preserve)
+        const normalizedMask = normalizeMaskToWhiteEdits(maskCanvas, {
+          pad: maskPadding[0],
+          feather: maskFeathering[0]
+        });
         
-        // Cleanup pass
-        enableCleanupPass,
+        // Apply invert if debug option is enabled
+        if (invertMask) {
+          const ctx = normalizedMask.getContext('2d')!;
+          const imageData = ctx.getImageData(0, 0, normalizedMask.width, normalizedMask.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0) { // Only process opaque pixels
+              data[i] = 255 - data[i];     // Invert R
+              data[i + 1] = 255 - data[i + 1]; // Invert G 
+              data[i + 2] = 255 - data[i + 2]; // Invert B
+            }
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
         
-        // Mode-specific parameters for backwards compatibility
-        ...(mode === 'remove' && { removeObjectInstruction: instruction }),
-        ...(mode === 'add' && { addObjectInstruction: instruction }),
+        const normalizedDataUrl = canvasToDataUrl(normalizedMask);
+        
+        continueWithProcessing(routing, enhancedPrompt, negativePrompt, optimizedParams, normalizedDataUrl);
       };
+      img.src = finalMask.dataUrl;
+      
+      const continueWithProcessing = async (
+        routing: any, 
+        enhancedPrompt: string, 
+        negativePrompt: string, 
+        optimizedParams: any,
+        maskDataUrl: string
+      ) => {
 
-      await onComplete(params);
+        const params: ImageEditParams = {
+          operation: routing.operation,
+          instruction: enhancedPrompt,
+          provider: routing.provider,
+          maskPngDataUrl: maskDataUrl,
+          maskBlob: finalMask.blob,
+          mode: mode as any,
+          
+          // Enhanced parameters
+          strength: optimizedParams.strength,
+          guidance_scale: optimizedParams.guidance_scale,
+          num_inference_steps: optimizedParams.num_inference_steps,
+          negative_prompt: negativePrompt,
+          
+          // Cleanup pass
+          enableCleanupPass,
+          
+          // Mode-specific parameters for backwards compatibility
+          ...(mode === 'remove' && { removeObjectInstruction: instruction }),
+          ...(mode === 'add' && { addObjectInstruction: instruction }),
+        };
+
+        console.log('🚀 Sending inpaint params:', params);
+        await onComplete(params);
+      };
       
       toast({
         title: "Processing Complete",
@@ -305,7 +355,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
               {INPAINT_MODELS.map(model => (
                 <SelectItem key={model.key} value={model.key}>
                   <div>
-                    <div className="font-medium">{model.name}</div>
+                    <div className="font-medium">{model.label}</div>
                     <div className="text-xs text-muted-foreground">{model.description}</div>
                   </div>
                 </SelectItem>
@@ -361,6 +411,22 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
               <Paintbrush className="h-4 w-4 mr-1" />
               {mask ? "Edit Mask" : "Create Mask"}
             </Button>
+            
+            {/* Debug option: Invert mask checkbox */}
+            {mask && process.env.NODE_ENV === 'development' && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="invert-mask"
+                  checked={invertMask}
+                  onChange={(e) => setInvertMask(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="invert-mask" className="text-xs text-muted-foreground">
+                  Invert mask (debug)
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Mask Preview and Quality */}

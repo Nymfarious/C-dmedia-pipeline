@@ -9,6 +9,17 @@ export interface PromptEnhancementOptions {
   context?: string;
 }
 
+export interface EnhanceEditPromptOptions {
+  userText: string;
+  mode: 'replace' | 'add' | 'remove';
+  sceneHints?: Partial<{ 
+    lighting: string; 
+    camera: string; 
+    style: string;
+  }>;
+  keepContext?: boolean;
+}
+
 export interface EnhancedPrompt {
   prompt: string;
   negativePrompt: string;
@@ -174,6 +185,59 @@ export function convertUIToParams(qualityVsSpeed: number, precisionVsCreativity:
   const precisionMultiplier = 0.5 + (precisionVsCreativity / 100); // 0.5 to 1.5
 
   return { qualityLevel, precisionMultiplier };
+}
+
+/**
+ * Enhanced prompt processing that converts telegraph prompts into exact, style-aware instructions
+ */
+export function enhanceEditPrompt({
+  userText,
+  mode,
+  sceneHints,
+  keepContext = true
+}: EnhanceEditPromptOptions): string {
+  const base = userText.trim();
+  const hints: string[] = [];
+  
+  if (sceneHints?.lighting) hints.push(`match lighting: ${sceneHints.lighting}`);
+  if (sceneHints?.camera) hints.push(`match camera: ${sceneHints.camera}`);
+  if (sceneHints?.style) hints.push(`match style: ${sceneHints.style}`);
+
+  let instruction = base;
+  
+  // Convert telegraph prompts to explicit instructions
+  if (mode === "replace" && !/replace|swap|change/i.test(base)) {
+    instruction = `replace the masked object with ${base}`;
+  }
+  if (mode === "add" && !/add|insert|place/i.test(base)) {
+    instruction = `add ${base} inside the masked area`;
+  }
+  if (mode === "remove" && !/remove|erase|clean/i.test(base)) {
+    instruction = `remove the masked objects and fill background naturally`;
+  }
+
+  // Build final enhanced prompt
+  const parts = [
+    instruction,
+    keepContext ? "preserve scene composition and global appearance" : "",
+    hints.join(", "),
+    "seamless integration, accurate perspective, consistent shadows, correct scale"
+  ].filter(Boolean);
+
+  return parts.join(". ");
+}
+
+/**
+ * Mode-specific negative prompts that prevent common failures
+ */
+export function negativesFor(mode: 'replace' | 'add' | 'remove'): string {
+  const negativesByMode = {
+    replace: "no partial transforms, no hybrids, no remnants of original, no double subjects, no distortion",
+    add: "no unrelated objects, no floating items, no wrong scale, no wrong lighting, no color cast",
+    remove: "no artifacts, no remnants, no fragments, no seams, no repeats, no smudges"
+  } as const;
+
+  return negativesByMode[mode];
 }
 
 /**

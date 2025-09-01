@@ -139,6 +139,55 @@ function ensureMaskUrl(url: string): string {
   throw new Error('Invalid mask URL format. Expected data URL or HTTP/HTTPS URL.');
 }
 
+// Helper function to persist image to Supabase storage instead of using temporary URLs
+async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Promise<{ publicUrl: string }> {
+  try {
+    console.log('💾 Persisting image to Supabase storage:', fileName);
+    
+    let blob: Blob;
+    
+    if (url.startsWith('data:')) {
+      // Convert data URL to blob
+      const response = await fetch(url);
+      blob = await response.blob();
+    } else {
+      // Download from URL
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      blob = await response.blob();
+    }
+    
+    const filePath = `edits/${fileName}`;
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('ai-images')
+      .upload(filePath, blob, {
+        contentType: blob.type || 'image/webp',
+        cacheControl: '3600',
+        upsert: true
+      });
+    
+    if (error) {
+      throw new Error(`Storage upload failed: ${error.message}`);
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('ai-images')
+      .getPublicUrl(filePath);
+    
+    console.log('✅ Image persisted to storage:', publicUrl);
+    return { publicUrl };
+    
+  } catch (error) {
+    console.error('❌ Failed to persist image:', error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -154,10 +203,24 @@ serve(async (req) => {
     const body = await req.json()
     console.log("Enhanced Replicate request:", JSON.stringify(body, null, 2))
 
-    // Validate required fields
-    if (!body.operation || !body.input) {
+    // Phase 3.1: Comprehensive input validation
+    if (!body.operation) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: operation and input are required" }), 
+        JSON.stringify({ error: "Missing required field: operation is required" }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+    
+    if (!body.input) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: input object is required" }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+    
+    if (!body.input.prompt && !body.input.instruction) {
+      return new Response(
+        JSON.stringify({ error: "Missing prompt: either 'prompt' or 'instruction' is required" }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
@@ -334,7 +397,7 @@ serve(async (req) => {
 
     console.log("Generation response:", output)
 
-    // Extract the final image URL from output
+    // Phase 3.2: Extract and persist output to prevent expired URLs
     let imageUrl = output;
     if (Array.isArray(output) && output.length > 0) {
       imageUrl = output[0];
@@ -344,7 +407,16 @@ serve(async (req) => {
       throw new Error('No image content found in response');
     }
 
-    return new Response(JSON.stringify({ output: imageUrl }), {
+    // Always persist to Supabase storage to prevent 404s from expired replicate.delivery URLs
+    const timestamp = Date.now();
+    const fileName = `${body.operation}-${timestamp}.webp`;
+    const persisted = await persistToSupaFromUrlOrBuffer(imageUrl, fileName);
+
+    return new Response(JSON.stringify({ 
+      output: persisted.publicUrl,
+      // Also return original for debugging if needed
+      originalUrl: imageUrl 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
