@@ -432,6 +432,15 @@ serve(async (req) => {
             output_quality: 90
           }
         });
+        
+        // Persist the result to Supabase storage immediately
+        if (output) {
+          const timestamp = Date.now();
+          const fileName = `text-gen-${timestamp}.webp`;
+          const persistResult = await persistToSupaFromUrlOrBuffer(Array.isArray(output) ? output[0] : output, fileName);
+          output = persistResult.publicUrl;
+          console.log('✅ Text generation result persisted:', output);
+        }
         break;
 
       case 'nano-banana-edit':

@@ -375,39 +375,38 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <Card className={className}>
-        <CardHeader className="flex-shrink-0 pb-4">
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Paintbrush className="h-5 w-5" />
-              AI Inpainting Tool
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowRecipes(!showRecipes)}
-                title="Quick recipe templates"
-              >
-                📋
+    <Card className={className}>
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Paintbrush className="h-5 w-5" />
+            AI Inpainting Tool
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRecipes(!showRecipes)}
+              title="Quick recipe templates"
+            >
+              📋
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            {onCancel && (
+              <Button variant="outline" size="sm" onClick={onCancel}>
+                Cancel
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              {onCancel && (
-                <Button variant="outline" size="sm" onClick={onCancel}>
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto space-y-6">
+            )}
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
         
         {/* Quick Recipe Panel */}
         {showRecipes && (
@@ -578,38 +577,6 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
 
         {/* Quality warnings removed - simplified validation */}
 
-        {/* Action Button with Processing Status */}
-        <div className="sticky bottom-0 bg-background pt-4 border-t space-y-2">
-          {processingStatus && (
-            <div className="text-sm text-muted-foreground text-center">
-              {processingStatus}
-            </div>
-          )}
-          <Button 
-            onClick={handleApplyInpaint}
-            disabled={isProcessing || !mask || !instruction.trim()}
-            className="w-full"
-            size="lg"
-          >
-            {isProcessing ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                {processingStatus || `Processing with ${convertUIToParams(qualityVsSpeed[0], precisionVsCreativity[0]).qualityLevel} quality...`}
-              </>
-            ) : !mask ? (
-              "Create Mask First"
-            ) : !instruction.trim() ? (
-              "Add Instruction"
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Apply {mode === 'remove' ? 'Removal' : mode === 'add' ? 'Addition' : 'Replacement'}
-                {enableFallback && <span className="text-xs ml-1">(with fallback)</span>}
-              </>
-            )}
-          </Button>
-        </div>
-
         </CardContent>
         
         {/* Fixed Action Buttons */}
@@ -641,6 +608,5 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           </div>
         </div>
       </Card>
-    </div>
   );
 }

@@ -51,11 +51,15 @@ export function ToolbarTop({
     
     onToolChange(tool);
     
-    // Activate inpaint tool in the store
+    // Activate tools in the store
     if (tool === 'inpaint') {
       console.log('ToolbarTop - Tool clicked: inpaint');
       setActiveTool('inpaint');
       console.log('ToolbarTop - Inpaint tool activated');
+    } else if (tool === 'smart-select') {
+      console.log('ToolbarTop - Tool clicked: smart-select');
+      setActiveTool('smart-select');
+      console.log('ToolbarTop - Smart-select tool activated for AI generation');
     }
   };
 

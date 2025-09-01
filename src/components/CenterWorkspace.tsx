@@ -166,7 +166,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
         </Card>
       )}
       
-      {/* AI Generation Modal */}
+      {/* AI Generation Panel */}
       <CanvasAIGeneration
         onAssetGenerated={(asset) => {
           if (currentCanvas) {

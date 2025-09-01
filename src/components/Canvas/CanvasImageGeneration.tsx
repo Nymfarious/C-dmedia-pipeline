@@ -3,15 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Wand2, ImageIcon, Upload, X, TypeIcon, RefreshCw } from 'lucide-react';
-import { Asset, TextOverlayParams } from '@/types/media';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { X, Plus, Upload, Trash2, Wand2, Type, ImageIcon } from 'lucide-react';
+import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { fluxTextAdapter } from '@/adapters/text-gen/fluxTextAdapter';
+import { toast } from 'sonner';
 
 interface CanvasImageGenerationProps {
   onComplete: (asset: Asset) => void;
@@ -19,89 +18,98 @@ interface CanvasImageGenerationProps {
   className?: string;
 }
 
-type GenerationMode = 'generate' | 'text';
-
 interface ReferenceImage {
   id: string;
-  src: string;
-  name: string;
+  url: string;
   weight: number;
+  name: string;
 }
 
 export function CanvasImageGeneration({ onComplete, onCancel, className }: CanvasImageGenerationProps) {
-  const { generateDirectly } = useAppStore();
+  const { generateDirectly, assets } = useAppStore();
   
-  // Mode selection
-  const [mode, setMode] = useState<GenerationMode>('generate');
+  // Generation mode: 'generate' or 'add-text'
+  const [mode, setMode] = useState<'generate' | 'add-text'>('generate');
   
-  // Image Generation
+  // Image Generation State
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('flux-schnell');
+  const [selectedModel, setSelectedModel] = useState('replicate.flux');
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [quality, setQuality] = useState([80]);
   const [guidanceScale, setGuidanceScale] = useState([7.5]);
+  const [isGenerating, setIsGenerating] = useState(false);
   
-  // Text Generation
+  // Text Generation State
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [textPrompt, setTextPrompt] = useState('');
-  const [textStyle, setTextStyle] = useState({
-    fontSize: 'medium',
-    color: 'auto',
-    effect: 'none'
-  });
+  const [fontSize, setFontSize] = useState('medium');
+  const [textColor, setTextColor] = useState('auto');
+  const [textEffect, setTextEffect] = useState('none');
   const [textPosition, setTextPosition] = useState('center');
-  
-  // Processing state
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isAddingText, setIsAddingText] = useState(false);
 
   const models = [
-    { key: 'flux-schnell', label: 'Flux Schnell', description: 'Fast generation, good quality' },
-    { key: 'flux-dev', label: 'Flux Dev', description: 'High quality, slower' },
-    { key: 'flux-pro', label: 'Flux Pro', description: 'Best quality, premium' },
-    { key: 'sdxl', label: 'SDXL', description: 'Stable Diffusion XL' }
+    { key: 'replicate.flux', label: 'Flux Schnell', description: 'Fast, high-quality generation' },
+    { key: 'replicate.sd', label: 'Stable Diffusion XL', description: 'Detailed, artistic results' },
   ];
 
   const aspectRatios = [
     { value: '1:1', label: 'Square (1:1)' },
     { value: '16:9', label: 'Landscape (16:9)' },
     { value: '9:16', label: 'Portrait (9:16)' },
-    { value: '4:3', label: 'Standard (4:3)' },
-    { value: '3:4', label: 'Portrait (3:4)' }
+    { value: '4:3', label: 'Photo (4:3)' },
+    { value: '3:4', label: 'Portrait Photo (3:4)' },
   ];
 
-  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+  const handleFileUpload = useCallback((files: FileList | null) => {
     if (!files) return;
-
-    const newImages: ReferenceImage[] = [];
     
-    for (let i = 0; i < Math.min(files.length, 10 - referenceImages.length); i++) {
-      const file = files[i];
+    Array.from(files).forEach((file) => {
       if (file.type.startsWith('image/')) {
-        const src = URL.createObjectURL(file);
-        newImages.push({
-          id: `ref-${Date.now()}-${i}`,
-          src,
-          name: file.name,
-          weight: 0.7
+        const url = URL.createObjectURL(file);
+        const newRef: ReferenceImage = {
+          id: crypto.randomUUID(),
+          url,
+          weight: 0.7,
+          name: file.name
+        };
+        
+        setReferenceImages(prev => {
+          if (prev.length >= 10) {
+            toast.error('Maximum 10 reference images allowed');
+            return prev;
+          }
+          return [...prev, newRef];
         });
       }
-    }
-
-    setReferenceImages(prev => [...prev, ...newImages]);
-    toast.success(`Added ${newImages.length} reference image(s)`);
-  }, [referenceImages.length]);
-
-  const removeReferenceImage = useCallback((id: string) => {
-    setReferenceImages(prev => prev.filter(img => img.id !== id));
+    });
   }, []);
 
-  const updateImageWeight = useCallback((id: string, weight: number) => {
-    setReferenceImages(prev => prev.map(img => 
-      img.id === id ? { ...img, weight } : img
-    ));
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    handleFileUpload(e.dataTransfer.files);
+  }, [handleFileUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
   }, []);
+
+  const removeReferenceImage = (id: string) => {
+    setReferenceImages(prev => {
+      const imageToRemove = prev.find(img => img.id === id);
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.url);
+      }
+      return prev.filter(img => img.id !== id);
+    });
+  };
+
+  const updateReferenceWeight = (id: string, weight: number) => {
+    setReferenceImages(prev => 
+      prev.map(img => img.id === id ? { ...img, weight } : img)
+    );
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -109,48 +117,36 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
       return;
     }
 
-    setIsProcessing(true);
+    setIsGenerating(true);
     try {
       const params = {
         prompt: prompt.trim(),
-        model: selectedModel,
-        aspect_ratio: aspectRatio,
-        guidance_scale: guidanceScale[0],
-        output_quality: quality[0],
-        ...(referenceImages.length > 0 && {
-          reference_images: referenceImages.map(img => ({
-            url: img.src,
-            weight: img.weight
-          }))
-        })
+        aspect: aspectRatio,
+        outputQuality: quality[0],
+        guidanceScale: guidanceScale[0],
+        reference_images: referenceImages.map(ref => ({
+          url: ref.url,
+          weight: ref.weight
+        }))
       };
 
-      const result = await generateDirectly(params, 'replicate.enhanced');
+      console.log('CanvasImageGeneration - Generating with params:', params);
+      const asset = await generateDirectly(params, selectedModel);
+      console.log('CanvasImageGeneration - Generated asset:', asset);
       
-      if (result && typeof result === 'object' && 'outputAssetId' in result) {
-        const { assets } = useAppStore.getState();
-        const outputAssetId = (result as any).outputAssetId as string;
-        const generatedAsset = assets[outputAssetId];
-        if (generatedAsset) {
-          onComplete(generatedAsset);
-          toast.success('Image generated successfully!');
-        }
-      } else if (result) {
-        // Handle direct asset result (when result is the asset itself)
-        onComplete(result as Asset);
-        toast.success('Image generated successfully!');
-      }
+      onComplete(asset);
+      toast.success('Image generated successfully!');
     } catch (error) {
       console.error('Generation failed:', error);
       toast.error(`Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsProcessing(false);
+      setIsGenerating(false);
     }
   };
 
   const handleTextGeneration = async () => {
     if (!selectedAsset) {
-      toast.error('Please select an image first');
+      toast.error('Please select an asset to add text to');
       return;
     }
     
@@ -159,26 +155,31 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
       return;
     }
 
-    setIsProcessing(true);
+    setIsAddingText(true);
     try {
-      const textParams: TextOverlayParams = {
+      const params = {
         text: textPrompt.trim(),
-        fontSize: textStyle.fontSize,
-        color: textStyle.color,
-        effect: textStyle.effect,
+        fontSize,
+        color: textColor,
+        effect: textEffect,
         position: textPosition
       };
 
-      const result = await fluxTextAdapter.addText(selectedAsset, textParams);
-      onComplete(result);
+      console.log('CanvasImageGeneration - Adding text with params:', params);
+      const asset = await fluxTextAdapter.addText(selectedAsset, params);
+      console.log('CanvasImageGeneration - Text added to asset:', asset);
+      
+      onComplete(asset);
       toast.success('Text added successfully!');
     } catch (error) {
       console.error('Text generation failed:', error);
       toast.error(`Text generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsProcessing(false);
+      setIsAddingText(false);
     }
   };
+
+  const availableAssets = Object.values(assets).filter(asset => asset.type === 'image');
 
   return (
     <Card className={className}>
@@ -189,27 +190,30 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
             AI Generation
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex bg-muted rounded-lg p-1">
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
               <Button
                 variant={mode === 'generate' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setMode('generate')}
+                className="h-8 px-3"
               >
                 <ImageIcon className="h-4 w-4 mr-1" />
                 Generate
               </Button>
               <Button
-                variant={mode === 'text' ? 'default' : 'ghost'}
+                variant={mode === 'add-text' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setMode('text')}
+                onClick={() => setMode('add-text')}
+                className="h-8 px-3"
               >
-                <TypeIcon className="h-4 w-4 mr-1" />
+                <Type className="h-4 w-4 mr-1" />
                 Add Text
               </Button>
             </div>
             {onCancel && (
               <Button variant="outline" size="sm" onClick={onCancel}>
-                Cancel
+                <X className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -217,104 +221,39 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {mode === 'generate' && (
+        {mode === 'generate' ? (
           <>
-            {/* Prompt */}
+            {/* Image Generation Mode */}
             <div className="space-y-2">
               <Label>Prompt</Label>
-              <Textarea
+              <Input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the image you want to generate..."
-                rows={3}
+                placeholder="Describe what you want to generate..."
+                className="min-h-[80px]"
               />
             </div>
 
-            {/* Reference Images */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Reference Images ({referenceImages.length}/10)</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={referenceImages.length >= 10}
-                  onClick={() => document.getElementById('reference-upload')?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  Add References
-                </Button>
-                <input
-                  id="reference-upload"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </div>
-              
-              {referenceImages.length > 0 && (
-                <div className="grid grid-cols-2 gap-3">
-                  {referenceImages.map(image => (
-                    <div key={image.id} className="relative border rounded-lg p-2">
-                      <img
-                        src={image.src}
-                        alt={image.name}
-                        className="w-full h-20 object-cover rounded"
-                      />
-                      <div className="mt-2 space-y-1">
-                        <div className="text-xs text-muted-foreground truncate">
-                          {image.name}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs">Weight:</Label>
-                          <Slider
-                            value={[image.weight]}
-                            onValueChange={([value]) => updateImageWeight(image.id, value)}
-                            min={0.1}
-                            max={1.0}
-                            step={0.1}
-                            className="flex-1"
-                          />
-                          <span className="text-xs w-8">{image.weight}</span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0"
-                        onClick={() => removeReferenceImage(image.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Model Selection */}
-            <div className="space-y-2">
-              <Label>Model</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map(model => (
-                    <SelectItem key={model.key} value={model.key}>
-                      <div>
-                        <div className="font-medium">{model.label}</div>
-                        <div className="text-xs text-muted-foreground">{model.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Settings */}
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Model</Label>
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map(model => (
+                      <SelectItem key={model.key} value={model.key}>
+                        <div>
+                          <div className="font-medium">{model.label}</div>
+                          <div className="text-xs text-muted-foreground">{model.description}</div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Aspect Ratio</Label>
                 <Select value={aspectRatio} onValueChange={setAspectRatio}>
@@ -330,57 +269,129 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Reference Images */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Reference Images (Max 10)</Label>
+                <Badge variant="secondary">{referenceImages.length}/10</Badge>
+              </div>
               
+              <div
+                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.multiple = true;
+                  input.accept = 'image/*';
+                  input.onchange = (e) => handleFileUpload((e.target as HTMLInputElement).files);
+                  input.click();
+                }}
+              >
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Drop reference images here or click to upload
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Up to 10 images, each with adjustable influence weight
+                </p>
+              </div>
+
+              {referenceImages.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto">
+                  {referenceImages.map((ref) => (
+                    <div key={ref.id} className="relative group border rounded-lg p-2 bg-muted/50">
+                      <img 
+                        src={ref.url} 
+                        alt={ref.name}
+                        className="w-full h-20 object-cover rounded mb-2"
+                      />
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium truncate" title={ref.name}>
+                          {ref.name}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span>Weight</span>
+                            <span>{Math.round(ref.weight * 100)}%</span>
+                          </div>
+                          <Slider
+                            value={[ref.weight]}
+                            onValueChange={([value]) => updateReferenceWeight(ref.id, value)}
+                            min={0.1}
+                            max={1.0}
+                            step={0.1}
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeReferenceImage(ref.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Quality: {quality[0]}%</Label>
+                <Label>Quality ({quality[0]}%)</Label>
                 <Slider
                   value={quality}
                   onValueChange={setQuality}
-                  min={60}
+                  min={50}
                   max={100}
                   step={10}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Guidance Scale: {guidanceScale[0]}</Label>
-              <Slider
-                value={guidanceScale}
-                onValueChange={setGuidanceScale}
-                min={1}
-                max={20}
-                step={0.5}
-              />
+              
+              <div className="space-y-2">
+                <Label>Guidance Scale ({guidanceScale[0]})</Label>
+                <Slider
+                  value={guidanceScale}
+                  onValueChange={setGuidanceScale}
+                  min={1}
+                  max={20}
+                  step={0.5}
+                />
+              </div>
             </div>
           </>
-        )}
-
-        {mode === 'text' && (
+        ) : (
           <>
-            {/* Asset Selection */}
+            {/* Text Generation Mode */}
             <div className="space-y-2">
-              <Label>Select Image</Label>
-              <Button
-                variant="outline"
-                className="w-full h-20"
-                onClick={() => {
-                  // This would integrate with asset selection
-                  toast.info('Asset selection integration needed');
-                }}
+              <Label>Select Asset</Label>
+              <Select 
+                value={selectedAsset?.id || ''} 
+                onValueChange={(id) => setSelectedAsset(availableAssets.find(a => a.id === id) || null)}
               >
-                {selectedAsset ? (
-                  <img src={selectedAsset.src} alt="Selected" className="h-full object-cover rounded" />
-                ) : (
-                  <div className="text-center">
-                    <ImageIcon className="h-6 w-6 mx-auto mb-1" />
-                    <div className="text-sm">Choose image from canvas</div>
-                  </div>
-                )}
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an image to add text to" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableAssets.map(asset => (
+                    <SelectItem key={asset.id} value={asset.id}>
+                      <div className="flex items-center gap-2">
+                        <img src={asset.src} alt={asset.name} className="w-8 h-8 object-cover rounded" />
+                        <span className="truncate">{asset.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Text Input */}
             <div className="space-y-2">
               <Label>Text to Add</Label>
               <Input
@@ -390,14 +401,10 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
               />
             </div>
 
-            {/* Text Style */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Font Size</Label>
-                <Select 
-                  value={textStyle.fontSize} 
-                  onValueChange={(value) => setTextStyle(prev => ({ ...prev, fontSize: value }))}
-                >
+                <Select value={fontSize} onValueChange={setFontSize}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -409,13 +416,10 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
-                <Label>Color</Label>
-                <Select 
-                  value={textStyle.color} 
-                  onValueChange={(value) => setTextStyle(prev => ({ ...prev, color: value }))}
-                >
+                <Label>Text Color</Label>
+                <Select value={textColor} onValueChange={setTextColor}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -433,11 +437,8 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Effect</Label>
-                <Select 
-                  value={textStyle.effect} 
-                  onValueChange={(value) => setTextStyle(prev => ({ ...prev, effect: value }))}
-                >
+                <Label>Text Effect</Label>
+                <Select value={textEffect} onValueChange={setTextEffect}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -450,7 +451,7 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Position</Label>
                 <Select value={textPosition} onValueChange={setTextPosition}>
@@ -461,7 +462,9 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
                     <SelectItem value="top-left">Top Left</SelectItem>
                     <SelectItem value="top-center">Top Center</SelectItem>
                     <SelectItem value="top-right">Top Right</SelectItem>
+                    <SelectItem value="center-left">Center Left</SelectItem>
                     <SelectItem value="center">Center</SelectItem>
+                    <SelectItem value="center-right">Center Right</SelectItem>
                     <SelectItem value="bottom-left">Bottom Left</SelectItem>
                     <SelectItem value="bottom-center">Bottom Center</SelectItem>
                     <SelectItem value="bottom-right">Bottom Right</SelectItem>
@@ -469,28 +472,41 @@ export function CanvasImageGeneration({ onComplete, onCancel, className }: Canva
                 </Select>
               </div>
             </div>
+
+            {selectedAsset && (
+              <div className="border rounded-lg p-3 bg-muted/50">
+                <Label className="text-sm font-medium">Preview</Label>
+                <div className="mt-2 flex items-center gap-3">
+                  <img 
+                    src={selectedAsset.src} 
+                    alt={selectedAsset.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                  <div>
+                    <div className="text-sm font-medium">{selectedAsset.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {textPrompt ? `Will add: "${textPrompt}"` : 'Enter text to see preview'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>
 
       {/* Action Button */}
-      <div className="p-6 border-t">
-        <Button
+      <div className="p-6 pt-0 border-t bg-card/50 backdrop-blur-sm">
+        <Button 
           onClick={mode === 'generate' ? handleGenerate : handleTextGeneration}
-          disabled={isProcessing || (mode === 'generate' ? !prompt.trim() : !textPrompt.trim() || !selectedAsset)}
+          disabled={mode === 'generate' ? (isGenerating || !prompt.trim()) : (isAddingText || !selectedAsset || !textPrompt.trim())}
           className="w-full"
           size="lg"
         >
-          {isProcessing ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Processing...
-            </>
+          {mode === 'generate' ? (
+            isGenerating ? 'Generating...' : 'Generate Image'
           ) : (
-            <>
-              <Wand2 className="h-4 w-4 mr-2" />
-              {mode === 'generate' ? 'Generate Image' : 'Add Text'}
-            </>
+            isAddingText ? 'Adding Text...' : 'Add Text'
           )}
         </Button>
       </div>
