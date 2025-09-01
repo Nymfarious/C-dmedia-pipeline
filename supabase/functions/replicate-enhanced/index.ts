@@ -145,11 +145,27 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
     console.log('💾 Persisting image to Supabase storage:', fileName);
     
     let blob: Blob;
+    let contentType = 'image/webp'; // Default
+    
+    // Determine content type from filename or URL
+    if (fileName.endsWith('.png')) {
+      contentType = 'image/png';
+    } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+      contentType = 'image/jpeg';
+    } else if (fileName.endsWith('.webp')) {
+      contentType = 'image/webp';
+    }
     
     if (url.startsWith('data:')) {
       // Convert data URL to blob
       const response = await fetch(url);
       blob = await response.blob();
+      
+      // Extract content type from data URL if available
+      const dataUrlMatch = url.match(/^data:([^;]+);/);
+      if (dataUrlMatch) {
+        contentType = dataUrlMatch[1];
+      }
     } else {
       // Download from URL
       const response = await fetch(url);
@@ -157,15 +173,22 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
         throw new Error(`Failed to fetch image: ${response.status}`);
       }
       blob = await response.blob();
+      
+      // Use blob type if available and valid
+      if (blob.type && blob.type !== 'application/octet-stream') {
+        contentType = blob.type;
+      }
     }
     
     const filePath = `edits/${fileName}`;
+    
+    console.log(`📄 Uploading with content type: ${contentType}`);
     
     // Upload to Supabase storage
     const { data, error } = await supabase.storage
       .from('ai-images')
       .upload(filePath, blob, {
-        contentType: blob.type || 'image/webp',
+        contentType: contentType,
         cacheControl: '3600',
         upsert: true
       });
