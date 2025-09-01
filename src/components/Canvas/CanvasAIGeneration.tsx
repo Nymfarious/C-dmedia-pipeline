@@ -28,12 +28,14 @@ export function CanvasAIGeneration({ onAssetGenerated }: CanvasAIGenerationProps
   // Show AI generation panel when smart-select tool is active - integrate inline
   if (activeTool === 'smart-select' || isOpen) {
     return (
-      <div className="absolute top-4 right-4 w-96 z-40">
-        <CanvasImageGeneration
-          onComplete={handleComplete}
-          onCancel={handleCancel}
-          className="max-h-[calc(100vh-8rem)] overflow-y-auto"
-        />
+      <div className="absolute inset-4 z-40 flex justify-end">
+        <div className="w-96 max-h-full">
+          <CanvasImageGeneration
+            onComplete={handleComplete}
+            onCancel={handleCancel}
+            className="max-h-[calc(100vh-8rem)] overflow-y-auto"
+          />
+        </div>
       </div>
     );
   }

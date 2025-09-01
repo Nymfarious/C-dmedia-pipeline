@@ -5,6 +5,7 @@ import { Wand2, Upload, Plus, Sparkles, Video } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
 import { VideoCanvas } from '@/components/Canvas/VideoCanvas';
 import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
+import { VideoCanvasManager } from '@/components/Canvas/VideoCanvasManager';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 
@@ -164,6 +165,9 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
           }
         }}
       />
+      
+      {/* Video Generation Manager */}
+      <VideoCanvasManager />
     </div>
   );
 }

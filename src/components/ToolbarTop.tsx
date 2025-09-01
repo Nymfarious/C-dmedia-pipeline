@@ -11,6 +11,7 @@ import {
   ZoomOutIcon,
   RotateCwIcon,
   SparklesIcon,
+  VideoIcon,
   Trash,
   TypeIcon,
   MoveIcon,
@@ -55,6 +56,8 @@ export function ToolbarTop({
       setActiveTool('inpaint');
     } else if (tool === 'smart-select') {
       setActiveTool('smart-select');
+    } else if (tool === 'video') {
+      setActiveTool('video');
     } else if (tool === 'text') {
       setActiveTool('text');
     }
@@ -70,8 +73,14 @@ export function ToolbarTop({
     },
     {
       id: 'smart-select',
-      icon: <Wand2 size={18} />,
+      icon: <SparklesIcon size={18} />,
       tooltip: 'AI Generation',
+      working: true,
+    },
+    {
+      id: 'video',
+      icon: <VideoIcon size={18} />,
+      tooltip: 'Video Generation',
       working: true,
     },
     {

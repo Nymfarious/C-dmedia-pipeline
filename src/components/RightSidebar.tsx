@@ -24,23 +24,20 @@ interface RightSidebarProps {
 export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProps) {
   return (
     <div className="w-80 border-l border-border bg-card">
-      <Tabs defaultValue="layers" className="h-full flex flex-col">
+      <Tabs defaultValue="edit" className="h-full flex flex-col">
         <div className="p-4 pb-0">
-          <TabsList className="grid w-full grid-cols-5 bg-muted">
+          <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="edit" className="text-xs">
-              <Wand2 className="h-4 w-4" />
+              <Wand2 className="h-4 w-4 mr-1" />
+              Edit
             </TabsTrigger>
             <TabsTrigger value="layers" className="text-xs">
-              <Layers className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="assets" className="text-xs">
-              <Image className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs">
-              <History className="h-4 w-4" />
+              <Layers className="h-4 w-4 mr-1" />
+              Layers
             </TabsTrigger>
             <TabsTrigger value="properties" className="text-xs">
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 mr-1" />
+              Properties
             </TabsTrigger>
           </TabsList>
         </div>
@@ -125,30 +122,6 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
             </div>
           </TabsContent>
 
-          <TabsContent value="assets" className="m-0 p-4">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-sm text-foreground">Assets</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="aspect-square bg-muted rounded border-2 border-dashed border-border flex items-center justify-center">
-                  <Image className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div className="aspect-square bg-muted rounded border-2 border-dashed border-border flex items-center justify-center">
-                  <Image className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="history" className="m-0 p-4">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-foreground mb-3">History</h3>
-              <div className="space-y-1">
-                <div className="text-sm text-foreground bg-primary/10 p-2 rounded">Initial canvas</div>
-                <div className="text-sm text-muted-foreground p-2 rounded hover:bg-muted/50 cursor-pointer">Add text layer</div>
-                <div className="text-sm text-muted-foreground p-2 rounded hover:bg-muted/50 cursor-pointer">Resize shape</div>
-              </div>
-            </div>
-          </TabsContent>
 
           <TabsContent value="properties" className="m-0 p-4">
             <div className="space-y-4">
