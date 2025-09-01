@@ -267,10 +267,10 @@ export function EnhancedBrushTool({
     let whitePixels = 0;
     let totalPixels = canvas.width * canvas.height;
 
-    // Count white pixels (mask areas)
+    // Count white pixels (mask areas) - use same logic as export
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i];
-      const g = data[i + 1];
+      const g = data[i + 1]; 
       const b = data[i + 2];
       if (r > 128 && g > 128 && b > 128) {
         whitePixels++;
@@ -279,10 +279,20 @@ export function EnhancedBrushTool({
 
     const coverage = (whitePixels / totalPixels) * 100;
 
-    if (coverage > 80) {
-      setMaskWarning('⚠️ Large mask area detected. This will affect most of the image.');
+    console.log('🔍 Real-time mask validation:', { 
+      whitePixels, 
+      totalPixels, 
+      coverage: coverage.toFixed(2) + '%',
+      strokes: strokes.length 
+    });
+
+    // Use same thresholds as export validation
+    if (coverage > 90) {
+      setMaskWarning('❌ Mask is too large. This would affect most of the image.');
     } else if (coverage < 0.1) {
       setMaskWarning('⚠️ Very small mask area. Try using a larger brush or drawing more.');
+    } else if (coverage > 50) {
+      setMaskWarning('⚠️ Large mask area detected. This will significantly change the image.');
     } else {
       setMaskWarning(null);
     }
