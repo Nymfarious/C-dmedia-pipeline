@@ -222,10 +222,25 @@ serve(async (req) => {
   const timeout = setTimeout(() => timeoutController.abort(), 120000); // 2 minute timeout
 
   try {
+    // Validate all required environment variables upfront
     const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN')
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
     if (!REPLICATE_API_TOKEN) {
+      console.error('❌ Missing REPLICATE_API_TOKEN environment variable')
       throw new Error('REPLICATE_API_TOKEN is not set')
     }
+    if (!SUPABASE_URL) {
+      console.error('❌ Missing SUPABASE_URL environment variable')
+      throw new Error('SUPABASE_URL is not set')
+    }
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
+    }
+    
+    console.log('✅ All required environment variables present')
 
     const replicate = new Replicate({ auth: REPLICATE_API_TOKEN })
     const body = await req.json()
@@ -253,14 +268,29 @@ serve(async (req) => {
       )
     }
 
-    // Validate URLs with appropriate functions
+    // Validate and ensure all image URLs are publicly accessible
     if (body.input.image) {
+      console.log('🔍 Processing input image URL...')
       body.input.image = await ensurePublicImageUrl(body.input.image);
     }
+    
+    // For masks, always upload to storage instead of using data URLs
     if (body.input.mask) {
-      body.input.mask = ensureMaskUrl(body.input.mask);
+      console.log('🎭 Processing mask URL...')
+      if (body.input.mask.startsWith('data:')) {
+        console.log('📤 Converting data URL mask to storage URL...')
+        const timestamp = Date.now()
+        const fileName = `mask-${timestamp}.png`
+        const maskResult = await persistToSupaFromUrlOrBuffer(body.input.mask, fileName)
+        body.input.mask = maskResult.publicUrl
+        console.log('✅ Mask uploaded to storage:', body.input.mask)
+      } else {
+        body.input.mask = ensureMaskUrl(body.input.mask);
+      }
     }
+    
     if (body.input.images) {
+      console.log('🖼️ Processing multiple image URLs...')
       for (let i = 0; i < body.input.images.length; i++) {
         body.input.images[i] = await ensurePublicImageUrl(body.input.images[i]);
       }
@@ -473,13 +503,31 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    console.error("Error in replicate-enhanced function:", error)
+    console.error("❌ Error in replicate-enhanced function:", error)
+    console.error("❌ Error stack:", error.stack)
     
-    // Provide more specific error handling
+    // Provide more specific error handling with detailed logging
     let statusCode = 500;
     let errorMessage = error.message;
     
-    if (error.name === 'AbortError') {
+    // Log specific error types for debugging
+    if (error.message.includes('REPLICATE_API_TOKEN')) {
+      console.error('🔑 Environment variable error: REPLICATE_API_TOKEN missing')
+      statusCode = 500;
+      errorMessage = 'Server configuration error: Missing API token'
+    } else if (error.message.includes('SUPABASE_URL') || error.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+      console.error('🏪 Environment variable error: Supabase configuration missing')
+      statusCode = 500;
+      errorMessage = 'Server configuration error: Missing Supabase configuration'
+    } else if (error.message.includes('Image URL not accessible')) {
+      console.error('🖼️ Image accessibility error:', error.message)
+      statusCode = 400;
+      errorMessage = `Image error: ${error.message}`
+    } else if (error.message.includes('Mask')) {
+      console.error('🎭 Mask processing error:', error.message)
+      statusCode = 400;
+      errorMessage = `Mask error: ${error.message}`
+    } else if (error.name === 'AbortError') {
       statusCode = 408;
       errorMessage = 'Request timeout - operation took too long';
     } else if (error.message.includes('404') || error.message.includes('not found')) {
