@@ -43,6 +43,7 @@ import {
 } from './image-edit/replicateEditModels';
 import { canvasOverlay } from './text-overlay/canvas';
 import { openaiTextAdapter } from './text-gen/openaiTextAdapter';
+import { fluxTextAdapter } from './text-gen/fluxTextAdapter';
 import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter';
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
@@ -129,6 +130,7 @@ export const providers = {
   textOverlay: { 
     "canvas.text": canvasOverlay,
     "openai.text": openaiTextAdapter,
+    "flux.text": fluxTextAdapter,
     "ai.font-recommendation": fontRecommendationAdapter
   },
   animate: { 

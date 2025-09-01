@@ -340,6 +340,49 @@ serve(async (req) => {
         });
         break;
 
+      case 'text-generation':
+        // Handle AI text generation using Flux models
+        console.log('🎨 Generating AI text overlay using Flux');
+        
+        if (!body.input.image) {
+          throw new Error('Base image required for text generation');
+        }
+        
+        const textModel = 'flux-dev'; // Use Flux Dev for text generation
+        const textPrompt = body.input.text_prompt || 'Add stylized text';
+        const textStyle = body.input.text_style || {};
+        
+        // Build enhanced prompt for text generation
+        let enhancedTextPrompt = `Add beautiful, stylized text "${textPrompt}" to this image. `;
+        
+        if (textStyle.fontSize) {
+          enhancedTextPrompt += `Font size: ${textStyle.fontSize}. `;
+        }
+        if (textStyle.color && textStyle.color !== 'auto') {
+          enhancedTextPrompt += `Text color: ${textStyle.color}. `;
+        }
+        if (textStyle.effect && textStyle.effect !== 'none') {
+          enhancedTextPrompt += `Text effect: ${textStyle.effect}. `;
+        }
+        
+        enhancedTextPrompt += 'The text should perfectly integrate with the image style, lighting, and perspective. High quality, professional typography.';
+        
+        console.log('Enhanced text prompt:', enhancedTextPrompt);
+        
+        output = await replicate.run(MODEL_CONFIG[textModel], {
+          input: {
+            prompt: enhancedTextPrompt,
+            image: body.input.image,
+            strength: 0.8,
+            guidance_scale: 7.5,
+            num_inference_steps: 30,
+            aspect_ratio: "1:1",
+            output_format: "webp",
+            output_quality: 90
+          }
+        });
+        break;
+
       case 'nano-banana-edit':
         console.log('🎯 Using Google Nano-Banana model for editing');
         

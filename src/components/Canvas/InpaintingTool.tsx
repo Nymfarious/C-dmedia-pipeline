@@ -375,38 +375,39 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   }
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Paintbrush className="h-5 w-5" />
-            AI Inpainting Tool
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowRecipes(!showRecipes)}
-              title="Quick recipe templates"
-            >
-              📋
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            {onCancel && (
-              <Button variant="outline" size="sm" onClick={onCancel}>
-                Cancel
+    <div className="flex flex-col h-full max-h-[80vh]">
+      <Card className={className}>
+        <CardHeader className="flex-shrink-0 pb-4">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Paintbrush className="h-5 w-5" />
+              AI Inpainting Tool
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowRecipes(!showRecipes)}
+                title="Quick recipe templates"
+              >
+                📋
               </Button>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              {onCancel && (
+                <Button variant="outline" size="sm" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto space-y-6 max-h-[60vh]">
         
         {/* Quick Recipe Panel */}
         {showRecipes && (
@@ -609,7 +610,39 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           </Button>
         </div>
 
-      </CardContent>
-    </Card>
+        </CardContent>
+        
+        {/* Fixed Action Buttons */}
+        <div className="flex-shrink-0 p-4 border-t bg-card">
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={handleClearMask}
+              disabled={!mask}
+            >
+              <Undo className="h-4 w-4 mr-2" />
+              Clear Mask
+            </Button>
+            <Button
+              onClick={handleApplyInpaint}
+              disabled={isProcessing || !instruction.trim() || !mask}
+              className="min-w-[120px]"
+            >
+              {isProcessing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Apply Edit
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, SparklesIcon, ImageIcon, Edit3, Brush, Settings, ChevronDown, Zap, Clock, Star, Coins, TrendingUp } from 'lucide-react';
+import { X, SparklesIcon, ImageIcon, Edit3, Brush, Settings, ChevronDown, Zap, Clock, Star, Coins, TrendingUp, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,6 +176,19 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
   const [guidanceScale, setGuidanceScale] = useState([7.5]);
   const [inferenceSteps, setInferenceSteps] = useState([20]);
 
+  // Image reference state (up to 10 images)
+  const [referenceImages, setReferenceImages] = useState<Array<{id: string, url: string, file: File | null, weight: number}>>([]);
+  const [showReferenceSection, setShowReferenceSection] = useState(false);
+
+  // Text generation state
+  const [textPrompt, setTextPrompt] = useState('');
+  const [textPosition, setTextPosition] = useState<{x: number, y: number} | null>(null);
+  const [textStyle, setTextStyle] = useState({
+    fontSize: 'medium',
+    color: 'auto',
+    effect: 'none'
+  });
+
   if (!isOpen) return null;
 
   const getModelInfo = (modelKey: string) => {
@@ -216,9 +229,18 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
     setIsGenerating(true);
     try {
       const selectedStyleData = STYLE_PRESETS.find(s => s.id === selectedStyle);
-      const enhancedPrompt = selectedStyleData 
+      let enhancedPrompt = selectedStyleData 
         ? `${prompt}, ${selectedStyleData.prompt}`
         : prompt;
+
+      // Add reference image influence to prompt if references exist
+      if (referenceImages.length > 0) {
+        const refDescriptions = referenceImages
+          .filter(ref => ref.url)
+          .map(ref => `reference style (${ref.weight}% influence)`)
+          .join(', ');
+        enhancedPrompt += `, incorporating ${refDescriptions}`;
+      }
 
       // Parse dimensions
       const [width, height] = dimensions.split('x').map(Number);
@@ -230,7 +252,8 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
         prompt: enhancedPrompt, 
         model: selectedModel,
         width, 
-        height 
+        height,
+        references: referenceImages.length
       });
       
       const generatedAsset = await useAppStore.getState().generateDirectly(
@@ -243,7 +266,9 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
           height,
           seed: customSeed ? parseInt(customSeed) : undefined,
           guidance_scale: guidanceScale[0],
-          num_inference_steps: inferenceSteps[0]
+          num_inference_steps: inferenceSteps[0],
+          // Pass reference images
+          refs: referenceImages.filter(ref => ref.url).map(ref => ref.url)
         },
         selectedModel
       );
@@ -265,7 +290,8 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
             dimensions,
             seed: customSeed,
             guidance_scale: guidanceScale[0],
-            inference_steps: inferenceSteps[0]
+            inference_steps: inferenceSteps[0],
+            referenceImages: referenceImages.length
           },
           category: 'generated'
         });
@@ -293,6 +319,71 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
     }
   };
 
+  const handleTextGenerate = async () => {
+    if (!textPrompt.trim()) {
+      toast.error('Please enter text content');
+      return;
+    }
+
+    const assets = Object.values(useAppStore.getState().assets);
+    const selectedAsset = assets.find(a => a.type === 'image'); // Get first available image
+    
+    if (!selectedAsset) {
+      toast.error('Please generate or upload an image first');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      console.log('Starting text generation with:', { 
+        text: textPrompt,
+        style: textStyle,
+        asset: selectedAsset.name
+      });
+
+      // Use the flux text adapter directly
+      const { fluxTextAdapter } = await import('@/adapters/text-gen/fluxTextAdapter');
+      const textWithImageAsset = await fluxTextAdapter.addText(selectedAsset, {
+        text: textPrompt,
+        fontSize: textStyle.fontSize,
+        color: textStyle.color,
+        effect: textStyle.effect,
+        position: textPosition || undefined
+      });
+      
+      console.log('Text generation completed:', textWithImageAsset);
+      
+      if (textWithImageAsset) {
+        // Add to main assets store
+        useAppStore.getState().addAsset(textWithImageAsset);
+        
+        // Save to AI gallery with metadata
+        await useAppStore.getState().saveToAIGallery(textWithImageAsset, {
+          prompt: `Add text: "${textPrompt}"`,
+          model: 'flux-dev',
+          parameters: { 
+            text: textPrompt,
+            style: textStyle,
+            baseImage: selectedAsset.name
+          },
+          category: 'generated'
+        });
+        
+        // Create canvas and auto-load asset
+        const canvasId = useAppStore.getState().createCanvas('image', textWithImageAsset);
+        useAppStore.getState().setActiveCanvas(canvasId);
+        
+        toast.success('AI text generated successfully!');
+        onClose();
+      }
+    } catch (error) {
+      console.error('Text generation failed:', error);
+      toast.error(`Text generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const modelInfo = getModelInfo(selectedModel);
 
   return (
@@ -315,19 +406,24 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[80vh]">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="text-to-image" className="flex items-center gap-2">
                 <ImageIcon className="h-4 w-4" />
                 Text to Image
               </TabsTrigger>
               <TabsTrigger 
                 value="image-to-image" 
-                disabled 
-                className="flex items-center gap-2 opacity-50 cursor-not-allowed"
+                className="flex items-center gap-2"
               >
                 <Edit3 className="h-4 w-4" />
                 Image to Image
-                <span className="text-xs bg-muted px-2 py-0.5 rounded">Coming Soon</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="text-generation" 
+                className="flex items-center gap-2"
+              >
+                <SparklesIcon className="h-4 w-4" />
+                AI Text
               </TabsTrigger>
               <TabsTrigger 
                 value="inpainting" 
@@ -387,33 +483,89 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
                 )}
               </div>
 
-              {/* Prompt Section */}
+              {/* Reference Images Section */}
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="prompt" className="text-sm font-medium">
-                    Prompt
-                  </Label>
-                  <Textarea
-                    id="prompt"
-                    placeholder="Describe what you want to create in detail..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="mt-2 min-h-[100px] resize-none"
-                  />
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Reference Images (Optional)</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReferenceSection(!showReferenceSection)}
+                  >
+                    {showReferenceSection ? 'Hide' : 'Add'} References
+                  </Button>
                 </div>
-
-                <div>
-                  <Label htmlFor="negative-prompt" className="text-sm font-medium">
-                    Negative Prompt (Optional)
-                  </Label>
-                  <Input
-                    id="negative-prompt"
-                    placeholder="What to avoid in the image..."
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                    className="mt-2"
-                  />
-                </div>
+                
+                {showReferenceSection && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="grid grid-cols-2 gap-4 max-h-48 overflow-y-auto">
+                      {referenceImages.map((ref, index) => (
+                        <div key={ref.id} className="relative">
+                          <div className="aspect-square border-2 border-dashed border-border rounded-lg overflow-hidden bg-background">
+                            {ref.url ? (
+                              <img src={ref.url} alt={`Reference ${index + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                Drop image or click
+                              </div>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                setReferenceImages(prev => prev.map(r => 
+                                  r.id === ref.id ? {...r, url, file} : r
+                                ));
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                            onClick={() => setReferenceImages(prev => prev.filter(r => r.id !== ref.id))}
+                          >
+                            ×
+                          </Button>
+                          <div className="mt-2">
+                            <Label className="text-xs">Weight: {ref.weight}%</Label>
+                            <input
+                              type="range"
+                              min="10"
+                              max="100"
+                              step="10"
+                              value={ref.weight}
+                              onChange={(e) => setReferenceImages(prev => prev.map(r => 
+                                r.id === ref.id ? {...r, weight: parseInt(e.target.value)} : r
+                              ))}
+                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {referenceImages.length < 10 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setReferenceImages(prev => [...prev, {
+                          id: crypto.randomUUID(),
+                          url: '',
+                          file: null,
+                          weight: 50
+                        }])}
+                        className="w-full"
+                      >
+                        Add Reference Image ({referenceImages.length}/10)
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Style Presets */}
@@ -570,6 +722,122 @@ export function EnhancedAIModal({ isOpen, onClose }: EnhancedAIModalProps) {
                 <Edit3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <h3 className="text-lg font-medium mb-2">Image to Image</h3>
                 <p>Transform existing images with AI. Coming soon!</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="image-to-image" className="space-y-6">
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Image to image generation with reference images</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Upload a base image and modify it with AI using reference images for style guidance
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="text-generation" className="space-y-6">
+              {/* AI Text Generation Tab */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">AI Text Generation</Label>
+                  <p className="text-sm text-muted-foreground">Generate text overlays that perfectly match your image style</p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="text-prompt">Text Content</Label>
+                    <Input
+                      id="text-prompt"
+                      placeholder="What text should appear? (e.g., 'Welcome to Paradise')"
+                      value={textPrompt}
+                      onChange={(e) => setTextPrompt(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm">Font Size</Label>
+                      <Select value={textStyle.fontSize} onValueChange={(value) => 
+                        setTextStyle(prev => ({...prev, fontSize: value}))
+                      }>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">Small</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="large">Large</SelectItem>
+                          <SelectItem value="xl">Extra Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm">Color Style</Label>
+                      <Select value={textStyle.color} onValueChange={(value) => 
+                        setTextStyle(prev => ({...prev, color: value}))
+                      }>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">Auto (AI decides)</SelectItem>
+                          <SelectItem value="white">White</SelectItem>
+                          <SelectItem value="black">Black</SelectItem>
+                          <SelectItem value="gold">Gold</SelectItem>
+                          <SelectItem value="gradient">Gradient</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm">Effects</Label>
+                      <Select value={textStyle.effect} onValueChange={(value) => 
+                        setTextStyle(prev => ({...prev, effect: value}))
+                      }>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="shadow">Drop Shadow</SelectItem>
+                          <SelectItem value="glow">Glow</SelectItem>
+                          <SelectItem value="3d">3D Effect</SelectItem>
+                          <SelectItem value="neon">Neon</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-muted/50">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      💡 AI will automatically analyze your image and generate text that perfectly matches the style, lighting, and aesthetic.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      The text will be rendered with proper perspective, shadows, and integration into the scene.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Generate Text Button */}
+                <Button
+                  onClick={handleTextGenerate}
+                  disabled={isGenerating || !textPrompt.trim()}
+                  className="w-full h-12"
+                  size="lg"
+                >
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating AI Text...
+                    </>
+                  ) : (
+                    <>
+                      <SparklesIcon className="h-4 w-4 mr-2" />
+                      Generate AI Text
+                    </>
+                  )}
+                </Button>
               </div>
             </TabsContent>
 

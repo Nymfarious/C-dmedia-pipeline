@@ -116,6 +116,8 @@ export interface TextOverlayParams {
   position?: string | { x: number; y: number; };
   size?: number;
   align?: 'left' | 'center' | 'right';
+  fontSize?: string;
+  effect?: string;
 }
 
 export interface AnimationParams { 
