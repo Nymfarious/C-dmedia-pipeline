@@ -28,14 +28,12 @@ import { poseAdjustmentAdapter } from './image-edit/poseAdjustment';
 import { smartCropAdapter } from './image-edit/smartCrop';
 import { faceConsistencyAdapter } from './image-edit/faceConsistency';
 import { seedEditAdapter } from './image-edit/seedEdit';
-import { fluxInpaintAdapter } from './image-edit/fluxInpaint';
 import { geminiConversationalAdapter } from './image-edit/geminiConversational';
 import { replicateEdit } from './image-edit/replicateEdit';
 
 // Enhanced Replicate Edit Adapters
 import { 
   nanoBananaAdapter,
-  fluxInpaintAdapter as replicateFluxInpaintAdapter,
   professionalUpscalerAdapter,
   advancedObjectRemoverAdapter,
   colorEnhancementAdapter,
@@ -105,7 +103,6 @@ export const providers = {
   imageEdit: { 
     // Enhanced Replicate Models
     "replicate.nano-banana": nanoBananaAdapter,
-    "replicate.flux-inpaint": replicateFluxInpaintAdapter,
     "replicate.professional-upscaler": professionalUpscalerAdapter,
     "replicate.advanced-object-remover": advancedObjectRemoverAdapter,
     "replicate.color-enhancement": colorEnhancementAdapter,

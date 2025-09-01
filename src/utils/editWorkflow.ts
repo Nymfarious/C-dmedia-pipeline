@@ -133,14 +133,14 @@ export async function runEdit(
 }
 
 /**
- * Robust edit workflow: Asset validation, migration, then editing with fallback
+ * Enhanced edit workflow: Asset validation, migration, then Nano-Banana editing only
  */
 export async function runEditWithFallback(
   asset: Asset,
   params: ImageEditParams,
   onProgress?: (status: string) => void
 ): Promise<EditResult & { migratedAsset?: Asset }> {
-  console.log('🚀 Starting robust edit workflow...');
+  console.log('🚀 Starting Nano-Banana edit workflow...');
   
   // Step 1: Validate asset
   onProgress?.('Validating asset...');
@@ -171,54 +171,58 @@ export async function runEditWithFallback(
     };
   }
   
-  // Step 2: Try primary model
-  onProgress?.('Trying primary model...');
-  const primaryResult = await runEdit(workingAsset, params);
+  // Step 2: Use Nano-Banana only with optimized parameters
+  onProgress?.('Processing with Nano-Banana...');
   
-  if (primaryResult.ok && primaryResult.image) {
+  // Ensure we're using nano-banana routing
+  const nanoBananaParams: ImageEditParams = {
+    ...params,
+    operation: 'nano-banana-edit',
+    provider: 'replicate.nano-banana',
+    // Optimized parameters for better success
+    guidance_scale: params.guidance_scale || 7.5,
+    strength: params.strength || 0.9,
+    num_inference_steps: params.num_inference_steps || 25
+  };
+  
+  console.log('🎯 Nano-Banana edit attempt with params:', {
+    provider: nanoBananaParams.provider,
+    operation: nanoBananaParams.operation,
+    hasAsset: !!workingAsset,
+    hasMask: !!nanoBananaParams.maskPngDataUrl,
+    guidance_scale: nanoBananaParams.guidance_scale,
+    strength: nanoBananaParams.strength
+  });
+  
+  const result = await runEdit(workingAsset, nanoBananaParams);
+  
+  if (result.ok && result.image) {
     // Check if the edit actually changed anything
-    const hasChanged = await detectImageChange(workingAsset.src, primaryResult.image);
+    const hasChanged = await detectImageChange(workingAsset.src, result.image);
     
     if (hasChanged) {
-      console.log('✅ Primary model succeeded');
+      console.log('✅ Nano-Banana edit succeeded');
       onProgress?.('Edit completed successfully');
       return {
-        ...primaryResult,
+        ...result,
         changed: true,
         migratedAsset: workingAsset !== asset ? workingAsset : undefined
       };
     } else {
-      console.log('⚠️ Primary model returned unchanged image, trying fallback...');
-      onProgress?.('Primary model returned no changes, trying fallback...');
+      console.log('⚠️ Nano-Banana returned unchanged image');
+      onProgress?.('No visible changes detected');
+      return {
+        ...result,
+        changed: false,
+        migratedAsset: workingAsset !== asset ? workingAsset : undefined
+      };
     }
   } else {
-    console.log('❌ Primary model failed, trying fallback...', primaryResult.error);
-    onProgress?.('Primary model failed, trying fallback...');
-  }
-  
-  // Step 3: Fallback to FLUX inpaint with same parameters
-  const fallbackParams: ImageEditParams = {
-    ...params,
-    operation: 'flux-inpaint',
-    provider: 'replicate.flux-inpaint'
-  };
-  
-  const fallbackResult = await runEdit(workingAsset, fallbackParams);
-  
-  if (fallbackResult.ok) {
-    console.log('✅ Fallback model succeeded');
-    onProgress?.('Fallback completed successfully');
-    return {
-      ...fallbackResult,
-      changed: true,
-      migratedAsset: workingAsset !== asset ? workingAsset : undefined
-    };
-  } else {
-    console.log('❌ Both models failed');
-    onProgress?.('Both models failed');
+    console.log('❌ Nano-Banana edit failed:', result.error);
+    onProgress?.('Edit failed');
     return {
       ok: false,
-      error: `Both primary (${params.provider}) and fallback (FLUX) failed. Primary: ${primaryResult.error}, Fallback: ${fallbackResult.error}`,
+      error: `Nano-Banana edit failed: ${result.error}`,
       migratedAsset: workingAsset !== asset ? workingAsset : undefined
     };
   }

@@ -341,41 +341,42 @@ serve(async (req) => {
         break;
 
       case 'nano-banana-edit':
-        // Enhanced Nano Banana with hybrid workflow support
-        modelKey = 'flux-inpaint';
-        
-        console.log('🎯 Enhanced Nano Banana processing with mode:', body.input.mode || 'smart-inpaint');
+        console.log('🎯 Using Google Nano-Banana model for editing');
         
         // Use enhanced prompt if provided, otherwise use instruction/prompt
         const enhancedPrompt = body.input.enhanced_prompt || body.input.instruction || body.input.prompt || 'Edit this image intelligently';
-        const negativePrompt = body.input.negative_prompt || 'artifacts, distortion, low quality, unnatural, poor blending';
         
-        // Support both masked and non-masked editing
+        // Support both masked and non-masked editing with true Nano-Banana
         if (body.input.mask) {
-          // Masked editing: Use FLUX inpaint with enhanced prompts
-          console.log('🎨 Masked Nano Banana editing');
-          output = await replicate.run(MODEL_CONFIG[modelKey], {
+          console.log('🎨 Masked Nano Banana editing with smart-inpaint mode');
+          console.log('🔍 Final image URL validation before Replicate call:', body.input.image);
+          console.log('🔍 Final mask URL validation before Replicate call:', body.input.mask);
+          
+          output = await replicate.run("google/nano-banana", {
             input: {
               image: body.input.image,
               mask: body.input.mask,
+              mode: "smart-inpaint",
               prompt: enhancedPrompt,
-              negative_prompt: negativePrompt,
-              guidance_scale: body.input.guidance_scale || 10.5,
-              num_inference_steps: body.input.num_inference_steps || 40,
-              strength: body.input.strength || 0.88
-            }
+              // Optimized parameters for better results
+              guidance_scale: body.input.guidance_scale || 7.5,
+              strength: body.input.strength || 0.9,
+              num_inference_steps: body.input.num_inference_steps || 25
+            },
+            signal: timeoutController.signal
           });
         } else {
-          // Global editing: Use natural language model (fallback to FLUX generation)
-          console.log('🌐 Global Nano Banana editing');
-          output = await replicate.run(MODEL_CONFIG['flux-dev'], {
+          console.log('🌟 Global Nano Banana edit with global-edit mode');
+          output = await replicate.run("google/nano-banana", {
             input: {
-              prompt: `${enhancedPrompt}, based on this reference image`,
               image: body.input.image,
-              prompt_strength: body.input.strength || 0.8,
-              num_inference_steps: body.input.num_inference_steps || 30,
-              guidance_scale: body.input.guidance_scale || 8.5
-            }
+              mode: "global-edit",
+              prompt: enhancedPrompt,
+              guidance_scale: body.input.guidance_scale || 7.5,
+              strength: body.input.strength || 0.8,
+              num_inference_steps: body.input.num_inference_steps || 20
+            },
+            signal: timeoutController.signal
           });
         }
         break;
@@ -389,61 +390,6 @@ serve(async (req) => {
         });
         break;
 
-      case 'flux-inpaint':
-        modelKey = 'flux-inpaint';
-        if (!body.input.mask) {
-          throw new Error('Mask required for inpainting operation');
-        }
-        
-        // Double-check image URL accessibility before sending to Replicate
-        console.log('🔍 Final image URL validation before Replicate call:', body.input.image);
-        try {
-          const imageCheck = await fetch(body.input.image, { method: 'HEAD' });
-          if (!imageCheck.ok) {
-            throw new Error(`Image URL not accessible: ${imageCheck.status} ${imageCheck.statusText}`);
-          }
-          console.log('✅ Image URL verified accessible for FLUX inpaint');
-        } catch (urlError) {
-          console.error('❌ Image URL validation failed before FLUX inpaint:', urlError);
-          throw new Error(`Image URL validation failed: ${urlError.message}`);
-        }
-        
-        // Add retry logic for FLUX inpaint
-        const maxRetries = 2;
-        let lastError;
-        
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            console.log(`🔄 FLUX inpaint attempt ${attempt}/${maxRetries}`);
-            
-            output = await replicate.run(MODEL_CONFIG[modelKey], {
-              input: {
-                image: body.input.image,
-                mask: body.input.mask,
-                prompt: body.input.prompt || body.input.instruction || 'Inpaint the masked area',
-                guidance_scale: body.input.guidance_scale || 3.5,
-                num_inference_steps: body.input.num_inference_steps || 28,
-                strength: body.input.strength || 0.8,
-                seed: body.input.seed
-              }
-            });
-            
-            // If successful, break out of retry loop
-            break;
-            
-          } catch (attemptError) {
-            console.error(`❌ FLUX inpaint attempt ${attempt} failed:`, attemptError);
-            lastError = attemptError;
-            
-            if (attempt === maxRetries) {
-              throw attemptError;
-            }
-            
-            // Wait before retry (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-          }
-        }
-        break;
 
       case 'professional-upscale':
         modelKey = 'upscale';
