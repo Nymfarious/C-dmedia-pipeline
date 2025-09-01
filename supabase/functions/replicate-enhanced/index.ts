@@ -352,9 +352,16 @@ serve(async (req) => {
           console.log('🔍 Final image URL validation before Replicate call:', body.input.image);
           console.log('🔍 Final mask URL validation before Replicate call:', body.input.mask);
           
+          // Upload input image to Supabase storage to ensure accessibility
+          const timestamp = Date.now();
+          const inputFileName = `input-${timestamp}.webp`;
+          const inputImageResult = await persistToSupaFromUrlOrBuffer(body.input.image, inputFileName);
+          const publicImageUrl = inputImageResult.publicUrl;
+          console.log('✅ Input image uploaded to storage:', publicImageUrl);
+          
           output = await replicate.run("google/nano-banana", {
             input: {
-              image: body.input.image,
+              image: publicImageUrl,
               mask: body.input.mask,
               mode: "smart-inpaint",
               prompt: enhancedPrompt,
@@ -362,21 +369,27 @@ serve(async (req) => {
               guidance_scale: body.input.guidance_scale || 7.5,
               strength: body.input.strength || 0.9,
               num_inference_steps: body.input.num_inference_steps || 25
-            },
-            signal: timeoutController.signal
+            }
           });
         } else {
           console.log('🌟 Global Nano Banana edit with global-edit mode');
+          
+          // Upload input image to Supabase storage to ensure accessibility
+          const timestamp = Date.now();
+          const inputFileName = `input-${timestamp}.webp`;
+          const inputImageResult = await persistToSupaFromUrlOrBuffer(body.input.image, inputFileName);
+          const publicImageUrl = inputImageResult.publicUrl;
+          console.log('✅ Input image uploaded to storage:', publicImageUrl);
+          
           output = await replicate.run("google/nano-banana", {
             input: {
-              image: body.input.image,
+              image: publicImageUrl,
               mode: "global-edit",
               prompt: enhancedPrompt,
               guidance_scale: body.input.guidance_scale || 7.5,
               strength: body.input.strength || 0.8,
               num_inference_steps: body.input.num_inference_steps || 20
-            },
-            signal: timeoutController.signal
+            }
           });
         }
         break;
@@ -473,6 +486,14 @@ serve(async (req) => {
       console.error('🎭 Mask processing error:', error.message)
       statusCode = 400;
       errorMessage = `Mask error: ${error.message}`
+    } else if (error.message.includes('Additional property') && error.message.includes('not allowed')) {
+      console.error('🚫 Replicate parameter validation error:', error.message)
+      statusCode = 422;
+      errorMessage = `Model parameter error: The model doesn't accept one of the provided parameters. Check the model documentation.`
+    } else if (error.message.includes('Request to https://api.replicate.com') && error.message.includes('422')) {
+      console.error('🤖 Replicate API validation error:', error.message)
+      statusCode = 422;
+      errorMessage = `Replicate API validation error: ${error.message}`
     } else if (error.name === 'AbortError') {
       statusCode = 408;
       errorMessage = 'Request timeout - operation took too long';
