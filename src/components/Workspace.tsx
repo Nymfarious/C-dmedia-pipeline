@@ -51,6 +51,7 @@ export function Workspace({
     if (!activeCanvas) {
       setHasContent(false);
       setGeneratedImage(null);
+      prevAppliedRef.current = null;
       return;
     }
     
@@ -63,13 +64,13 @@ export function Workspace({
       setHasContent(true);
       setGeneratedImage(currentCanvas.asset);
       prevAppliedRef.current = activeCanvas;
-    } else if (!currentCanvas) {
-      console.log('Workspace - Active canvas not found, clearing content');
+    } else {
+      console.log('Workspace - Active canvas asset not found');
       setHasContent(false);
       setGeneratedImage(null);
       prevAppliedRef.current = null;
     }
-  }, [activeCanvas, canvasesLength, canvases]);
+  }, [activeCanvas, canvases]);
 
   // Fix brush options with functional update to avoid stale closure
   useEffect(() => {

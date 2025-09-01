@@ -51,6 +51,7 @@ interface AppState {
   exitActiveTool(): void;
   persist(): Promise<void>;
   hydrate(): Promise<void>;
+  migrateExpiredAssets(): Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -423,10 +424,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   createCanvas: (type, asset) => {
     console.log('Store createCanvas called:', type, asset?.name);
     const canvasId = crypto.randomUUID();
+    
+    // Normalize canvas title to prevent duplication
+    const normalizeTitle = (title: string) => {
+      return title.replace(/^(FLUX Inpaint:\s*)+/i, "").trim();
+    };
+    
+    const baseTitle = asset ? normalizeTitle(asset.name) : `New ${type} canvas`;
+    
     const newCanvas = {
       id: canvasId,
       type,
-      name: asset ? asset.name : `New ${type} canvas`,
+      name: baseTitle,
       asset,
       createdAt: Date.now(),
     };
@@ -436,8 +445,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       activeCanvas: canvasId
     }));
     
-    // Remove persist call here to prevent loops
-    // get().persist();
     return canvasId;
   },
 
@@ -450,13 +457,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateCanvasAsset: (canvasId, asset) => {
     console.log('Store updateCanvasAsset called:', canvasId, asset.name);
+    
+    // Normalize asset name to prevent title duplication
+    const normalizeTitle = (title: string) => {
+      return title.replace(/^(FLUX Inpaint:\s*)+/i, "").trim();
+    };
+    
+    const normalizedName = normalizeTitle(asset.name);
+    
     set((state) => ({
       canvases: state.canvases.map(canvas =>
-        canvas.id === canvasId ? { ...canvas, asset, name: asset.name } : canvas
+        canvas.id === canvasId ? { 
+          ...canvas, 
+          asset: { ...asset, name: normalizedName }, 
+          name: normalizedName 
+        } : canvas
       )
     }));
-    // Remove persist call here to prevent loops
-    // get().persist();
   },
 
   getActiveCanvasWithAsset: () => {
@@ -561,6 +578,40 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to hydrate state:', error);
+    }
+  },
+
+  migrateExpiredAssets: async () => {
+    const { analyzeAssets, migrateAsset } = await import('@/utils/assetMigration');
+    const state = get();
+    const assetsArray = Object.values(state.assets);
+    
+    if (assetsArray.length === 0) return;
+    
+    const analysis = analyzeAssets(assetsArray);
+    if (analysis.needsMigration === 0) return;
+    
+    console.log(`🔄 Migrating ${analysis.needsMigration} expired assets...`);
+    
+    let migratedCount = 0;
+    const migratedAssets: Record<string, Asset> = { ...state.assets };
+    
+    for (const expiredAsset of analysis.expired) {
+      try {
+        const migratedAsset = await migrateAsset(expiredAsset);
+        if (migratedAsset) {
+          migratedAssets[migratedAsset.id] = migratedAsset;
+          migratedCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to migrate asset ${expiredAsset.id}:`, error);
+      }
+    }
+    
+    if (migratedCount > 0) {
+      set({ assets: migratedAssets });
+      await get().persist();
+      console.log(`✅ Successfully migrated ${migratedCount} assets`);
     }
   },
 }));

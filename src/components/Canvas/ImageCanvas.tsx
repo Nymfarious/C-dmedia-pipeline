@@ -372,9 +372,9 @@ export function ImageCanvas({ asset, onAssetUpdate }: ImageCanvasProps) {
   return (
     <Card className="h-full bg-card">
       <CardHeader className="border-b border-border">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
+            <div className="flex items-center gap-2">
             <ProjectSaveLoad 
               currentAsset={asset} 
               onProjectLoad={(loadedAssets, currentAssetId) => {

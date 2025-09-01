@@ -42,11 +42,22 @@ function EnhancedApp() {
   // Initialize store once on app load
   useEffect(() => {
     let isMounted = true;
+    let hasInitialized = false;
+    
     async function initializeStore() {
+      if (hasInitialized) return; // Prevent multiple initializations
+      hasInitialized = true;
+      
       try {
         console.log('App initializing store...');
-        const { hydrate } = useAppStore.getState();
+        const { hydrate, migrateExpiredAssets } = useAppStore.getState();
+        
+        // Hydrate first
         await hydrate();
+        
+        // Then migrate expired assets
+        await migrateExpiredAssets();
+        
         if (isMounted) {
           setIsInitialized(true);
           console.log('Store initialized successfully');
@@ -58,6 +69,7 @@ function EnhancedApp() {
         }
       }
     }
+    
     initializeStore();
     return () => { isMounted = false; };
   }, []);
