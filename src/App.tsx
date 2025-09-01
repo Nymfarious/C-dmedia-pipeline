@@ -11,6 +11,7 @@ import { Dashboard } from './components/Dashboard';
 import { AssetMigrationToast } from './components/AssetMigrationToast';
 import { AssetsPage } from './components/AssetsPage';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
+import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -201,6 +202,14 @@ const router = createBrowserRouter([
     element: (
       <AuthGuard>
         <AIGalleryPageWrapper />
+      </AuthGuard>
+    )
+  },
+  {
+    path: "/image-gen-studio",
+    element: (
+      <AuthGuard>
+        <ImageGenStudioPageWrapper />
       </AuthGuard>
     )
   },
