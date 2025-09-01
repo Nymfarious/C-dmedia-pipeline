@@ -47,6 +47,7 @@ import { fluxTextAdapter } from './text-gen/fluxTextAdapter';
 import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter';
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
+import { veo3Adapter } from './video-gen/veo3Adapter';
 
 export const providers = {
   imageGen: { 
@@ -139,6 +140,9 @@ export const providers = {
   sound: { 
     "tts.local": localTTS 
   },
+  videoGen: {
+    "replicate.veo-3": veo3Adapter
+  },
 } as const;
 
 export type ProviderKeys = {
@@ -147,4 +151,5 @@ export type ProviderKeys = {
   textOverlay: keyof typeof providers.textOverlay;
   animate: keyof typeof providers.animate;
   sound: keyof typeof providers.sound;
+  videoGen: keyof typeof providers.videoGen;
 };

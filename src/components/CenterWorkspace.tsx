@@ -1,8 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, Upload, Plus, Sparkles } from 'lucide-react';
+import { Wand2, Upload, Plus, Sparkles, Video } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
+import { VideoCanvas } from '@/components/Canvas/VideoCanvas';
 import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
@@ -143,15 +144,13 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
       )}
       
       {currentCanvas.type === 'video' && (
-        <Card className="h-full flex items-center justify-center bg-card border-border">
-          <div className="text-center text-muted-foreground">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Wand2 className="h-8 w-8 text-primary" />
-            </div>
-            <p className="text-lg font-medium text-foreground">Video Canvas</p>
-            <p className="text-sm">Coming soon...</p>
-          </div>
-        </Card>
+        <VideoCanvas 
+          asset={currentCanvas.asset}
+          onAssetUpdate={(asset) => {
+            console.log('CenterWorkspace - Video canvas asset update:', asset.id);
+            onCanvasAssetUpdate(currentCanvas.id, asset);
+          }}
+        />
       )}
       
       {currentCanvas.type === 'audio' && (

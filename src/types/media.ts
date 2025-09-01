@@ -1,5 +1,5 @@
 // Asset types and lifecycle
-export type MediaType = "image" | "animation" | "audio";
+export type MediaType = "image" | "animation" | "audio" | "video";
 
 export interface Asset {
   id: string;
@@ -136,6 +136,16 @@ export interface SoundParams {
   durationMs?: number;
 }
 
+export interface VideoGenParams {
+  prompt: string;
+  imageUrl?: string; // For image-to-video
+  duration?: number; // 5 or 10 seconds
+  aspectRatio?: string;
+  motionStrength?: number;
+  style?: string;
+  seed?: number;
+}
+
 // Unified adapter interfaces
 export interface ImageGenAdapter {
   key: string;
@@ -161,6 +171,11 @@ export interface AnimationAdapter {
 export interface SoundAdapter {
   key: string;
   addSound(asset: Asset, params: SoundParams): Promise<Asset>;
+}
+
+export interface VideoGenAdapter {
+  key: string;
+  generate(params: VideoGenParams): Promise<Asset>;
 }
 
 // Project Management

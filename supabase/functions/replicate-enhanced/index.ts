@@ -23,6 +23,9 @@ const MODEL_CONFIG = {
   'flux-inpaint-pro': 'black-forest-labs/flux-fill-pro',
   'upscale': 'nightmareai/real-esrgan',
   'birefnet': 'cjwbw/rembg', // Use working background removal
+  
+  // Video generation models
+  'veo-3': 'google/veo-3',
 };
 
 // Initialize Supabase client
@@ -561,6 +564,45 @@ serve(async (req) => {
             strength: body.input.strength || 0.8
           }
         });
+        break;
+
+      case 'image-to-video':
+        console.log('🎬 Generating video with VEO 3');
+        modelKey = 'veo-3';
+        
+        if (!MODEL_CONFIG[modelKey]) {
+          throw new Error(`Unsupported video model: veo-3`);
+        }
+        
+        const videoInput: any = {
+          prompt: body.input.prompt
+        };
+        
+        // Add image for image-to-video generation
+        if (body.input.image) {
+          videoInput.image = body.input.image;
+        }
+        
+        // VEO 3 specific parameters
+        if (body.input.duration) videoInput.duration = body.input.duration;
+        if (body.input.aspect_ratio) videoInput.aspect_ratio = body.input.aspect_ratio;
+        if (body.input.motion_strength) videoInput.motion_strength = body.input.motion_strength;
+        if (body.input.seed) videoInput.seed = body.input.seed;
+        
+        console.log('VEO 3 input parameters:', JSON.stringify(videoInput, null, 2));
+        
+        output = await replicate.run(MODEL_CONFIG[modelKey], {
+          input: videoInput
+        });
+        
+        // Handle video output differently - persist as MP4
+        if (output) {
+          const timestamp = Date.now();
+          const fileName = `veo3-video-${timestamp}.mp4`;
+          const persistResult = await persistToSupaFromUrlOrBuffer(Array.isArray(output) ? output[0] : output, fileName);
+          output = persistResult.publicUrl;
+          console.log('✅ Video generation result persisted:', output);
+        }
         break;
 
       default:
