@@ -52,6 +52,9 @@ interface AppState {
   persist(): Promise<void>;
   hydrate(): Promise<void>;
   migrateExpiredAssets(): Promise<void>;
+  cleanupOldCanvases(): void;
+  getStorageUsage(): Promise<{ canvases: number; assets: number; steps: number }>;
+  optimizeStorage(): Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -440,10 +443,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: Date.now(),
     };
     
-    set((state) => ({
-      canvases: [...state.canvases, newCanvas],
-      activeCanvas: canvasId
-    }));
+    set((state) => {
+      // Auto-cleanup old canvases (keep only 20 most recent)
+      const sortedCanvases = [...state.canvases].sort((a, b) => b.createdAt - a.createdAt);
+      const canvasesToKeep = sortedCanvases.slice(0, 19); // Keep 19 + new one = 20
+      
+      return {
+        canvases: [...canvasesToKeep, newCanvas],
+        activeCanvas: canvasId
+      };
+    });
+    
+    // Auto-persist after canvas creation
+    get().persist();
     
     return canvasId;
   },
@@ -576,6 +588,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ assets: demoAssets });
         await get().persist();
       }
+      
+      // Automatically optimize storage on startup
+      await get().optimizeStorage();
+      
     } catch (error) {
       console.error('Failed to hydrate state:', error);
     }
@@ -613,6 +629,53 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().persist();
       console.log(`✅ Successfully migrated ${migratedCount} assets`);
     }
+  },
+
+  cleanupOldCanvases: () => {
+    set((state) => {
+      const sortedCanvases = [...state.canvases].sort((a, b) => b.createdAt - a.createdAt);
+      const canvasesToKeep = sortedCanvases.slice(0, 20);
+      
+      if (canvasesToKeep.length < state.canvases.length) {
+        console.log(`🧹 Cleaned up ${state.canvases.length - canvasesToKeep.length} old canvases`);
+        return { canvases: canvasesToKeep };
+      }
+      return state;
+    });
+  },
+
+  getStorageUsage: async () => {
+    const state = get();
+    return {
+      canvases: state.canvases.length,
+      assets: Object.keys(state.assets).length,
+      steps: Object.keys(state.steps).length,
+    };
+  },
+
+  optimizeStorage: async () => {
+    const state = get();
+    
+    // Clean up old canvases
+    get().cleanupOldCanvases();
+    
+    // Clean up failed/old steps (keep only last 50)
+    const sortedSteps = Object.values(state.steps)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 50);
+    
+    const optimizedSteps: Record<string, PipelineStep> = {};
+    sortedSteps.forEach(step => {
+      optimizedSteps[step.id] = step;
+    });
+    
+    // Migrate expired assets
+    await get().migrateExpiredAssets();
+    
+    set({ steps: optimizedSteps });
+    await get().persist();
+    
+    console.log('🧹 Storage optimized: canvases limited to 20, steps limited to 50, expired assets migrated');
   },
 }));
 

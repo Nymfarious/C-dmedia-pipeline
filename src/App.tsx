@@ -15,6 +15,7 @@ import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { SimplifiedAIModal } from './components/SimplifiedAIModal';
 import { FloatingToolExit } from './components/FloatingToolExit';
 import { ProjectManagementModal } from './components/ProjectManagementModal';
+import { StorageIndicator } from './components/StorageIndicator';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
@@ -158,6 +159,9 @@ function EnhancedApp() {
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
       />
+      <div className="absolute top-4 right-4 z-50">
+        <StorageIndicator />
+      </div>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
         {renderMainContent()}

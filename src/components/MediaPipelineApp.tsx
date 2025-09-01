@@ -7,17 +7,27 @@ import { ErrorBoundary } from './common/ErrorBoundary';
 import useAppStore from '@/store/appStore';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { Asset } from '@/types/media';
+import { AssetMigrationModal } from './AssetMigrationModal';
+import { analyzeAssets } from '@/utils/assetMigration';
 
 export function MediaPipelineApp() {
-  const { hydrate } = useAppStore();
+  const { assets } = useAppStore();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
   
   // Initialize global shortcuts
   useGlobalShortcuts();
 
+  // Check for expired assets on startup
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    const assetsArray = Object.values(assets);
+    if (assetsArray.length > 0) {
+      const analysis = analyzeAssets(assetsArray);
+      if (analysis.needsMigration > 0) {
+        setShowMigrationModal(true);
+      }
+    }
+  }, [assets]);
 
   useEffect(() => {
     const handleOpenAssetInCanvas = (event: CustomEvent<Asset>) => {
@@ -80,6 +90,17 @@ export function MediaPipelineApp() {
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         Pipeline status updates will be announced here
       </div>
+      
+      {/* Asset Migration Modal */}
+      <AssetMigrationModal
+        isOpen={showMigrationModal}
+        onClose={() => setShowMigrationModal(false)}
+        assets={Object.values(assets)}
+        onAssetsUpdated={() => {
+          // Assets will be updated via the store
+          setShowMigrationModal(false);
+        }}
+      />
     </div>
   );
 }

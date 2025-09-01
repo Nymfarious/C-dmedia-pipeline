@@ -212,9 +212,14 @@ async function persistToSupaFromUrlOrBuffer(url: string, fileName: string): Prom
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
+
+  // Add request timeout
+  const timeoutController = new AbortController();
+  const timeout = setTimeout(() => timeoutController.abort(), 120000); // 2 minute timeout
 
   try {
     const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN')
@@ -373,17 +378,41 @@ serve(async (req) => {
           throw new Error(`Image URL validation failed: ${urlError.message}`);
         }
         
-        output = await replicate.run(MODEL_CONFIG[modelKey], {
-          input: {
-            image: body.input.image,
-            mask: body.input.mask,
-            prompt: body.input.prompt || body.input.instruction || 'Inpaint the masked area',
-            guidance_scale: body.input.guidance_scale || 3.5,
-            num_inference_steps: body.input.num_inference_steps || 28,
-            strength: body.input.strength || 0.8,
-            seed: body.input.seed
+        // Add retry logic for FLUX inpaint
+        const maxRetries = 2;
+        let lastError;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`🔄 FLUX inpaint attempt ${attempt}/${maxRetries}`);
+            
+            output = await replicate.run(MODEL_CONFIG[modelKey], {
+              input: {
+                image: body.input.image,
+                mask: body.input.mask,
+                prompt: body.input.prompt || body.input.instruction || 'Inpaint the masked area',
+                guidance_scale: body.input.guidance_scale || 3.5,
+                num_inference_steps: body.input.num_inference_steps || 28,
+                strength: body.input.strength || 0.8,
+                seed: body.input.seed
+              }
+            });
+            
+            // If successful, break out of retry loop
+            break;
+            
+          } catch (attemptError) {
+            console.error(`❌ FLUX inpaint attempt ${attempt} failed:`, attemptError);
+            lastError = attemptError;
+            
+            if (attempt === maxRetries) {
+              throw attemptError;
+            }
+            
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           }
-        });
+        }
         break;
 
       case 'professional-upscale':
@@ -445,9 +474,41 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error("Error in replicate-enhanced function:", error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    
+    // Provide more specific error handling
+    let statusCode = 500;
+    let errorMessage = error.message;
+    
+    if (error.name === 'AbortError') {
+      statusCode = 408;
+      errorMessage = 'Request timeout - operation took too long';
+    } else if (error.message.includes('404') || error.message.includes('not found')) {
+      statusCode = 404;
+      errorMessage = 'Resource not found - likely expired image URL';
+    } else if (error.message.includes('403') || error.message.includes('unauthorized')) {
+      statusCode = 403;
+      errorMessage = 'Access denied - check API credentials';
+    } else if (error.message.includes('rate limit')) {
+      statusCode = 429;
+      errorMessage = 'API rate limit exceeded - please try again later';
+    }
+    
+    let requestBody;
+    try {
+      requestBody = body;
+    } catch {
+      requestBody = { operation: 'unknown' };
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: errorMessage,
+      operation: requestBody?.operation || 'unknown',
+      timestamp: new Date().toISOString()
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: statusCode,
     })
+  } finally {
+    clearTimeout(timeout);
   }
 })
