@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Download, Edit3, RotateCw, Palette, ArrowLeft, Trash2, Copy } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Asset, ImageEditParams } from '@/types/media';
 import { backgroundRemoverAdapter } from '@/adapters/image-edit/backgroundRemover';
 import { objectRemoverAdapter } from '@/adapters/image-edit/objectRemover';
@@ -226,7 +227,7 @@ export function AssetCanvas({ asset, onClose, onAssetUpdate }: AssetCanvasProps)
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <ScrollArea className="flex-1">
         {/* Image Display */}
         <div className="relative bg-muted/20 min-h-[400px] flex items-center justify-center p-4">
           <img
@@ -372,7 +373,7 @@ export function AssetCanvas({ asset, onClose, onAssetUpdate }: AssetCanvasProps)
             </CardContent>
           </Card>
         </div>
-      </div>
+      </ScrollArea>
 
       {/* Drawing Overlay */}
       {isEditing && (

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Video, Upload, Play, Pause, Download, Share } from 'lucide-react';
+import { Video, Upload, Play, Pause, Download, Share, Wand2 } from 'lucide-react';
 import { VideoGenerationTool } from './VideoGenerationTool';
+import { VideoEditTool } from './VideoEditTool';
 import { Asset } from '@/types/media';
+import useAppStore from '@/store/appStore';
 
 interface VideoCanvasProps {
   asset?: Asset;
@@ -13,8 +15,11 @@ interface VideoCanvasProps {
 
 export const VideoCanvas: React.FC<VideoCanvasProps> = ({ asset, onAssetUpdate }) => {
   const [isVideoToolActive, setIsVideoToolActive] = useState(false);
+  const [isVideoEditActive, setIsVideoEditActive] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+
+  const { activeTool, setActiveTool } = useAppStore();
 
   // Listen for global video generation events
   useEffect(() => {
@@ -138,6 +143,10 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({ asset, onAssetUpdate }
                     <Video className="h-4 w-4 mr-2" />
                     Generate New
                   </Button>
+                  <Button variant="outline" size="sm" onClick={() => setIsVideoEditActive(true)}>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Edit Video
+                  </Button>
                 </div>
               </div>
             </div>
@@ -147,6 +156,12 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({ asset, onAssetUpdate }
         <VideoGenerationTool
           isActive={isVideoToolActive}
           onClose={() => setIsVideoToolActive(false)}
+        />
+        
+        <VideoEditTool
+          asset={asset}
+          isActive={isVideoEditActive}
+          onClose={() => setIsVideoEditActive(false)}
         />
       </div>
     );
@@ -189,6 +204,12 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({ asset, onAssetUpdate }
       <VideoGenerationTool
         isActive={isVideoToolActive}
         onClose={() => setIsVideoToolActive(false)}
+      />
+      
+      <VideoEditTool
+        asset={asset}
+        isActive={isVideoEditActive}
+        onClose={() => setIsVideoEditActive(false)}
       />
     </div>
   );

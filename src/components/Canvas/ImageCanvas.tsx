@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Undo2, Redo2, Download } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Asset, ImageEditParams } from '@/types/media';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
@@ -185,14 +186,14 @@ export function ImageCanvas({
         <div className="space-y-6 flex-1">
           {/* Inpainting Tool - Always show when activeTool is 'inpaint' */}
           {activeTool === 'inpaint' && asset && (
-            <div className="max-h-[80vh] overflow-y-auto">
+            <ScrollArea className="max-h-[80vh]">
               <InpaintingTool 
                 asset={asset} 
                 onComplete={handleInpaintingComplete} 
                 onCancel={() => setActiveTool(null)} 
                 className="w-full" 
               />
-            </div>
+            </ScrollArea>
           )}
 
           {/* Text Generation Tool - Show when activeTool is 'text' */}

@@ -26,6 +26,9 @@ const MODEL_CONFIG = {
   
   // Video generation models
   'veo-3': 'google/veo-3',
+  
+  // Video editing models
+  'sedance-1-pro': 'bytedance/sedance-1-pro',
 };
 
 // Initialize Supabase client
@@ -632,6 +635,47 @@ serve(async (req) => {
           const persistResult = await persistToSupaFromUrlOrBuffer(Array.isArray(output) ? output[0] : output, fileName);
           output = persistResult.publicUrl;
           console.log('✅ Video generation result persisted:', output);
+        }
+        break;
+
+      case 'video-edit':
+        console.log('🎬 Editing video with SeDance-1 Pro');
+        modelKey = 'sedance-1-pro';
+        
+        if (!MODEL_CONFIG[modelKey]) {
+          throw new Error(`Unsupported video editing model: sedance-1-pro`);
+        }
+        
+        if (!body.input.video) {
+          throw new Error('Video input required for video editing');
+        }
+        
+        const videoEditInput: any = {
+          video: body.input.video,
+          prompt: body.input.prompt || body.input.instruction,
+        };
+        
+        // SeDance-1 Pro specific parameters
+        if (body.input.motion_strength) videoEditInput.motion_strength = body.input.motion_strength;
+        if (body.input.structure_strength) videoEditInput.structure_strength = body.input.structure_strength;
+        if (body.input.seed) videoEditInput.seed = body.input.seed;
+        if (body.input.num_frames) videoEditInput.num_frames = body.input.num_frames;
+        if (body.input.fps) videoEditInput.fps = body.input.fps;
+        if (body.input.aspect_ratio) videoEditInput.aspect_ratio = body.input.aspect_ratio;
+        
+        console.log('SeDance-1 Pro input parameters:', JSON.stringify(videoEditInput, null, 2));
+        
+        output = await replicate.run(MODEL_CONFIG[modelKey], {
+          input: videoEditInput
+        });
+        
+        // Handle video output - persist as MP4
+        if (output) {
+          const timestamp = Date.now();
+          const fileName = `sedance-video-${timestamp}.mp4`;
+          const persistResult = await persistToSupaFromUrlOrBuffer(Array.isArray(output) ? output[0] : output, fileName);
+          output = persistResult.publicUrl;
+          console.log('✅ Video editing result persisted:', output);
         }
         break;
 

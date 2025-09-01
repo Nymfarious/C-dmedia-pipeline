@@ -48,6 +48,7 @@ import { fontRecommendationAdapter } from './text-gen/fontRecommendationAdapter'
 import { spriteAnimator } from './animate/sprite';
 import { localTTS } from './sound/ttsLocal';
 import { veo3Adapter } from './video-gen/veo3Adapter';
+import { sedanceAdapter } from './video-edit/sedanceAdapter';
 
 export const providers = {
   imageGen: { 
@@ -143,6 +144,9 @@ export const providers = {
   videoGen: {
     "replicate.veo-3": veo3Adapter
   },
+  videoEdit: {
+    "replicate.sedance-1-pro": sedanceAdapter
+  },
 } as const;
 
 export type ProviderKeys = {
@@ -152,4 +156,5 @@ export type ProviderKeys = {
   animate: keyof typeof providers.animate;
   sound: keyof typeof providers.sound;
   videoGen: keyof typeof providers.videoGen;
+  videoEdit: keyof typeof providers.videoEdit;
 };
