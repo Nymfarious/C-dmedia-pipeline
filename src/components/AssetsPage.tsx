@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { downloadBlob, fetchBlobFromUrl, getFileExtensionFromBlob } from '@/lib/download';
 import { toast } from 'sonner';
 import { CategoryManagement } from "./CategoryManagement";
-import { SimplifiedAIModal } from "./SimplifiedAIModal";
+
 
 // Helper functions
 function getAssetTypeFromFile(file: File): MediaType {
@@ -64,7 +64,7 @@ export function AssetsPage({ onSelectImage }: AssetsPageProps) {
   const [filterType, setFilterType] = useState<MediaType | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [subcategoryFilter, setSubcategoryFilter] = useState<string>('all');
-  const [isGenerationModalOpen, setIsGenerationModalOpen] = useState(false);
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'type'>('date');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -234,7 +234,11 @@ export function AssetsPage({ onSelectImage }: AssetsPageProps) {
             
             <Button 
               variant="outline" 
-              onClick={() => setIsGenerationModalOpen(true)}
+              onClick={() => {
+                const canvasId = createCanvas('image');
+                setActiveCanvas(canvasId);
+                toast.success('Create canvas to start generating with AI');
+              }}
               className="gap-2"
             >
               <Sparkles className="h-4 w-4" />
@@ -515,7 +519,11 @@ export function AssetsPage({ onSelectImage }: AssetsPageProps) {
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Assets
               </Button>
-              <Button onClick={() => setIsGenerationModalOpen(true)}>
+              <Button onClick={() => {
+                const canvasId = createCanvas('image');
+                setActiveCanvas(canvasId);
+                toast.success('Create canvas to start generating with AI');
+              }}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Generate Assets
               </Button>
@@ -523,12 +531,6 @@ export function AssetsPage({ onSelectImage }: AssetsPageProps) {
           </div>
         )}
       </div>
-
-      {/* Generation Modal */}
-      <SimplifiedAIModal
-        isOpen={isGenerationModalOpen}
-        onClose={() => setIsGenerationModalOpen(false)}
-      />
     </div>
   );
 }

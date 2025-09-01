@@ -25,10 +25,6 @@ interface CenterWorkspaceProps {
 export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCanvas }: CenterWorkspaceProps) {
   const { assets, createCanvas, setActiveCanvas } = useAppStore();
   
-  console.log('CenterWorkspace render - currentCanvas:', !!currentCanvas);
-  if (currentCanvas) {
-    console.log('CenterWorkspace - Canvas type:', currentCanvas.type, 'Asset:', !!currentCanvas.asset);
-  }
   
   // Get recent generated assets (from both assets and gallery)
   const recentGeneratedAssets = Object.values(assets)
@@ -37,11 +33,8 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
     .slice(0, 6);
 
   const handleLoadAssetToCanvas = (asset: Asset) => {
-    console.log('CenterWorkspace - Loading asset to canvas:', asset.id, asset.name);
     const canvasId = createCanvas('image', asset);
-    console.log('CenterWorkspace - Created canvas:', canvasId);
     setActiveCanvas(canvasId);
-    console.log('CenterWorkspace - Set active canvas:', canvasId);
   };
 
   if (!currentCanvas) {
@@ -129,7 +122,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
     );
   }
 
-  console.log('CenterWorkspace - Rendering active canvas:', currentCanvas.type, currentCanvas.asset?.id);
+  
 
   return (
     <div className="flex-1 bg-stage-bg p-4 relative overflow-hidden">
@@ -137,7 +130,6 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
         <ImageCanvas 
           asset={currentCanvas.asset}
           onAssetUpdate={(asset) => {
-            console.log('CenterWorkspace - Canvas asset update:', asset.id);
             onCanvasAssetUpdate(currentCanvas.id, asset);
           }}
         />
@@ -147,7 +139,6 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
         <VideoCanvas 
           asset={currentCanvas.asset}
           onAssetUpdate={(asset) => {
-            console.log('CenterWorkspace - Video canvas asset update:', asset.id);
             onCanvasAssetUpdate(currentCanvas.id, asset);
           }}
         />

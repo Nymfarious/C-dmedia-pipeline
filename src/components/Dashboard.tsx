@@ -26,12 +26,7 @@ export function Dashboard() {
 
   
 
-  console.log('Dashboard render - activeCanvas:', activeCanvas);
-  console.log('Dashboard render - canvases:', canvases);
-  console.log('Dashboard render - activeTool:', activeTool, 'inpaintingMode:', inpaintingMode);
-
   const handleToolChange = (tool: string) => {
-    console.log('Dashboard - Tool changing to:', tool);
     setActiveTool(tool);
     
     // Handle video generation tool specifically
@@ -47,11 +42,6 @@ export function Dashboard() {
   };
 
   const currentCanvas = canvases.find(c => c.id === activeCanvas);
-  
-  console.log('Dashboard - Current canvas found:', !!currentCanvas);
-  if (currentCanvas) {
-    console.log('Dashboard - Current canvas asset:', !!currentCanvas.asset);
-  }
 
   const handleEditComplete = async (params: ImageEditParams) => {
     if (!currentCanvas?.asset) return;
