@@ -3,10 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertTriangle, Info, TrendingUp } from 'lucide-react';
-import { MaskQualityInfo } from '@/lib/maskProcessor';
+// MaskQualityFeedback component temporarily disabled due to maskProcessor refactoring
 
 interface MaskQualityFeedbackProps {
-  quality: MaskQualityInfo;
+  quality: any; // Temporarily disabled
   className?: string;
 }
 

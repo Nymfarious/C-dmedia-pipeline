@@ -10,7 +10,7 @@ import { EnhancedBrushTool } from './EnhancedBrushTool';
 import { MaskPreview } from './MaskPreview';
 import { InpaintingModeSelector } from './InpaintingModeSelector';
 import { AdvancedInpaintingControls } from './AdvancedInpaintingControls';
-import { MaskQualityFeedback } from './MaskQualityFeedback';
+// Removed MaskQualityFeedback import
 import { 
   Paintbrush,
   Settings,
@@ -20,7 +20,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Asset, ImageEditParams } from '@/types/media';
-import { processMask, MaskQualityInfo } from '@/lib/maskProcessor';
+// Removed conflicting lib/maskProcessor import - using utils/maskProcessor only
 import { 
   getOptimizedInpaintingParams, 
   convertUIToParams, 
@@ -30,7 +30,7 @@ import {
   negativesFor
 } from '@/lib/promptEnhancer';
 import { INPAINT_MODELS, makeRouting, InpaintMode } from '@/constants/models';
-import { normalizeMaskToWhiteEdits, canvasToDataUrl, canvasToBlob } from '@/utils/maskProcessor';
+import { normalizeMaskToWhiteEdits, canvasToDataUrl, canvasToBlob, MaskNormalizationOptions } from '@/utils/maskProcessor';
 import { runEditWithFallback } from '@/utils/editWorkflow';
 import { PROMPT_RECIPES, getRecipesByMode } from '@/constants/promptRecipes';
 import { useToast } from '@/hooks/use-toast';
@@ -52,7 +52,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   const [instruction, setInstruction] = useState('');
   const [mask, setMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
   const [processedMask, setProcessedMask] = useState<{ dataUrl: string; blob: Blob } | null>(null);
-  const [maskQuality, setMaskQuality] = useState<MaskQualityInfo | null>(null);
+  // Removed maskQuality state - using direct mask validation
   const [selectedModel, setSelectedModel] = useState('nano-banana');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBrushTool, setShowBrushTool] = useState(false);
@@ -103,41 +103,60 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
     }
   }, [mode]);
 
-  // Process mask when raw mask changes
+  // Simplified mask processing - direct normalization without duplicate processing
   useEffect(() => {
     if (!mask) {
       setProcessedMask(null);
-      setMaskQuality(null);
       return;
     }
     
-    const processRawMask = async () => {
-      try {
-        const result = await processMask(mask.dataUrl, {
-          padding: maskPadding[0],
-          featherRadius: maskFeathering[0],
-          qualityCheck: true
-        });
+    // Simple validation - check if mask has content
+    const validateMask = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
         
-        setProcessedMask({ dataUrl: result.dataUrl, blob: result.blob });
-        setMaskQuality(result.quality);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
         
-        // Show quality warnings
-        if (!result.quality.isValid || result.quality.warnings.length > 0) {
+        let whitePixels = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1]; 
+          const b = data[i + 2];
+          if (r > 128 || g > 128 || b > 128) { // RGB-based white detection
+            whitePixels++;
+          }
+        }
+        
+        const coverage = whitePixels / (canvas.width * canvas.height);
+        console.log('🎨 Mask coverage:', coverage, 'white pixels:', whitePixels);
+        
+        if (coverage < 0.001) {
           toast({
-            title: "Mask Quality Check",
-            description: result.quality.warnings[0] || "Consider improving the mask for better results",
-            variant: result.quality.isValid ? "default" : "destructive"
+            title: "Mask too small",
+            description: "Paint a larger area for better results",
+            variant: "destructive"
+          });
+        } else if (coverage > 0.8) {
+          toast({
+            title: "Mask too large", 
+            description: "Consider painting a smaller, more specific area",
+            variant: "destructive"
           });
         }
-      } catch (error) {
-        console.error('Mask processing failed:', error);
-        setProcessedMask(mask); // Fallback to original
-      }
+      };
+      img.src = mask.dataUrl;
     };
     
-    processRawMask();
-  }, [mask, maskPadding, maskFeathering, toast]);
+    validateMask();
+    // Use original mask directly - no intermediate processing
+    setProcessedMask(mask);
+  }, [mask, toast]);
 
   const handleMaskExport = (maskData: { dataUrl: string; blob: Blob }) => {
     setMask(maskData);
@@ -310,7 +329,6 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
   const handleClearMask = () => {
     setMask(null);
     setProcessedMask(null);
-    setMaskQuality(null);
   };
   
   const handleResetAdvanced = () => {
@@ -510,9 +528,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
               />
             )}
             
-            {maskQuality && (
-              <MaskQualityFeedback quality={maskQuality} />
-            )}
+            {/* Removed mask quality feedback - simplified validation */}
           </div>
         </div>
 
@@ -549,20 +565,7 @@ export function InpaintingTool({ asset, onComplete, onCancel, className }: Inpai
           </div>
         )}
 
-        {/* Quality warnings */}
-        {maskQuality && !maskQuality.isValid && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              <div className="font-medium mb-1">Mask needs attention:</div>
-              <ul className="text-xs space-y-1">
-                {maskQuality.warnings.map((warning, idx) => (
-                  <li key={idx}>• {warning}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Quality warnings removed - simplified validation */}
 
         {/* Action Button with Processing Status */}
         <div className="sticky bottom-0 bg-background pt-4 border-t space-y-2">

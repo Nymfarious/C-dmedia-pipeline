@@ -18,6 +18,29 @@ export function normalizeMaskToWhiteEdits(
 ): HTMLCanvasElement {
   console.log('🎨 Normalizing mask with pad:', pad, 'feather:', feather);
   
+  // Debug: Analyze input mask
+  const srcCtx = src.getContext('2d')!;
+  const srcImageData = srcCtx.getImageData(0, 0, src.width, src.height);
+  const srcData = srcImageData.data;
+  let inputWhite = 0, inputBlack = 0;
+  
+  for (let i = 0; i < srcData.length; i += 4) {
+    const r = srcData[i];
+    const g = srcData[i + 1];
+    const b = srcData[i + 2];
+    if (r > 128 && g > 128 && b > 128) {
+      inputWhite++;
+    } else if (r < 128 && g < 128 && b < 128) {
+      inputBlack++;
+    }
+  }
+  console.log('📥 Input mask analysis:', { 
+    inputWhite, 
+    inputBlack, 
+    total: src.width * src.height,
+    whiteCoverage: ((inputWhite / (src.width * src.height)) * 100).toFixed(2) + '%'
+  });
+  
   const out = document.createElement("canvas");
   out.width = src.width;
   out.height = src.height;
@@ -79,6 +102,28 @@ export function normalizeMaskToWhiteEdits(
   }
   
   ctx.putImageData(img, 0, 0);
+  
+  // Debug: Analyze output mask
+  const outputImageData = ctx.getImageData(0, 0, out.width, out.height);
+  const outputData = outputImageData.data;
+  let outputWhite = 0, outputBlack = 0;
+  
+  for (let i = 0; i < outputData.length; i += 4) {
+    const r = outputData[i];
+    const g = outputData[i + 1];
+    const b = outputData[i + 2];
+    if (r > 128 && g > 128 && b > 128) {
+      outputWhite++;
+    } else if (r < 128 && g < 128 && b < 128) {
+      outputBlack++;
+    }
+  }
+  console.log('📤 Output mask analysis:', { 
+    outputWhite, 
+    outputBlack, 
+    total: out.width * out.height,
+    whiteCoverage: ((outputWhite / (out.width * out.height)) * 100).toFixed(2) + '%'
+  });
   console.log('✅ Mask normalized to white edits');
   
   return out;
