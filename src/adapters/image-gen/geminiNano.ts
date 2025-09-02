@@ -1,38 +1,58 @@
 import { ImageGenAdapter, ImageGenParams, Asset } from '@/types/media';
-import { makeApiRequest, API_CONFIG } from '@/config/api';
+import { supabase } from '@/integrations/supabase/client';
 
 export const geminiNanoAdapter: ImageGenAdapter = {
   key: "gemini.nano",
   
   async generate(params: ImageGenParams): Promise<Asset> {
     try {
-      const response = await makeApiRequest(API_CONFIG.ENDPOINTS.IMAGE.GENERATE, {
-        method: 'POST',
-        body: JSON.stringify({
-          provider: 'gemini',
-          model: 'gemini-2.5-flash-image',
-          prompt: params.prompt,
-          negativePrompt: params.negativePrompt,
-          seed: params.seed,
-          width: 1024,
-          height: 1024,
-        }),
+      console.log('Gemini Nano generation starting with params:', params);
+      
+      const { data, error } = await supabase.functions.invoke('gemini-nano', {
+        body: {
+          operation: 'conversational-edit',
+          input: {
+            instruction: params.prompt,
+            negative_prompt: params.negativePrompt || "blurred, distorted, artifacts, low quality",
+            guidance_scale: 7.5,
+            num_inference_steps: 20,
+            strength: 0.8,
+            seed: params.seed
+          }
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Generation failed: ${error.message}`);
       }
 
-      const result = await response.json();
+      if (!data?.output || !Array.isArray(data.output) || data.output.length === 0) {
+        throw new Error('No image generated');
+      }
+
+      const imageUrl = data.output[0];
       
-      if (!result.ok) {
-        throw new Error(result.message || 'Generation failed');
-      }
-
-      return result.asset;
+      return {
+        id: crypto.randomUUID(),
+        src: imageUrl,
+        type: 'image' as const,
+        name: `Generated_${Date.now()}.webp`,
+        createdAt: Date.now(),
+        category: 'generated',
+        subcategory: 'AI Generated',
+        meta: {
+          width: 1024,
+          height: 1024,
+          operation: 'gemini-nano-generation',
+          model: 'nano-banana',
+          timestamp: new Date().toISOString(),
+          ...data.metadata
+        }
+      };
     } catch (error) {
       console.error('Gemini Nano generation error:', error);
-      throw error; // Remove misleading fallback
+      throw error;
     }
   }
 };
