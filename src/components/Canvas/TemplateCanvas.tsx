@@ -107,15 +107,20 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
 
     setIsGenerating(true);
     try {
+      console.log('Attempting template generation...');
       const result = await generateTemplate();
       if (result) {
+        console.log('Template generated successfully:', result);
         addAsset(result);
         toast.success(`Generated ${result.name} successfully`);
         onExitTemplate?.();
+      } else {
+        console.warn('Template generation returned null');
+        toast.error('Template generation failed - no result returned');
       }
     } catch (error) {
       console.error('Template generation failed:', error);
-      toast.error('Failed to generate template');
+      toast.error(`Failed to generate template: ${error.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { TemplateSpec, TemplatePlacement } from '@/compositor/TemplateSpec';
 import { TemplateRenderer } from '@/compositor/templateRenderer';
+import { generateTemplateWithAI } from '@/utils/templateGeneration';
 import { Asset } from '@/types/media';
 
 interface TemplateState {
@@ -60,18 +61,30 @@ export const useTemplateStore = create<TemplateState>((set, get) => ({
     if (!state.activeTemplate) return null;
 
     try {
-      // Create a temporary canvas for rendering
+      console.log('Starting template generation:', state.activeTemplate.name);
+      
+      // Check if template needs AI processing (Nano Banana)
+      const needsAIProcessing = state.activeTemplate.layers.some(layer => 
+        layer.type === 'ai-image' || layer.type === 'ai-text'
+      ) || state.activeTemplate.name.toLowerCase().includes('ai') || 
+      Object.keys(state.templateAssets).length > 0; // Has user assets to process
+
+      if (needsAIProcessing) {
+        console.log('Using AI template processing with Nano Banana');
+        return await generateTemplateWithAI(state.activeTemplate, {
+          variables: state.templateInputs,
+          assets: state.templateAssets
+        });
+      }
+
+      // Fallback to local rendering for simple templates
+      console.log('Using local template rendering');
       const canvas = document.createElement('canvas');
       const renderer = new TemplateRenderer(canvas);
-
-      // Create placement object from current state
-      const placement = {
+      const asset = await renderer.generateAsset(state.activeTemplate, {
         variables: state.templateInputs,
         assets: state.templateAssets
-      };
-
-      // Generate the asset
-      const asset = await renderer.generateAsset(state.activeTemplate, placement);
+      });
       return asset;
     } catch (error) {
       console.error('Template generation failed:', error);
