@@ -54,6 +54,7 @@ interface AppState {
   persist(): Promise<void>;
   hydrate(): Promise<void>;
   migrateExpiredAssets(): Promise<void>;
+  isHydrating: boolean;
   cleanupOldCanvases(): void;
   getStorageUsage(): Promise<{ canvases: number; assets: number; steps: number }>;
   optimizeStorage(): Promise<void>;
@@ -75,6 +76,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeCanvas: null,
   activeTool: 'select',
   inpaintingMode: false,
+  isHydrating: false,
 
   enqueueStep: (kind, inputAssetIds, params, providerKey) => {
     const stepId = crypto.randomUUID();
@@ -625,13 +627,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   hydrate: async () => {
     try {
       // Prevent multiple simultaneous hydrations
-      const hydratingKey = 'app-hydrating';
-      if (localStorage.getItem(hydratingKey) === 'true') {
+      if (get().isHydrating) {
         console.log('⏭️ Hydration already in progress, skipping...');
         return;
       }
       
-      localStorage.setItem(hydratingKey, 'true');
+      set({ isHydrating: true });
       
       const stored = await idbGet('app-state');
       if (stored) {
@@ -656,12 +657,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Automatically optimize storage on startup (debounced)
       setTimeout(async () => {
         await get().optimizeStorage();
-        localStorage.removeItem(hydratingKey);
+        set({ isHydrating: false });
       }, 100);
       
     } catch (error) {
       console.error('Failed to hydrate state:', error);
-      localStorage.removeItem('app-hydrating');
+      set({ isHydrating: false });
     }
   },
 

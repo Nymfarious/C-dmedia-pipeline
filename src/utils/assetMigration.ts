@@ -5,6 +5,11 @@ import { downloadAndUploadImage } from '@/lib/assetStorage';
  * Check if an asset URL is expired or problematic
  */
 export function isExpiredUrl(url: string): boolean {
+  // Skip demo assets from migration
+  if (url.includes('Demo ') || url.includes('demo-')) {
+    return false;
+  }
+  
   // Check for replicate.delivery URLs that might be expired
   if (url.includes('replicate.delivery')) {
     return true;
@@ -91,8 +96,15 @@ function recordMigrationAttempt(assetId: string, success: boolean) {
  */
 export async function migrateAsset(asset: Asset): Promise<Asset | null> {
   try {
+    // Skip demo assets completely
+    if (asset.name.includes('Demo ') || asset.src.includes('demo-')) {
+      console.log(`⏭️ Skipping demo asset: ${asset.name}`);
+      return null;
+    }
+    
     // Check if migration should be attempted
     if (!shouldMigrateAsset(asset)) {
+      console.log(`⏭️ Skipping migration - too soon since last attempt`);
       return null;
     }
     
