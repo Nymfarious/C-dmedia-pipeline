@@ -1,57 +1,58 @@
 import { ImageGenAdapter, ImageGenParams, Asset } from '@/types/media';
-import { supabase } from '@/integrations/supabase/client';
+import { makeApiRequest, API_CONFIG } from '@/config/api';
+import { resolveModelString } from '@/models/registry';
 
 export const geminiNanoAdapter: ImageGenAdapter = {
-  key: "gemini.nano",
+  key: "replicate.nano", // Updated to use Replicate routing
   
   async generate(params: ImageGenParams): Promise<Asset> {
     try {
-      console.log('Gemini Nano generation starting with params:', params);
+      console.log('Nano generation starting with params:', params);
       
-      const { data, error } = await supabase.functions.invoke('gemini-nano', {
-        body: {
-          operation: 'conversational-edit',
+      const modelString = resolveModelString('nano-banana');
+      
+      const response = await makeApiRequest(API_CONFIG.ENDPOINTS.UNIFIED, {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: 'replicate',
+          model: modelString,
+          operation: 'generate',
           input: {
-            instruction: params.prompt,
-            negative_prompt: params.negativePrompt || "blurred, distorted, artifacts, low quality",
-            guidance_scale: 7.5,
-            num_inference_steps: 20,
-            strength: 0.8,
-            seed: params.seed
+            prompt: params.prompt,
+            width: params.width || 1024,
+            height: params.height || 1024,
+            steps: params.steps || 30,
+            seed: params.seed,
+            negative_prompt: params.negativePrompt || "blurred, distorted, artifacts, low quality"
           }
-        }
+        })
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(`Generation failed: ${error.message}`);
+      if (!response.success || !response.data?.output) {
+        throw new Error('No output received from Nano generation');
       }
 
-      if (!data?.output || !Array.isArray(data.output) || data.output.length === 0) {
-        throw new Error('No image generated');
-      }
+      console.log('Nano generation successful:', response.data);
 
-      const imageUrl = data.output[0];
-      
       return {
         id: crypto.randomUUID(),
-        src: imageUrl,
+        src: Array.isArray(response.data.output) ? response.data.output[0] : response.data.output,
         type: 'image' as const,
         name: `Generated_${Date.now()}.webp`,
         createdAt: Date.now(),
         category: 'generated',
         subcategory: 'AI Generated',
         meta: {
-          width: 1024,
-          height: 1024,
-          operation: 'gemini-nano-generation',
-          model: 'nano-banana',
+          width: params.width || 1024,
+          height: params.height || 1024,
+          operation: 'nano-generation',
+          model: modelString,
           timestamp: new Date().toISOString(),
-          ...data.metadata
+          prompt: params.prompt
         }
       };
     } catch (error) {
-      console.error('Gemini Nano generation error:', error);
+      console.error('Nano generation error:', error);
       throw error;
     }
   }

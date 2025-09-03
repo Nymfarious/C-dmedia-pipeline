@@ -32,11 +32,11 @@ export const replicateUnifiedEditAdapter: ImageEditAdapter = {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+      if (!response.success) {
+        throw new Error(`Edit failed: ${response.error}`);
       }
 
-      const result = await response.json();
+      const result = response.data;
       
       if (!result.ok) {
         throw new Error(result.message || 'Edit failed');

@@ -19,11 +19,11 @@ export const fluxProAdapter: ImageGenAdapter = {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+      if (!response.success) {
+        throw new Error(`Generation failed: ${response.error}`);
       }
 
-      const result = await response.json();
+      const result = response.data;
       
       if (!result.ok) {
         throw new Error(result.message || 'Generation failed');

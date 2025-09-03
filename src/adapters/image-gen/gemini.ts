@@ -1,8 +1,9 @@
 import { ImageGenAdapter, ImageGenParams, Asset } from '@/types/media';
+import { makeApiRequest, API_CONFIG } from '@/config/api';
+import { resolveModelString } from '@/models/registry';
 
-// Mock Gemini image generation adapter
 export const geminiGen: ImageGenAdapter = {
-  key: "gemini.img",
+  key: "replicate.gemini", // Updated to use Replicate routing
   
   async generate(params: ImageGenParams): Promise<Asset> {
     // TODO: Replace with actual Gemini API call

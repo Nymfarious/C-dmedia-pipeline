@@ -18,6 +18,7 @@ export const API_CONFIG = {
     AUDIO: {
       TTS: '/api/audio/tts',
     },
+    UNIFIED: '/api/unified', // Add unified endpoint
   },
 } as const;
 
@@ -26,8 +27,8 @@ export function getApiUrl(endpoint: string): string {
   return `${API_CONFIG.BASE_URL}${endpoint}`;
 }
 
-// Helper function to make authenticated requests
-export async function makeApiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+// Helper function to make authenticated requests with JSON response parsing
+export async function makeApiRequest(endpoint: string, options: RequestInit = {}): Promise<{success: boolean, data?: any, error?: string}> {
   const url = getApiUrl(endpoint);
   
   const defaultHeaders = {
@@ -35,8 +36,20 @@ export async function makeApiRequest(endpoint: string, options: RequestInit = {}
     ...options.headers,
   };
 
-  return fetch(url, {
-    ...options,
-    headers: defaultHeaders,
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: defaultHeaders,
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { success: false, error: data.message || response.statusText };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }

@@ -53,6 +53,9 @@ export interface ImageGenParams {
   seed?: number; 
   aspect?: string; 
   refs?: string[]; // asset ids
+  width?: number;
+  height?: number;
+  steps?: number;
 }
 
 export interface ImageEditParams { 
