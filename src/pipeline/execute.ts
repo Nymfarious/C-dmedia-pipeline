@@ -198,6 +198,8 @@ export class PipelineExecutor {
         return providers.imageEdit[providerId];
       case 'textOverlay':
         return providers.textOverlay[providerId];
+      case 'animate':
+        return providers.animate[providerId];
       case 'sound':
         return providers.sound[providerId];
       case 'videoGen':

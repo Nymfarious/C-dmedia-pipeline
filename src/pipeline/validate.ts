@@ -238,6 +238,8 @@ function isValidProvider(providerId: string): boolean {
       return !!providers.imageEdit[providerId];
     case 'textOverlay':
       return !!providers.textOverlay[providerId];
+    case 'animate':
+      return !!providers.animate[providerId];
     case 'sound':
       return !!providers.sound[providerId];
     case 'videoGen':
@@ -254,6 +256,7 @@ function suggestSimilarProvider(providerId: string): string | null {
     ...Object.keys(providers.imageGen || {}),
     ...Object.keys(providers.imageEdit || {}),
     ...Object.keys(providers.textOverlay || {}),
+    ...Object.keys(providers.animate || {}),
     ...Object.keys(providers.sound || {}),
     ...Object.keys(providers.videoGen || {}),
     ...Object.keys(providers.videoEdit || {})
