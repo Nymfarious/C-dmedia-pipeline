@@ -21,30 +21,61 @@ export const errorHandler = (err: ApiError, req: Request, res: Response, next: N
     timestamp: new Date().toISOString()
   });
 
+  // Check if it's our custom AppError with user-facing messages
+  const isAppError = err.constructor.name === 'AppError';
+  
   // Default error values
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal server error';
+  let userMessage = 'Something went wrong. Please try again.';
+  let retryable = false;
+  let retryAfter: number | undefined;
+  let suggestedAction: string | undefined;
 
-  // Handle specific error types
-  if (err.name === 'ValidationError') {
-    statusCode = 400;
-    message = 'Validation failed';
-  } else if (err.name === 'UnauthorizedError') {
-    statusCode = 401;
-    message = 'Authentication required';
-  } else if (err.name === 'ForbiddenError') {
-    statusCode = 403;
-    message = 'Access forbidden';
+  if (isAppError) {
+    // Use structured error information
+    const appErr = err as any;
+    statusCode = appErr.statusCode;
+    message = appErr.message;
+    userMessage = appErr.userMessage;
+    retryable = appErr.retryable;
+    retryAfter = appErr.retryAfter;
+    suggestedAction = appErr.suggestedAction;
+  } else {
+    // Handle legacy error types
+    if (err.name === 'ValidationError') {
+      statusCode = 400;
+      message = 'Validation failed';
+      userMessage = 'Please check your input and try again.';
+    } else if (err.name === 'UnauthorizedError') {
+      statusCode = 401;
+      message = 'Authentication required';
+      userMessage = 'Please log in to continue.';
+    } else if (err.name === 'ForbiddenError') {
+      statusCode = 403;
+      message = 'Access forbidden';
+      userMessage = 'You do not have permission to perform this action.';
+    }
+
+    // Don't expose internal errors in production
+    if (!err.isOperational && process.env.NODE_ENV === 'production') {
+      message = 'Something went wrong';
+      userMessage = 'Something went wrong on our end. Please try again later.';
+    }
   }
 
-  // Don't expose internal errors in production
-  if (!err.isOperational && process.env.NODE_ENV === 'production') {
-    message = 'Something went wrong';
+  // Set retry headers for rate limiting
+  if (retryAfter) {
+    res.set('Retry-After', retryAfter.toString());
   }
 
   res.status(statusCode).json({
     ok: false,
     message,
+    userMessage,
+    retryable,
+    retryAfter,
+    suggestedAction,
     error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     timestamp: new Date().toISOString()
   });

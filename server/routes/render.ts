@@ -44,8 +44,20 @@ router.post('/png', async (req, res) => {
     // Load template (from ID or direct template object)
     let templateSpec;
     if (template_id) {
-      // TODO: Load template from database/file system using template_id
-      return res.status(400).json({ error: 'Template ID loading not implemented yet' });
+    // Load template from file system - implement actual loading
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      try {
+        const templatePath = path.join(process.cwd(), 'templates', `${template_id}.json`);
+        const templateData = await fs.readFile(templatePath, 'utf-8');
+        templateSpec = validateTemplate(JSON.parse(templateData));
+      } catch (error) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: 'Template not found',
+          userMessage: 'The requested template could not be found.' 
+        });
+      }
     } else if (template) {
       templateSpec = validateTemplate(template);
     } else {
@@ -85,8 +97,20 @@ router.post('/pdf', async (req, res) => {
     // Load template (from ID or direct template object)
     let templateSpec;
     if (template_id) {
-      // TODO: Load template from database/file system using template_id
-      return res.status(400).json({ error: 'Template ID loading not implemented yet' });
+    // Load template from file system - implement actual loading  
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      try {
+        const templatePath = path.join(process.cwd(), 'templates', `${template_id}.json`);
+        const templateData = await fs.readFile(templatePath, 'utf-8');
+        templateSpec = validateTemplate(JSON.parse(templateData));
+      } catch (error) {
+        return res.status(404).json({ 
+          ok: false, 
+          message: 'Template not found',
+          userMessage: 'The requested template could not be found.' 
+        });
+      }
     } else if (template) {
       templateSpec = validateTemplate(template);
     } else {

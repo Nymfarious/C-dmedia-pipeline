@@ -2,14 +2,26 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Use environment variables with fallback for development
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://ghfrddcmkexifhcwyupu.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoZnJkZGNta2V4aWZoY3d5dXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNTc4OTQsImV4cCI6MjA3MTkzMzg5NH0.B7Nb3JZXEPuHHhMv0jO81g5B-2c2lyP2DmrmbiSdqSI";
+// Get environment variables - require them to be set
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Development fallbacks only in dev mode
+if (import.meta.env.DEV && (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)) {
+  console.warn('Supabase environment variables not set, using development defaults');
+}
+
+const finalUrl = SUPABASE_URL || (import.meta.env.DEV ? "https://ghfrddcmkexifhcwyupu.supabase.co" : "");
+const finalKey = SUPABASE_PUBLISHABLE_KEY || (import.meta.env.DEV ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoZnJkZGNta2V4aWZoY3d5dXB1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNTc4OTQsImV4cCI6MjA3MTkzMzg5NH0.B7Nb3JZXEPuHHhMv0jO81g5B-2c2lyP2DmrmbiSdqSI" : "");
+
+if (!finalUrl || !finalKey) {
+  throw new Error("Supabase configuration missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY environment variables.");
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(finalUrl, finalKey, {
   auth: {
     storage: localStorage,
     persistSession: true,

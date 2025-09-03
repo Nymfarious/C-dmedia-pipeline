@@ -13,20 +13,33 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Validate required environment variables
-const requiredEnvVars = ['REPLICATE_API_TOKEN'];
-const missingEnvVars = requiredEnvVars.filter(env => !process.env[env]);
+// Validate environment configuration
+import { validateEnvironment, logServerConfig } from './utils/envValidation.js';
 
-if (missingEnvVars.length > 0 && process.env.NODE_ENV === 'production') {
-  console.error('Missing required environment variables:', missingEnvVars);
+try {
+  const envConfig = validateEnvironment();
+  logServerConfig(envConfig);
+} catch (error) {
+  console.error('❌ Environment validation failed:', error);
   process.exit(1);
 }
 
-// CORS configuration - restrict origins in production
+// CORS configuration - never allow wildcard in production
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? (process.env.ALLOWED_ORIGINS?.split(',') || ['https://your-domain.com']) 
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
+  origin: function (origin: string | undefined, callback: Function) {
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
+      : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'];
+    
+    // Allow requests with no origin (mobile apps, etc.) in development
+    if (!origin && process.env.NODE_ENV !== 'production') return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin || '') !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
