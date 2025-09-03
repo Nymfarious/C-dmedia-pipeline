@@ -54,6 +54,7 @@ interface AppState {
   persist(): Promise<void>;
   hydrate(): Promise<void>;
   migrateExpiredAssets(): Promise<void>;
+  initialize(): Promise<void>;
   isHydrating: boolean;
   cleanupOldCanvases(): void;
   getStorageUsage(): Promise<{ canvases: number; assets: number; steps: number }>;
@@ -762,6 +763,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().persist();
     
     console.log('🧹 Storage optimized: canvases limited to 20, steps limited to 50, expired assets migrated');
+  },
+
+  initialize: async () => {
+    await get().hydrate();
+    await get().migrateExpiredAssets();
   },
 }));
 

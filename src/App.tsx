@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import AuthGuard from "@/components/AuthGuard";
 import { Dashboard } from './components/Dashboard';
@@ -12,7 +12,7 @@ import { AssetMigrationToast } from './components/AssetMigrationToast';
 import { AssetsPage } from './components/AssetsPage';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
-import useAppStore from './store/appStore';
+import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Debug } from "./pages/Debug";
@@ -27,45 +27,9 @@ const queryClient = new QueryClient({
 });
 
 function AppWrapper() {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const isHydrating = useAppBootstrap();
 
-  // Initialize store once on app load
-  useEffect(() => {
-    let isMounted = true;
-    let hasInitialized = false;
-    
-    async function initializeStore() {
-      if (hasInitialized) return; // Prevent multiple initializations
-      hasInitialized = true;
-      
-      try {
-        console.log('App initializing store...');
-        const { hydrate, migrateExpiredAssets } = useAppStore.getState();
-        
-        // Hydrate first
-        await hydrate();
-        
-        // Then migrate expired assets
-        await migrateExpiredAssets();
-        
-        if (isMounted) {
-          setIsInitialized(true);
-          console.log('Store initialized successfully');
-        }
-      } catch (error) {
-        console.error('Failed to initialize store:', error);
-        if (isMounted) {
-          setIsInitialized(true); // Still show app even if hydration fails
-        }
-      }
-    }
-    
-    initializeStore();
-    return () => { isMounted = false; };
-  }, []);
-
-  // Don't render until store is initialized
-  if (!isInitialized) {
+  if (isHydrating) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background">
         <div className="text-center">
@@ -85,25 +49,10 @@ function AppWrapper() {
 }
 
 function AssetsPageWrapper() {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const navigate = useNavigate();
+  const isHydrating = useAppBootstrap();
 
-  useEffect(() => {
-    async function initializeStore() {
-      try {
-        const { hydrate, migrateExpiredAssets } = useAppStore.getState();
-        await hydrate();
-        await migrateExpiredAssets();
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize store:', error);
-        setIsInitialized(true);
-      }
-    }
-    
-    initializeStore();
-  }, []);
-
-  if (!isInitialized) {
+  if (isHydrating) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background">
         <div className="text-center">
@@ -119,37 +68,22 @@ function AssetsPageWrapper() {
       <div className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
         <h1 className="text-xl font-semibold text-foreground">AI Media Pipeline</h1>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/')}>
             Back to Dashboard
           </Button>
         </div>
       </div>
-      <AssetsPage onSelectImage={() => window.location.href = '/'} />
+      <AssetsPage onSelectImage={() => navigate('/')} />
       <AssetMigrationToast />
     </div>
   );
 }
 
 function AIGalleryPageWrapper() {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const navigate = useNavigate();
+  const isHydrating = useAppBootstrap();
 
-  useEffect(() => {
-    async function initializeStore() {
-      try {
-        const { hydrate, migrateExpiredAssets } = useAppStore.getState();
-        await hydrate();
-        await migrateExpiredAssets();
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize store:', error);
-        setIsInitialized(true);
-      }
-    }
-    
-    initializeStore();
-  }, []);
-
-  if (!isInitialized) {
+  if (isHydrating) {
     return (
       <div className="flex items-center justify-center h-screen w-full bg-background">
         <div className="text-center">
@@ -165,12 +99,12 @@ function AIGalleryPageWrapper() {
       <div className="h-14 border-b border-border bg-card flex items-center justify-between px-6">
         <h1 className="text-xl font-semibold text-foreground">AI Media Pipeline</h1>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>
+          <Button variant="outline" size="sm" onClick={() => navigate('/')}>
             Back to Dashboard
           </Button>
         </div>
       </div>
-      <AIGalleryPanel onSelectImage={() => window.location.href = '/'} />
+      <AIGalleryPanel onSelectImage={() => navigate('/')} />
       <AssetMigrationToast />
     </div>
   );
@@ -234,7 +168,12 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <RouterProvider router={router} />
+        <RouterProvider 
+          router={router} 
+          future={{ 
+            v7_startTransition: true
+          }} 
+        />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

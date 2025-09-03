@@ -43,13 +43,14 @@ export async function isUrlAccessible(url: string): Promise<boolean> {
 /**
  * Migration state tracking to prevent retry loops
  */
-const migrationAttempts = new Map<string, { count: number; lastAttempt: number; failed: boolean }>();
+const migrationAttempts = new Map<string, { count: number; lastAttempt: number; failed: boolean; loggedCooldown?: boolean }>();
 
 /**
  * Check if an asset should be migrated (not already failed or in cooldown)
  */
 function shouldMigrateAsset(asset: Asset): boolean {
-  const attempts = migrationAttempts.get(asset.id);
+  const assetId = asset.id;
+  const attempts = migrationAttempts.get(assetId);
   
   // Skip if marked as failed
   if (attempts?.failed) {
@@ -61,7 +62,11 @@ function shouldMigrateAsset(asset: Asset): boolean {
     const cooldownTime = Math.min(5000 * Math.pow(3, attempts.count), 300000); // Max 5 minutes
     const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
     if (timeSinceLastAttempt < cooldownTime) {
-      console.log(`⏭️ Skipping migration - too soon since last attempt (${Math.round(cooldownTime/1000)}s cooldown)`);
+      // Only log once per cooldown period to reduce spam
+      if (!attempts.loggedCooldown) {
+        console.log(`⏭️ Asset ${assetId} in cooldown for ${Math.round(cooldownTime/1000)}s`);
+        migrationAttempts.set(assetId, { ...attempts, loggedCooldown: true });
+      }
       return false;
     }
   }
@@ -105,7 +110,6 @@ export async function migrateAsset(asset: Asset): Promise<Asset | null> {
     
     // Check if migration should be attempted
     if (!shouldMigrateAsset(asset)) {
-      console.log(`⏭️ Skipping migration - too soon since last attempt`);
       return null;
     }
     
