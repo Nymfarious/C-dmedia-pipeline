@@ -1,0 +1,195 @@
+{
+  "version": "1.0",
+  "name": "Business Card",
+  "description": "Professional business card template with company branding",
+  "canvas": {
+    "width": 1050,
+    "height": 600,
+    "backgroundColor": "#ffffff",
+    "format": "png",
+    "dpi": 300
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "shape",
+      "visible": true,
+      "zIndex": 0,
+      "opacity": 1.0,
+      "content": {
+        "shape": "rectangle",
+        "fill": "#f8f9fa"
+      },
+      "transform": {
+        "x": "0px",
+        "y": "0px",
+        "width": "100%",
+        "height": "100%",
+        "anchor": "top-left"
+      }
+    },
+    {
+      "id": "company-logo",
+      "type": "image",
+      "visible": true,
+      "zIndex": 1,
+      "opacity": 1.0,
+      "content": {
+        "source": "{{logoUrl}}",
+        "fit": "contain"
+      },
+      "transform": {
+        "x": "8%",
+        "y": "15%",
+        "width": "25%",
+        "height": "30%",
+        "anchor": "top-left"
+      }
+    },
+    {
+      "id": "name",
+      "type": "text",
+      "visible": true,
+      "zIndex": 2,
+      "opacity": 1.0,
+      "content": {
+        "text": "{{fullName}}",
+        "font": {
+          "family": "Arial",
+          "weight": 700,
+          "style": "normal"
+        },
+        "fontSize": 28,
+        "color": "#1a1a1a",
+        "alignment": "left"
+      },
+      "transform": {
+        "x": "8%",
+        "y": "55%",
+        "width": "50%",
+        "height": "12%",
+        "anchor": "top-left"
+      }
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "visible": true,
+      "zIndex": 2,
+      "opacity": 1.0,
+      "content": {
+        "text": "{{jobTitle}}",
+        "font": {
+          "family": "Arial",
+          "weight": 400,
+          "style": "normal"
+        },
+        "fontSize": 18,
+        "color": "#666666",
+        "alignment": "left"
+      },
+      "transform": {
+        "x": "8%",
+        "y": "70%",
+        "width": "50%",
+        "height": "8%",
+        "anchor": "top-left"
+      }
+    },
+    {
+      "id": "contact-info",
+      "type": "text",
+      "visible": true,
+      "zIndex": 2,
+      "opacity": 1.0,
+      "content": {
+        "text": "{{email}}\n{{phone}}\n{{website}}",
+        "font": {
+          "family": "Arial",
+          "weight": 400,
+          "style": "normal"
+        },
+        "fontSize": 14,
+        "color": "#333333",
+        "alignment": "right"
+      },
+      "transform": {
+        "x": "60%",
+        "y": "55%",
+        "width": "35%",
+        "height": "35%",
+        "anchor": "top-left"
+      }
+    },
+    {
+      "id": "accent-line",
+      "type": "shape",
+      "visible": true,
+      "zIndex": 1,
+      "opacity": 1.0,
+      "content": {
+        "shape": "rectangle",
+        "fill": "#007bff"
+      },
+      "transform": {
+        "x": "0px",
+        "y": "90%",
+        "width": "100%",
+        "height": "10%",
+        "anchor": "top-left"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "fullName",
+      "type": "text",
+      "label": "Full Name",
+      "required": true,
+      "defaultValue": "John Doe"
+    },
+    {
+      "id": "jobTitle",
+      "type": "text",
+      "label": "Job Title",
+      "required": true,
+      "defaultValue": "Software Engineer"
+    },
+    {
+      "id": "email",
+      "type": "text",
+      "label": "Email",
+      "required": true,
+      "defaultValue": "john.doe@company.com"
+    },
+    {
+      "id": "phone",
+      "type": "text",
+      "label": "Phone",
+      "required": false,
+      "defaultValue": "+1 (555) 123-4567"
+    },
+    {
+      "id": "website",
+      "type": "text",
+      "label": "Website",
+      "required": false,
+      "defaultValue": "www.company.com"
+    },
+    {
+      "id": "logoUrl",
+      "type": "asset",
+      "label": "Company Logo",
+      "required": false,
+      "defaultValue": "/placeholder.svg"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "business-card",
+      "type": "image",
+      "format": "png",
+      "quality": 95
+    }
+  ]
+}

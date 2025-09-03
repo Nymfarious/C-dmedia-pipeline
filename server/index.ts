@@ -5,6 +5,7 @@ import unifiedRoutes from './routes/unified.js';
 import renderRoutes from './routes/render.js';
 import healthRoutes from './routes/health.js';
 import jobRoutes from './routes/jobs.js';
+import jobLoggerRoutes from './routes/jobLogger.js';
 import templateRoutes from './routes/templates.js';
 import { authenticateToken, rateLimitExpensive } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -49,6 +50,7 @@ app.use('/api/templates', templateRoutes);
 // Health and monitoring (no auth required)
 app.use('/api/health', healthRoutes);
 app.use('/api/jobs', authenticateToken, jobRoutes);
+app.use('/api/jobs', jobLoggerRoutes); // Public logging endpoints
 
 // Health check
 app.get('/health', (req, res) => {
