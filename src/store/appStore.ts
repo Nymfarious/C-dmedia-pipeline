@@ -41,6 +41,8 @@ interface AppState {
   removeFromGallery(id: string): void;
   toggleGalleryImageFavorite(id: string): void;
   createCanvas(type: 'image' | 'video' | 'audio', asset?: Asset): string;
+  deleteCanvas(canvasId: string): void;
+  deleteAllCanvases(): void;
   setActiveCanvas(canvasId: string | null): void;
   updateCanvasAsset(canvasId: string, asset: Asset): void;
   getActiveCanvasWithAsset(): { id: string; type: 'image' | 'video' | 'audio'; name: string; asset: Asset; createdAt: number } | null;
@@ -470,6 +472,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().persist();
     
     return canvasId;
+  },
+
+  deleteCanvas: (canvasId) => {
+    const state = get();
+    const canvas = state.canvases.find(c => c.id === canvasId);
+    
+    if (!canvas) return;
+    
+    // If deleting active canvas, switch to another or null
+    let newActiveCanvas = state.activeCanvas;
+    if (state.activeCanvas === canvasId) {
+      const otherCanvases = state.canvases.filter(c => c.id !== canvasId);
+      newActiveCanvas = otherCanvases.length > 0 ? otherCanvases[0].id : null;
+    }
+    
+    set({
+      canvases: state.canvases.filter(c => c.id !== canvasId),
+      activeCanvas: newActiveCanvas
+    });
+    
+    // Auto-persist after canvas deletion
+    get().persist();
+    
+    toast.success(`Deleted canvas: ${canvas.name}`);
+  },
+
+  deleteAllCanvases: () => {
+    const state = get();
+    const count = state.canvases.length;
+    
+    if (count === 0) return;
+    
+    set({
+      canvases: [],
+      activeCanvas: null
+    });
+    
+    // Auto-persist after clearing all canvases
+    get().persist();
+    
+    toast.success(`Deleted ${count} canvas${count !== 1 ? 'es' : ''}`);
   },
 
   setActiveCanvas: (canvasId) => {

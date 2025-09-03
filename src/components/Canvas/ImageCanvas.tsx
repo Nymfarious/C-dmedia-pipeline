@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { QuickCanvasDelete, CanvasCloseButton } from '@/components/ui/canvas-delete';
 import { Undo2, Redo2, Download } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Asset, ImageEditParams } from '@/types/media';
@@ -137,14 +138,14 @@ export function ImageCanvas({
     return <Card className="h-full bg-card">
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Image Canvas</CardTitle>
-            <ProjectSaveLoad currentAsset={asset} onProjectLoad={(loadedAssets, currentAssetId) => {
-            Object.values(loadedAssets).forEach(addAsset);
-            if (currentAssetId && loadedAssets[currentAssetId]) {
-              onAssetUpdate?.(loadedAssets[currentAssetId]);
-              addToHistory(loadedAssets[currentAssetId]);
-            }
-          }} />
+            <CardTitle className="text-lg font-semibold">Empty Canvas</CardTitle>
+            <div className="flex items-center gap-1">
+              <CanvasCloseButton
+                canvasId={useAppStore.getState().activeCanvas || ''}
+                canvasName="Empty Canvas"
+                className="text-muted-foreground hover:text-destructive"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="flex-1 p-6">
@@ -177,6 +178,14 @@ export function ImageCanvas({
             <Button variant="outline" size="sm" onClick={downloadAsset} disabled={!asset} className="text-muted-foreground hover:text-foreground">
               <Download className="h-4 w-4" />
             </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <QuickCanvasDelete
+              canvasId={useAppStore.getState().activeCanvas || ''}
+              canvasName={asset?.name || 'Untitled Canvas'}
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+            />
           </div>
         </div>
       </CardHeader>

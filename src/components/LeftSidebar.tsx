@@ -1,7 +1,12 @@
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CanvasManager } from '@/components/CanvasManager';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { QuickCanvasDelete } from '@/components/ui/canvas-delete';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
   Image, 
   Video, 
@@ -11,11 +16,16 @@ import {
   Save,
   FolderOpen,
   Sparkles,
-  Wand2
+  Wand2,
+  MoreVertical,
+  Trash2,
+  Eye,
+  Clock
 } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { ProjectManagementModal } from './ProjectManagementModal';
+import { cn } from '@/lib/utils';
 
 interface LeftSidebarProps {
   canvases: Array<{
@@ -45,206 +55,284 @@ export function LeftSidebar({
   onOpenAIModal
 }: LeftSidebarProps) {
   const assets = useAppStore((state) => state.assets);
-  const [showProjectModal, setShowProjectModal] = useState(false);
+  const { deleteCanvas, setActiveCanvas } = useAppStore();
+  const [showProjectModal, setShowProjectModal] = React.useState(false);
   
+  const getCanvasIcon = (type: string) => {
+    switch (type) {
+      case 'image': return <Image className="h-4 w-4" />;
+      case 'video': return <Video className="h-4 w-4" />;
+      case 'audio': return <Music className="h-4 w-4" />;
+      default: return <Grid3X3 className="h-4 w-4" />;
+    }
+  };
+
+  const getCanvasTypeColor = (type: string) => {
+    switch (type) {
+      case 'image': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'video': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'audio': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   // Get recent assets for recent projects
   const recentAssets = Object.values(assets)
     .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 3);
+    .slice(0, 5);
 
-  const handleNewProject = () => {
-    if (onClearWorkspace) {
-      onClearWorkspace();
-    }
-  };
+  const sortedCanvases = canvases.sort((a, b) => b.createdAt - a.createdAt);
 
-  const handleProjectLoad = (assets: Record<string, Asset>, currentAssetId?: string) => {
-    if (onLoadProject) {
-      onLoadProject(assets, currentAssetId);
-    }
-  };
   return (
-    <div className="w-64 min-w-64 max-w-64 border-r border-border bg-card flex flex-col overflow-hidden">
-      <div className="p-4 space-y-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
-        {/* Create Canvas Section */}
-        <div>
-          <h3 className="font-semibold mb-3 text-foreground">Create Canvas</h3>
-          <div className="grid gap-2">
-            <Button 
-              variant="outline" 
-              className="justify-start h-auto p-3 bg-background hover:bg-muted"
-              onClick={() => onCreateCanvas('image')}
-            >
-              <Image className="h-5 w-5 mr-3 text-primary" />
-              <div className="text-left">
-                <div className="font-medium text-foreground">Image Canvas</div>
-                <div className="text-xs text-muted-foreground">Generate, edit, enhance</div>
-              </div>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="justify-start h-auto p-3 bg-background hover:bg-muted"
-              onClick={() => onCreateCanvas('video')}
-            >
-              <Video className="h-5 w-5 mr-3 text-primary" />
-              <div className="text-left">
-                <div className="font-medium text-foreground">Video Canvas</div>
-                <div className="text-xs text-muted-foreground">Image to video, animate</div>
-              </div>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="justify-start h-auto p-3 bg-background hover:bg-muted"
-              onClick={() => onCreateCanvas('audio')}
-            >
-              <Music className="h-5 w-5 mr-3 text-primary" />
-              <div className="text-left">
-                <div className="font-medium text-foreground">Audio Canvas</div>
-                <div className="text-xs text-muted-foreground">Text to speech, sound FX</div>
-              </div>
-            </Button>
-          </div>
+    <div className="w-80 bg-sidebar-bg border-r border-border flex flex-col h-full">
+      <Tabs defaultValue="canvases" className="flex-1 flex flex-col">
+        <div className="p-4 border-b border-border">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="canvases">Canvases</TabsTrigger>
+            <TabsTrigger value="manager">Manager</TabsTrigger>
+          </TabsList>
         </div>
 
-        {/* Quick Access Section */}
-        <div>
-          <h3 className="font-semibold mb-3 text-foreground">Quick Access</h3>
-          <div className="space-y-2">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
-              onClick={onOpenAIModal}
-            >
-              <Sparkles className="h-4 w-4 mr-3" />
-              AI Generation
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
-              onClick={() => window.location.href = '/image-gen-studio'}
-            >
-              <Wand2 className="h-4 w-4 mr-3" />
-              ImageGen Studio
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
-              onClick={() => window.location.href = '/ai-gallery'}
-            >
-              <Grid3X3 className="h-4 w-4 mr-3" />
-              AI Gallery
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start h-9 p-2 text-primary hover:text-primary hover:bg-primary/10"
-              onClick={() => setShowProjectModal(true)}
-            >
-              <Save className="h-4 w-4 mr-3" />
-              Saved Projects
-            </Button>
-          </div>
-        </div>
+        <TabsContent value="canvases" className="flex-1 p-0 m-0">
+          <div className="flex flex-col h-full">
+            {/* Quick Create Section */}
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-foreground">Quick Create</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowProjectModal(true)}
+                  className="text-xs"
+                >
+                  <Save className="h-3 w-3 mr-1" />
+                  Projects
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateCanvas('image')}
+                  className="flex flex-col h-16 text-xs"
+                >
+                  <Image className="h-4 w-4 mb-1" />
+                  Image
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateCanvas('video')}
+                  className="flex flex-col h-16 text-xs"
+                >
+                  <Video className="h-4 w-4 mb-1" />
+                  Video
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCreateCanvas('audio')}
+                  className="flex flex-col h-16 text-xs"
+                >
+                  <Music className="h-4 w-4 mb-1" />
+                  Audio
+                </Button>
+              </div>
+            </div>
 
-        {/* Recent Projects Section */}
-        <div>
-          <h3 className="font-semibold mb-3 text-foreground">Recent Projects</h3>
-          <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
-            {recentAssets.length > 0 ? recentAssets.map((asset) => (
-              <Card 
-                key={asset.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => onLoadAssetToCanvas?.(asset)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex flex-col gap-3">
-                    {asset.src && (
-                      <img 
-                        src={asset.src} 
-                        alt={asset.name}
-                        className="w-full h-20 rounded object-cover"
-                      />
-                    )}
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium text-foreground truncate">{asset.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(asset.createdAt).toLocaleDateString()}
-                      </div>
-                      {asset.meta?.prompt && (
-                        <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                          {asset.meta.prompt}
-                        </div>
+            {/* Active Canvases */}
+            <div className="flex-1 overflow-hidden">
+              <div className="p-4 border-b border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-foreground">
+                    Active Canvases ({canvases.length})
+                  </h3>
+                  {onOpenAIModal && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onOpenAIModal}
+                      className="text-xs"
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      AI
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1 px-4">
+                <div className="space-y-2 pb-4">
+                  {sortedCanvases.map((canvas) => (
+                    <Card
+                      key={canvas.id}
+                      className={cn(
+                        "cursor-pointer transition-all duration-200 hover:shadow-md group border",
+                        activeCanvas === canvas.id 
+                          ? "ring-2 ring-primary shadow-md bg-primary/5 border-primary/50" 
+                          : "hover:border-primary/30 border-border"
                       )}
-                      <Badge variant="secondary" className="text-xs w-fit">
-                        {asset.type}
-                      </Badge>
+                      onClick={() => onSelectCanvas(canvas.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center space-x-3">
+                          {/* Canvas Preview */}
+                          <div className="relative">
+                            <div className={cn(
+                              "w-10 h-10 rounded-lg border flex items-center justify-center",
+                              getCanvasTypeColor(canvas.type)
+                            )}>
+                              {canvas.asset?.src ? (
+                                <img 
+                                  src={canvas.asset.src} 
+                                  alt={canvas.name}
+                                  className="w-full h-full object-cover rounded-lg"
+                                />
+                              ) : (
+                                getCanvasIcon(canvas.type)
+                              )}
+                            </div>
+                            {activeCanvas === canvas.id && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full ring-2 ring-background" />
+                            )}
+                          </div>
+
+                          {/* Canvas Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h3 className="text-sm font-medium text-foreground truncate">
+                                {canvas.name}
+                              </h3>
+                              <Badge 
+                                variant="outline" 
+                                className={cn("text-xs", getCanvasTypeColor(canvas.type))}
+                              >
+                                {canvas.type}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {formatDate(canvas.createdAt)}
+                            </div>
+                          </div>
+
+                          {/* Canvas Actions */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectCanvas(canvas.id);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Open Canvas
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteCanvas(canvas.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Canvas
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {canvases.length === 0 && (
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-muted rounded-lg mx-auto mb-3 flex items-center justify-center">
+                        <Grid3X3 className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">No canvases yet</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onCreateCanvas('image')}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Create first canvas
+                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )) : (
-              <div className="text-center text-muted-foreground py-6">
-                <div className="text-sm">No recent projects</div>
-                <div className="text-xs">Generate some images to see them here</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Recent Assets Quick Load */}
+            {recentAssets.length > 0 && (
+              <div className="p-4 border-t border-border">
+                <h3 className="text-sm font-medium text-foreground mb-3">Recent Assets</h3>
+                <div className="space-y-2">
+                  {recentAssets.slice(0, 3).map((asset) => (
+                    <div
+                      key={asset.id}
+                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                      onClick={() => onLoadAssetToCanvas?.(asset)}
+                    >
+                      <div className="w-8 h-8 rounded bg-muted flex-shrink-0 overflow-hidden">
+                        <img
+                          src={asset.src}
+                          alt={asset.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {asset.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {asset.type}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
+        </TabsContent>
 
-        {/* Active Canvases */}
-        {canvases.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-3 text-foreground">Your Canvases</h3>
-            <div className="space-y-2">
-              {canvases.map((canvas) => (
-                <Card 
-                  key={canvas.id}
-                  className={`cursor-pointer transition-colors ${
-                    activeCanvas === canvas.id ? 'border-primary bg-primary/10' : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => onSelectCanvas(canvas.id)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-2">
-                      {canvas.type === 'image' && <Image className="h-4 w-4 text-primary" />}
-                      {canvas.type === 'video' && <Video className="h-4 w-4 text-primary" />}
-                      {canvas.type === 'audio' && <Music className="h-4 w-4 text-primary" />}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate text-foreground">{canvas.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(canvas.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {canvas.type}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        <TabsContent value="manager" className="flex-1 p-4 m-0">
+          <CanvasManager />
+        </TabsContent>
+      </Tabs>
 
-      {/* New Project Button */}
-      <div className="mt-auto p-4">
-        <Button 
-          className="w-full bg-primary hover:bg-primary/90"
-          onClick={() => setShowProjectModal(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
-      </div>
-
+      {/* Project Management Modal */}
       <ProjectManagementModal
         isOpen={showProjectModal}
         onClose={() => setShowProjectModal(false)}
-        onNewProject={handleNewProject}
-        onProjectLoad={handleProjectLoad}
+        onNewProject={onClearWorkspace || (() => {})}
+        onProjectLoad={onLoadProject || (() => {})}
       />
     </div>
   );
