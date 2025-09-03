@@ -1,393 +1,155 @@
 {
-  "id": "business_card_enhanced",
-  "name": "AI-Enhanced Business Card",
-  "description": "Professional business card with AI-powered background generation and design optimization",
-  "version": "1.1.0",
+  "version": "1.0",
+  "name": "Business Card Enhanced",
+  "description": "Professional business card with AI-generated background",
   "category": "business",
   "canvas": {
     "width": 350,
     "height": 200,
     "backgroundColor": "#ffffff",
-    "format": "png"
+    "format": "png",
+    "dpi": 300
   },
   "inputs": {
-    "full_name": {
+    "name": {
       "type": "text",
       "required": true,
-      "default": "John Smith",
-      "description": "Full name of the person"
+      "default": "John Doe",
+      "description": "Full name"
     },
-    "job_title": {
+    "title": {
       "type": "text",
       "required": true,
-      "default": "Senior Developer",
-      "description": "Job title or position"
+      "default": "Software Engineer",
+      "description": "Job title"
     },
-    "company_name": {
+    "company": {
       "type": "text",
       "required": true,
-      "default": "Tech Solutions Inc.",
-      "description": "Company or organization name"
+      "default": "Tech Corp",
+      "description": "Company name"
     },
-    "email": {
-      "type": "text",
-      "required": true,
-      "default": "john.smith@company.com",
-      "description": "Email address"
-    },
-    "phone": {
-      "type": "text",
-      "required": true,
-      "default": "+1 (555) 123-4567",
-      "description": "Phone number"
-    },
-    "website": {
+    "backgroundStyle": {
       "type": "text",
       "required": false,
-      "default": "www.company.com",
-      "description": "Website URL"
-    },
-    "company_logo": {
-      "type": "asset",
-      "required": false,
-      "description": "Company logo image"
-    },
-    "primary_color": {
-      "type": "color",
-      "required": false,
-      "default": "#2563eb",
-      "description": "Primary brand color"
-    },
-    "secondary_color": {
-      "type": "color",
-      "required": false,
-      "default": "#64748b",
-      "description": "Secondary text color"
-    },
-    "background_style": {
-      "type": "text",
-      "required": false,
-      "default": "professional minimal gradient",
-      "description": "AI background style prompt"
+      "default": "modern tech gradient",
+      "description": "Background style description"
     }
   },
   "layers": [
     {
-      "id": "ai_background",
+      "id": "ai-background",
       "type": "ai-image",
+      "visible": true,
+      "zIndex": 0,
+      "opacity": 0.8,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 350,
+        "height": 200
+      },
       "content": {
-        "prompt": "Professional business card background, ${background_style}, elegant design, high-end corporate aesthetic, subtle patterns",
-        "negativePrompt": "text, logos, names, contact information, cluttered, busy",
+        "prompt": "Professional business card background with ${backgroundStyle} style, subtle, elegant, clean corporate design, minimalist",
+        "negativePrompt": "text, letters, words, logos, cluttered, busy, noisy, distracting",
+        "fitMode": "cover",
+        "fallbackSource": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmOGZhZmMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlNWU3ZWIiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2cpIi8+PC9zdmc+",
         "aiOperation": {
           "provider": "replicate",
-          "operation": "template-edit",
+          "operation": "generate", 
           "model": "nano-banana",
           "parameters": {
             "steps": 30,
-            "seed": 42
+            "guidance_scale": 7.5,
+            "seed": 12345
           }
-        },
-        "fallbackSource": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzUwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmYWZjIi8+PC9zdmc+",
-        "fitMode": "cover"
-      },
-      "transform": {
-        "position": { "x": "0%", "y": "0%" },
-        "size": { "width": "100%", "height": "100%" },
-        "anchor": "top-left"
-      },
-      "visible": true,
-      "opacity": 0.3
-    },
-    {
-      "id": "card_background",
-      "type": "shape",
-      "content": {
-        "type": "rectangle",
-        "fill": "#ffffff",
-        "stroke": "#e2e8f0",
-        "strokeWidth": 1
-      },
-      "transform": {
-        "position": { "x": "0%", "y": "0%" },
-        "size": { "width": "100%", "height": "100%" },
-        "anchor": "top-left"
-      },
-      "visible": true,
-      "opacity": 0.9
-    },
-    {
-      "id": "accent_stripe",
-      "type": "shape",
-      "content": {
-        "type": "rectangle",
-        "fill": "$input.primary_color",
-        "stroke": "none"
-      },
-      "transform": {
-        "position": { "x": "0%", "y": "0%" },
-        "size": { "width": "100%", "height": "8%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "company_logo",
-      "type": "image",
-      "content": {
-        "source": "$input.company_logo",
-        "fit": "contain"
-      },
-      "transform": {
-        "position": { "x": "8%", "y": "20%" },
-        "size": { "width": "25%", "height": "35%" },
-        "anchor": "top-left"
-      },
-      "visible": true,
-      "conditions": [
-        {
-          "type": "hasValue",
-          "reference": "$input.company_logo"
         }
-      ]
+      }
     },
     {
-      "id": "full_name",
-      "type": "text",
-      "content": {
-        "text": "$input.full_name",
-        "font": {
-          "family": "sans-serif",
-          "size": 22,
-          "weight": "bold",
-          "style": "normal"
-        },
-        "color": "$input.primary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "40%", "y": "18%" },
-        "size": { "width": "55%", "height": "15%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "job_title",
-      "type": "text",
-      "content": {
-        "text": "$input.job_title",
-        "font": {
-          "family": "sans-serif",
-          "size": 16,
-          "weight": "normal",
-          "style": "normal"
-        },
-        "color": "$input.secondary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "40%", "y": "32%" },
-        "size": { "width": "55%", "height": "12%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "company_name",
-      "type": "text",
-      "content": {
-        "text": "$input.company_name",
-        "font": {
-          "family": "sans-serif",
-          "size": 14,
-          "weight": "normal",
-          "style": "italic"
-        },
-        "color": "$input.secondary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "40%", "y": "43%" },
-        "size": { "width": "55%", "height": "10%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "contact_separator",
+      "id": "overlay",
       "type": "shape",
-      "content": {
-        "type": "line",
-        "stroke": "#e2e8f0",
-        "strokeWidth": 1,
-        "points": [[0, 0], [280, 0]]
-      },
-      "transform": {
-        "position": { "x": "8%", "y": "60%" },
-        "size": { "width": "84%", "height": "1px" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "email_label",
-      "type": "text",
-      "content": {
-        "text": "Email:",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "bold",
-          "style": "normal"
-        },
-        "color": "$input.primary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "8%", "y": "68%" },
-        "size": { "width": "15%", "height": "8%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "email_value",
-      "type": "text",
-      "content": {
-        "text": "$input.email",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "normal",
-          "style": "normal"
-        },
-        "color": "$input.secondary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "25%", "y": "68%" },
-        "size": { "width": "70%", "height": "8%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "phone_label",
-      "type": "text",
-      "content": {
-        "text": "Phone:",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "bold",
-          "style": "normal"
-        },
-        "color": "$input.primary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "8%", "y": "78%" },
-        "size": { "width": "15%", "height": "8%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "phone_value",
-      "type": "text",
-      "content": {
-        "text": "$input.phone",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "normal",
-          "style": "normal"
-        },
-        "color": "$input.secondary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "25%", "y": "78%" },
-        "size": { "width": "35%", "height": "8%" },
-        "anchor": "top-left"
-      },
-      "visible": true
-    },
-    {
-      "id": "website_label",
-      "type": "text",
-      "content": {
-        "text": "Web:",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "bold",
-          "style": "normal"
-        },
-        "color": "$input.primary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "8%", "y": "88%" },
-        "size": { "width": "15%", "height": "8%" },
-        "anchor": "top-left"
-      },
       "visible": true,
-      "conditions": [
-        {
-          "type": "hasValue",
-          "reference": "$input.website"
-        }
-      ]
+      "zIndex": 1,
+      "opacity": 0.1,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 350,
+        "height": 200
+      },
+      "content": {
+        "fill": "#ffffff"
+      }
     },
     {
-      "id": "website_value",
+      "id": "name-text",
       "type": "text",
-      "content": {
-        "text": "$input.website",
-        "font": {
-          "family": "sans-serif",
-          "size": 11,
-          "weight": "normal",
-          "style": "normal"
-        },
-        "color": "$input.secondary_color",
-        "align": "left"
-      },
-      "transform": {
-        "position": { "x": "25%", "y": "88%" },
-        "size": { "width": "70%", "height": "8%" },
-        "anchor": "top-left"
-      },
       "visible": true,
-      "conditions": [
-        {
-          "type": "hasValue",
-          "reference": "$input.website"
-        }
-      ]
+      "zIndex": 2,
+      "transform": {
+        "x": 20,
+        "y": 40,
+        "width": 310,
+        "height": 40
+      },
+      "content": {
+        "text": "${name}",
+        "fontFamily": "Arial, sans-serif",
+        "fontSize": 24,
+        "color": "#1a1a1a",
+        "fontWeight": "bold"
+      }
     },
     {
-      "id": "corner_accent",
-      "type": "shape",
-      "content": {
-        "type": "circle",
-        "fill": "$input.primary_color",
-        "stroke": "none"
-      },
+      "id": "title-text",
+      "type": "text",
+      "visible": true,
+      "zIndex": 2,
       "transform": {
-        "position": { "x": "90%", "y": "75%" },
-        "size": { "width": "15px", "height": "15px" },
-        "anchor": "center"
+        "x": 20,
+        "y": 80,
+        "width": 310,
+        "height": 25
       },
-      "visible": true
+      "content": {
+        "text": "${title}",
+        "fontFamily": "Arial, sans-serif",
+        "fontSize": 16,
+        "color": "#666666"
+      }
+    },
+    {
+      "id": "company-text",
+      "type": "text",
+      "visible": true,
+      "zIndex": 2,
+      "transform": {
+        "x": 20,
+        "y": 105,
+        "width": 310,
+        "height": 25
+      },
+      "content": {
+        "text": "${company}",
+        "fontFamily": "Arial, sans-serif",
+        "fontSize": 14,
+        "color": "#888888"
+      }
     }
   ],
-  "outputs": {
-    "business_card": {
-      "type": "image",
+  "outputs": [
+    {
+      "id": "main",
       "format": "png",
-      "quality": 100
+      "quality": 95,
+      "dpi": 300
     }
+  ],
+  "metadata": {
+    "tags": ["business", "card", "professional", "ai-background"],
+    "category": "business",
+    "author": "Template System",
+    "createdAt": 1703980800000
   }
 }

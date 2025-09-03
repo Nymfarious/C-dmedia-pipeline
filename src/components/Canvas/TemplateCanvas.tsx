@@ -106,21 +106,35 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
     }
 
     setIsGenerating(true);
+    setAiProgress({ stage: 'initializing', progress: 0 });
+    
     try {
-      console.log('Attempting template generation...');
+      console.log('Starting template generation for:', activeTemplate.name);
+      setAiProgress({ stage: 'processing', progress: 25 });
+      
       const result = await generateTemplate();
       if (result) {
         console.log('Template generated successfully:', result);
+        setAiProgress({ stage: 'saving', progress: 75 });
+        
+        // Add to asset gallery
         addAsset(result);
-        toast.success(`Generated ${result.name} successfully`);
-        onExitTemplate?.();
+        
+        setAiProgress({ stage: 'completed', progress: 100 });
+        toast.success(`Template "${activeTemplate.name}" generated and saved to gallery!`);
+        
+        // Optional: Reset template state after successful generation
+        setTimeout(() => {
+          onExitTemplate?.();
+        }, 1000);
       } else {
         console.warn('Template generation returned null');
         toast.error('Template generation failed - no result returned');
       }
     } catch (error) {
       console.error('Template generation failed:', error);
-      toast.error(`Failed to generate template: ${error.message || 'Unknown error'}`);
+      toast.error('Generation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      setAiProgress({ stage: 'error', progress: 0 });
     } finally {
       setIsGenerating(false);
     }

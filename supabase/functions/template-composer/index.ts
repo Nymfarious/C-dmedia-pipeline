@@ -336,24 +336,80 @@ async function processAILayer(layer: LayerSpec, placement: TemplatePlacement, su
 async function renderTemplateComposite(template: TemplateSpec, placement: TemplatePlacement) {
   const startTime = Date.now()
   
-  // Create a simple base64 image as proof of concept
-  // In a real implementation, this would use a canvas library like node-canvas
   const width = template.canvas.width
   const height = template.canvas.height
+  const backgroundColor = template.canvas.backgroundColor || '#ffffff'
   
-  // For now, return a placeholder response
-  // TODO: Implement actual canvas rendering with processed AI layers
-  const placeholderImage = `data:image/svg+xml;base64,${btoa(`
+  console.log(`Rendering composite template: ${template.name} (${width}x${height})`)
+  
+  // Sort layers by zIndex to ensure proper layering
+  const sortedLayers = [...template.layers].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+  
+  // Build SVG with all layers
+  let svgElements = []
+  
+  // Background
+  svgElements.push(`<rect width="100%" height="100%" fill="${backgroundColor}"/>`)
+  
+  for (const layer of sortedLayers) {
+    if (!layer.visible && layer.visible !== undefined) continue
+    
+    const transform = layer.transform || { x: 0, y: 0, width: width, height: height }
+    const opacity = layer.opacity !== undefined ? layer.opacity : 1
+    
+    if (layer.type === 'image') {
+      const imageUrl = layer.content.source
+      if (imageUrl) {
+        console.log(`Adding image layer: ${layer.id} - ${imageUrl.substring(0, 50)}...`)
+        svgElements.push(`
+          <image x="${transform.x}" y="${transform.y}" 
+                 width="${transform.width}" height="${transform.height}"
+                 href="${imageUrl}" opacity="${opacity}"
+                 preserveAspectRatio="${layer.content.fitMode === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'}"/>
+        `)
+      }
+    } else if (layer.type === 'text') {
+      const text = layer.content.text || ''
+      const fontSize = layer.content.fontSize || 16
+      const color = layer.content.color || '#000000'
+      const fontFamily = layer.content.fontFamily || 'sans-serif'
+      
+      console.log(`Adding text layer: ${layer.id} - "${text}"`)
+      svgElements.push(`
+        <text x="${transform.x + (transform.width / 2)}" y="${transform.y + (transform.height / 2)}"
+              font-family="${fontFamily}" font-size="${fontSize}" fill="${color}"
+              text-anchor="middle" dominant-baseline="middle" opacity="${opacity}">
+          ${text}
+        </text>
+      `)
+    } else if (layer.type === 'shape') {
+      const fill = layer.content.fill || '#cccccc'
+      const stroke = layer.content.stroke || 'none'
+      const strokeWidth = layer.content.strokeWidth || 0
+      
+      console.log(`Adding shape layer: ${layer.id}`)
+      svgElements.push(`
+        <rect x="${transform.x}" y="${transform.y}" 
+              width="${transform.width}" height="${transform.height}"
+              fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}"
+              opacity="${opacity}"/>
+      `)
+    }
+  }
+  
+  // Create final SVG
+  const svg = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="${template.canvas.backgroundColor || '#ffffff'}"/>
-      <text x="50%" y="50%" font-family="sans-serif" font-size="24" fill="#333" text-anchor="middle" dy=".3em">
-        ${template.name} - Rendered
-      </text>
+      ${svgElements.join('\n')}
     </svg>
-  `)}`
+  `
+  
+  const compositeImage = `data:image/svg+xml;base64,${btoa(svg)}`
+  
+  console.log(`Template composite completed in ${Date.now() - startTime}ms`)
   
   return {
-    url: placeholderImage,
+    url: compositeImage,
     processingTime: Date.now() - startTime
   }
 }
