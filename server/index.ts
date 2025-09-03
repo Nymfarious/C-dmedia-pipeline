@@ -5,6 +5,7 @@ import unifiedRoutes from './routes/unified.js';
 import renderRoutes from './routes/render.js';
 import healthRoutes from './routes/health.js';
 import jobRoutes from './routes/jobs.js';
+import templateRoutes from './routes/templates.js';
 import { authenticateToken, rateLimitExpensive } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
@@ -43,6 +44,7 @@ app.use('/api/image', authenticateToken, rateLimitExpensive, unifiedRoutes);
 app.use('/api/video', authenticateToken, rateLimitExpensive, unifiedRoutes);
 app.use('/api/audio', authenticateToken, rateLimitExpensive, unifiedRoutes);
 app.use('/api/render', authenticateToken, rateLimitExpensive, renderRoutes);
+app.use('/api/templates', templateRoutes);
 
 // Health and monitoring (no auth required)
 app.use('/api/health', healthRoutes);

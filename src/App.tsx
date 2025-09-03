@@ -206,18 +206,26 @@ const router = createBrowserRouter([
       </AuthGuard>
     )
   },
-  {
-    path: "/image-gen-studio",
-    element: (
-      <AuthGuard>
-        <ImageGenStudioPageWrapper />
-      </AuthGuard>
-    )
-  },
-  {
-    path: "*",
-    element: <NotFound />
-  }
+   {
+     path: "/image-gen-studio",
+     element: (
+       <AuthGuard>
+         <ImageGenStudioPageWrapper />
+       </AuthGuard>
+     )
+   },
+   {
+     path: "/debug",
+     element: (
+       <AuthGuard>
+         <Debug />
+       </AuthGuard>
+     )
+   },
+   {
+     path: "*",
+     element: <NotFound />
+   }
 ]);
 
 const App = () => (
