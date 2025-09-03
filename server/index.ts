@@ -9,6 +9,7 @@ import jobLoggerRoutes from './routes/jobLogger.js';
 import templateRoutes from './routes/templates.js';
 import { authenticateToken, rateLimitExpensive } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { securityHeaders, logSecurityEvent } from './middleware/security.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -48,6 +49,7 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
+app.use(securityHeaders);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
