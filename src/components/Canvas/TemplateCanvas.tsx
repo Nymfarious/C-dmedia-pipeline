@@ -1,32 +1,50 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { X, Palette, Upload, Eye, EyeOff, RefreshCw, Wand2, Download } from 'lucide-react';
 import { useTemplateStore } from '@/store/templateStore';
-import { useAppStore } from '@/store/appStore';
-import { Asset } from '@/types/media';
+import { useAITemplateGeneration } from '@/hooks/useAITemplateGeneration';
 import { TemplateRenderer } from '@/compositor/templateRenderer';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Download, Upload, Eye, EyeOff, RefreshCw, Palette, Sparkles } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { TemplateAssetUpload } from '@/components/TemplateAssetUpload';
+import { TemplatePreviewControls } from '@/components/TemplatePreviewControls';
+import { useTemplateValidation } from '@/hooks/useTemplateValidation';
+import useAppStore from '@/store/appStore';
+import { Asset } from '@/types/media';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface TemplateCanvasProps {
   onExitTemplate?: () => void;
 }
 
 export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }) => {
-  const { activeTemplate, templateInputs, templateAssets, updateTemplateInput, assignAssetToTemplate, generateTemplate } = useTemplateStore();
-  const { assets, addAsset } = useAppStore();
+  const { 
+    activeTemplate, 
+    templateInputs, 
+    templateAssets, 
+    updateTemplateInput, 
+    assignAssetToTemplate, 
+    generateTemplate 
+  } = useTemplateStore();
+  const { addAsset } = useAppStore();
+  
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
   const [isRendering, setIsRendering] = useState(false);
-  const [aiProgress, setAiProgress] = useState(0);
+  const [aiProgress, setAiProgress] = useState<{ stage: string; progress: number } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<TemplateRenderer | null>(null);
+  
+  // Use validation hook
+  const validation = useTemplateValidation(activeTemplate, {
+    variables: templateInputs,
+    assets: templateAssets
+  });
 
   // Initialize renderer when canvas is ready
   useEffect(() => {
@@ -35,41 +53,21 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
     }
   }, []);
 
-  // Re-render template when inputs change
+  // Re-render preview when inputs change (live preview)
   useEffect(() => {
-    if (activeTemplate && rendererRef.current && previewVisible) {
-      renderPreview();
+    if (activeTemplate && rendererRef.current && showPreview) {
+      const timeoutId = setTimeout(() => {
+        renderPreview();
+      }, 100); // Small debounce for performance
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [activeTemplate, templateInputs, templateAssets, previewVisible]);
+  }, [templateInputs, templateAssets, activeTemplate, showPreview]);
 
-  // Check if template has AI layers
-  const hasAILayers = activeTemplate?.layers.some(layer => 
-    layer.type === 'ai-image' || layer.type === 'ai-text'
-  ) || false;
-
-  const renderPreview = async () => {
+  const renderPreview = useCallback(async () => {
     if (!activeTemplate || !rendererRef.current) return;
     
     setIsRendering(true);
-    
-    // Show AI progress for templates with AI layers
-    if (hasAILayers) {
-      setAiProgress(0);
-      const progressInterval = setInterval(() => {
-        setAiProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
-      
-      setTimeout(() => {
-        clearInterval(progressInterval);
-        setAiProgress(100);
-      }, 2000);
-    }
     
     try {
       const placement = {
@@ -80,16 +78,46 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
       await rendererRef.current.render(activeTemplate, placement);
     } catch (error) {
       console.error('Preview render failed:', error);
-      toast({
-        title: "Preview failed",
-        description: "Unable to render template preview",
-        variant: "destructive",
-      });
+      toast.error('Failed to render preview');
     } finally {
       setIsRendering(false);
-      if (hasAILayers) {
-        setTimeout(() => setAiProgress(0), 1000);
+    }
+  }, [activeTemplate, templateInputs, templateAssets]);
+
+  const handleAssetChange = useCallback((inputKey: string, asset: Asset | null) => {
+    if (asset) {
+      assignAssetToTemplate(inputKey, asset);
+      toast.success(`Assigned ${asset.name} to ${inputKey}`);
+    } else {
+      // Remove asset
+      const newAssets = { ...templateAssets };
+      delete newAssets[inputKey];
+      Object.keys(newAssets).forEach(key => {
+        assignAssetToTemplate(key, newAssets[key]);
+      });
+      toast.success(`Removed asset from ${inputKey}`);
+    }
+  }, [assignAssetToTemplate, templateAssets]);
+
+  const handleGenerate = async () => {
+    if (!validation.isValid) {
+      toast.error('Please fix validation errors before generating');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const result = await generateTemplate();
+      if (result) {
+        addAsset(result);
+        toast.success(`Generated ${result.name} successfully`);
+        onExitTemplate?.();
       }
+    } catch (error) {
+      console.error('Template generation failed:', error);
+      toast.error('Failed to generate template');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -101,247 +129,240 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
     );
   }
 
-  const handleAssetDrop = (inputId: string, asset: Asset) => {
-    assignAssetToTemplate(inputId, asset);
-    toast({
-      title: "Asset assigned",
-      description: `${asset.name} assigned to ${inputId}`,
-    });
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, inputId: string) => {
-    e.preventDefault();
-    const assetId = e.dataTransfer.getData('asset-id');
-    const asset = assets[assetId];
-    if (asset) {
-      handleAssetDrop(inputId, asset);
+  const renderInputField = (key: string, input: any) => {
+    const value = templateInputs[key] || input.default || '';
+    const isRequired = input.required;
+    const fieldError = validation.errors.find(error => error.field === key);
+    const hasError = !!fieldError;
+    
+    switch (input.type) {
+      case 'text':
+        return (
+          <Input
+            key={key}
+            value={value}
+            onChange={(e) => updateTemplateInput(key, e.target.value)}
+            placeholder={input.description || `Enter ${key}`}
+            className={cn("w-full", hasError && "border-destructive focus-visible:ring-destructive")}
+          />
+        );
+      
+      case 'color':
+        return (
+          <div key={key} className="flex gap-2">
+            <Input
+              type="color"
+              value={value}
+              onChange={(e) => updateTemplateInput(key, e.target.value)}
+              className="w-16 h-10 p-1 border rounded"
+            />
+            <Input
+              type="text"
+              value={value}
+              onChange={(e) => updateTemplateInput(key, e.target.value)}
+              placeholder="#000000"
+              className={cn("flex-1", hasError && "border-destructive focus-visible:ring-destructive")}
+            />
+          </div>
+        );
+      
+      case 'asset':
+        return (
+          <TemplateAssetUpload
+            key={key}
+            value={templateAssets[key]}
+            onChange={(asset) => handleAssetChange(key, asset)}
+            placeholder={input.description || `Upload or select ${key}`}
+            className={hasError ? "border-destructive" : ""}
+          />
+        );
+      
+      default:
+        return (
+          <Input
+            key={key}
+            value={value}
+            onChange={(e) => updateTemplateInput(key, e.target.value)}
+            placeholder={input.description || `Enter ${key}`}
+            className={cn("w-full", hasError && "border-destructive focus-visible:ring-destructive")}
+          />
+        );
     }
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const result = await generateTemplate();
-      if (result) {
-        addAsset(result);
-        toast({
-          title: "Template generated successfully",
-          description: `${result.name} has been added to your assets`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Generation failed",
-        description: "Failed to generate template. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const requiredInputs = Object.entries(activeTemplate.inputs).filter(([_, input]) => input.required);
-  const optionalInputs = Object.entries(activeTemplate.inputs).filter(([_, input]) => !input.required);
-  const canGenerate = requiredInputs.every(([id]) => {
-    const input = activeTemplate.inputs[id];
-    return input.type === 'asset' ? templateAssets[id] : templateInputs[id];
-  });
+  const requiredInputs = Object.entries(activeTemplate.inputs || {}).filter(([_, input]) => input.required);
+  const optionalInputs = Object.entries(activeTemplate.inputs || {}).filter(([_, input]) => !input.required);
+  const canGenerate = validation.isValid;
 
   return (
     <div className="flex h-full">
-      {/* Template Settings Panel */}
-      <ScrollArea className="w-80 border-r bg-background">
-        <div className="p-4 space-y-6">
-          {/* Template Info */}
-          <div>
+      {/* Settings Panel */}
+      <div className="w-80 border-r bg-background p-4 space-y-6 overflow-y-auto">
+        {/* Template Info */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-semibold">{activeTemplate.name}</h3>
-            <p className="text-sm text-muted-foreground">{activeTemplate.description}</p>
-            <div className="flex gap-2 mt-2">
-              <Badge variant="secondary">{activeTemplate.category}</Badge>
-              <Badge variant="outline">v{activeTemplate.version}</Badge>
+            {onExitTemplate && (
+              <Button variant="ghost" size="sm" onClick={onExitTemplate}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">{activeTemplate.description}</p>
+          <div className="flex gap-2">
+            <Badge variant="secondary">{activeTemplate.category}</Badge>
+            <Badge variant="outline">v{activeTemplate.version}</Badge>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Required Inputs */}
+        {requiredInputs.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3 text-sm uppercase tracking-wide">
+              Required Fields
+            </h4>
+            <div className="space-y-4">
+              {requiredInputs.map(([key, input]) => (
+                <div key={key} className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {input.description || key.replace('_', ' ')}
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  {renderInputField(key, input)}
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          <Separator />
-
-          {/* Required Inputs */}
-          {requiredInputs.length > 0 && (
+        {/* Optional Inputs */}
+        {optionalInputs.length > 0 && (
+          <>
+            <Separator />
             <div>
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <span className="text-destructive">*</span>
-                Required Fields
-                {hasAILayers && (
-                  <Badge variant="secondary" className="ml-auto">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    AI Enhanced
-                  </Badge>
-                )}
+              <h4 className="font-medium mb-3 text-sm uppercase tracking-wide flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Optional Fields
               </h4>
               <div className="space-y-4">
-                {requiredInputs.map(([id, input]) => (
-                  <div key={id} className="space-y-2">
-                    <Label htmlFor={id} className="text-sm font-medium">
-                      {input.description || id.replace('_', ' ')}
-                      <span className="text-destructive ml-1">*</span>
+                {optionalInputs.map(([key, input]) => (
+                  <div key={key} className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {input.description || key.replace('_', ' ')}
                     </Label>
-                    {renderInputField(id, input, true)}
+                    {renderInputField(key, input)}
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </>
+        )}
 
-          {/* Optional Inputs */}
-          {optionalInputs.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <h4 className="font-medium mb-3 flex items-center gap-2">
-                  <Palette className="w-4 h-4" />
-                  Optional Fields
-                </h4>
-                <div className="space-y-4">
-                  {optionalInputs.map(([id, input]) => (
-                    <div key={id} className="space-y-2">
-                      <Label htmlFor={`opt-${id}`} className="text-sm font-medium">
-                        {input.description || id.replace('_', ' ')}
-                      </Label>
-                      {renderInputField(id, input, false)}
-                    </div>
+        <Separator />
+
+        {/* Actions */}
+        <div className="space-y-4">
+          <TemplatePreviewControls
+            showPreview={showPreview}
+            onTogglePreview={() => setShowPreview(!showPreview)}
+            onRefresh={renderPreview}
+            isRendering={isRendering}
+            templateName={activeTemplate.name}
+            canvasSize={activeTemplate.canvas}
+          />
+          
+          {validation.errors.length > 0 && (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="p-3">
+                <p className="text-sm font-medium text-destructive mb-2">Issues Found:</p>
+                <ul className="text-sm text-destructive space-y-1">
+                  {validation.errors.map((error, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="w-1 h-1 bg-destructive rounded-full" />
+                      {error.message}
+                    </li>
                   ))}
-                </div>
-              </div>
-            </>
+                </ul>
+              </CardContent>
+            </Card>
           )}
-
-          <Separator />
-
-          {/* Actions */}
-          <div className="space-y-3">
-            <Button
-              onClick={handleGenerate}
-              disabled={!canGenerate || isGenerating}
-              className="w-full"
-              size="lg"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {isGenerating ? "Generating..." : "Generate Template"}
-            </Button>
-            
-            {!canGenerate && (
-              <p className="text-sm text-destructive text-center">
-                Please fill all required fields to generate
-              </p>
-            )}
-
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setPreviewVisible(!previewVisible)} 
-                className="flex-1"
-                size="sm"
-              >
-                {previewVisible ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                {previewVisible ? "Hide" : "Show"} Preview
-              </Button>
-
-              <Button 
-                variant="outline" 
-                onClick={renderPreview} 
-                disabled={isRendering}
-                size="sm"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRendering ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-
-            {onExitTemplate && (
-              <Button variant="ghost" onClick={onExitTemplate} className="w-full">
-                Exit Template Mode
-              </Button>
-            )}
-          </div>
+          
+          {validation.warnings.length > 0 && (
+            <Card className="border-yellow-500/50 bg-yellow-500/5">
+              <CardContent className="p-3">
+                <p className="text-sm font-medium text-yellow-600 mb-2">Warnings:</p>
+                <ul className="text-sm text-yellow-600 space-y-1">
+                  {validation.warnings.map((warning, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="w-1 h-1 bg-yellow-500 rounded-full" />
+                      {warning.message}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          
+          <Button 
+            onClick={handleGenerate} 
+            disabled={!canGenerate || isGenerating}
+            className="w-full"
+            variant={canGenerate ? "default" : "secondary"}
+          >
+            <Wand2 className="h-4 w-4 mr-2" />
+            {isGenerating ? 'Generating...' : 'Generate Template'}
+          </Button>
         </div>
-      </ScrollArea>
+      </div>
 
-      {/* Template Preview */}
-      <div className="flex-1 bg-muted/30 flex flex-col">
-        {previewVisible ? (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <Card className="p-6 bg-background shadow-lg">
-              <div className="text-center space-y-4">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <h3 className="text-lg font-medium">Live Preview</h3>
-                  {isRendering && (
-                    <RefreshCw className="w-4 h-4 animate-spin text-primary" />
-                  )}
-                </div>
-                
-                <div 
-                  className="border rounded-lg bg-white shadow-sm mx-auto relative overflow-hidden"
-                  style={{
-                    width: `${Math.min(activeTemplate.canvas.width, 600)}px`,
-                    height: `${Math.min(activeTemplate.canvas.height, 400)}px`,
-                    aspectRatio: `${activeTemplate.canvas.width} / ${activeTemplate.canvas.height}`
-                  }}
-                >
+      {/* Preview Area */}
+      <div className="flex-1 flex flex-col">
+        {showPreview ? (
+          <div className="flex-1 flex items-center justify-center p-8 bg-muted/20">
+            <Card className="bg-background shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-center text-lg">Live Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
                   <canvas
                     ref={canvasRef}
                     width={activeTemplate.canvas.width}
                     height={activeTemplate.canvas.height}
-                    className="w-full h-full"
-                    style={{ 
-                      backgroundColor: activeTemplate.canvas.backgroundColor || '#ffffff',
-                      imageRendering: 'auto'
+                    className="rounded-lg shadow-sm border"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '60vh',
+                      width: 'auto',
+                      height: 'auto',
+                      backgroundColor: activeTemplate.canvas.backgroundColor || '#ffffff'
                     }}
                   />
                   
                   {isRendering && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
                       <div className="text-center space-y-3">
-                        {hasAILayers ? (
-                          <>
-                            <LoadingSpinner className="w-6 h-6 mx-auto" />
-                            <div>
-                              <p className="text-sm font-medium">Generating AI Content</p>
-                              <p className="text-xs text-muted-foreground">Processing AI layers...</p>
-                            </div>
-                            {aiProgress > 0 && (
-                              <div className="w-32 bg-muted rounded-full h-2 mx-auto">
-                                <div 
-                                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${aiProgress}%` }}
-                                />
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
-                            <p className="text-sm text-muted-foreground">Rendering...</p>
-                          </>
-                        )}
+                        <RefreshCw className="h-6 w-6 animate-spin mx-auto text-primary" />
+                        <p className="text-sm text-muted-foreground">Rendering...</p>
                       </div>
                     </div>
                   )}
                 </div>
                 
-                <div className="text-xs text-muted-foreground space-y-1">
+                <div className="text-xs text-muted-foreground text-center mt-4 space-y-1">
                   <p>Canvas: {activeTemplate.canvas.width} × {activeTemplate.canvas.height}px</p>
-                  <p>Updates automatically as you make changes</p>
+                  <p>Updates live as you make changes</p>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-muted/20">
             <div className="text-center text-muted-foreground">
-              <Eye className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Preview hidden</p>
+              <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium mb-2">Preview Hidden</p>
               <p className="text-sm">Click "Show Preview" to see your template</p>
             </div>
           </div>
@@ -349,96 +370,4 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
       </div>
     </div>
   );
-
-  function renderInputField(id: string, input: any, isRequired: boolean) {
-    const fieldId = isRequired ? id : `opt-${id}`;
-    
-    if (input.type === 'text') {
-      return (
-        <Input
-          id={fieldId}
-          value={templateInputs[id] || input.default || ''}
-          onChange={(e) => updateTemplateInput(id, e.target.value)}
-          placeholder={`Enter ${id.replace('_', ' ')}`}
-          className={isRequired && !templateInputs[id] ? 'border-destructive' : ''}
-        />
-      );
-    }
-    
-    if (input.type === 'color') {
-      return (
-        <div className="flex gap-2">
-          <Input
-            id={fieldId}
-            type="color"
-            value={templateInputs[id] || input.default || '#000000'}
-            onChange={(e) => updateTemplateInput(id, e.target.value)}
-            className="w-16 h-10 p-1 rounded cursor-pointer"
-          />
-          <Input
-            value={templateInputs[id] || input.default || '#000000'}
-            onChange={(e) => updateTemplateInput(id, e.target.value)}
-            placeholder="Color value"
-            className="flex-1"
-          />
-        </div>
-      );
-    }
-    
-    if (input.type === 'asset') {
-      const hasAsset = !!templateAssets[id];
-      
-      return (
-        <div
-          className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all duration-200 ${
-            hasAsset 
-              ? 'border-primary bg-primary/5' 
-              : isRequired && !hasAsset
-                ? 'border-destructive bg-destructive/5 hover:border-destructive/70'
-                : 'border-border hover:border-primary hover:bg-primary/5'
-          }`}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, id)}
-        >
-          {hasAsset ? (
-            <div className="space-y-3">
-              <div className="relative">
-                <img
-                  src={templateAssets[id].src}
-                  alt={templateAssets[id].name}
-                  className="w-20 h-20 object-cover rounded-lg mx-auto border shadow-sm"
-                />
-                <Badge 
-                  variant="secondary" 
-                  className="absolute -top-2 -right-2 text-xs"
-                >
-                  ✓
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium truncate">{templateAssets[id].name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {templateAssets[id].type} • Click to replace
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Upload className={`w-8 h-8 mx-auto ${isRequired ? 'text-destructive' : 'text-muted-foreground'}`} />
-              <div>
-                <p className={`text-sm font-medium ${isRequired ? 'text-destructive' : 'text-foreground'}`}>
-                  Drop {input.description || 'asset'} here
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Drag from gallery or click to browse
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-    
-    return null;
-  }
 };

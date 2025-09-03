@@ -38,6 +38,9 @@ export class TemplateRenderer {
     for (const layer of template.layers) {
       if (!layer.visible) continue;
       
+      // Check layer conditions
+      if (!this.checkLayerConditions(layer, placement)) continue;
+      
       await this.renderLayer(layer, template, placement);
     }
   }
@@ -62,7 +65,7 @@ export class TemplateRenderer {
     try {
       switch (layer.type) {
         case 'shape':
-          this.renderShape(layer, position, size);
+          this.renderShape(layer, position, size, placement);
           break;
         case 'text':
           this.renderText(layer, position, size, placement);
@@ -87,18 +90,23 @@ export class TemplateRenderer {
     ctx.globalAlpha = previousAlpha;
   }
 
-  private renderShape(layer: any, position: { x: number; y: number }, size: { width: number; height: number }): void {
+  private renderShape(
+    layer: any, 
+    position: { x: number; y: number }, 
+    size: { width: number; height: number },
+    placement: TemplatePlacement
+  ): void {
     const { ctx } = this;
     const { content } = layer;
 
     ctx.save();
 
     if (content.fill) {
-      ctx.fillStyle = content.fill;
+      ctx.fillStyle = this.resolveVariable(content.fill, placement);
     }
 
     if (content.stroke) {
-      ctx.strokeStyle = content.stroke;
+      ctx.strokeStyle = this.resolveVariable(content.stroke, placement);
       ctx.lineWidth = content.strokeWidth || 1;
     }
 
@@ -162,11 +170,7 @@ export class TemplateRenderer {
     ctx.save();
 
     // Get text content (replace variables)
-    let text = content.text || '';
-    if (text.startsWith('$input.')) {
-      const inputKey = text.substring(7); // Remove '$input.'
-      text = placement.variables[inputKey] || content.text || '';
-    }
+    let text = this.resolveVariable(content.text || '', placement);
 
     // Set font
     const fontSize = content.font?.size || 16;
@@ -175,7 +179,10 @@ export class TemplateRenderer {
     const fontStyle = content.font?.style || 'normal';
     
     ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
-    ctx.fillStyle = content.color || '#000000';
+    
+    // Resolve color variables
+    const color = this.resolveVariable(content.color || '#000000', placement);
+    ctx.fillStyle = color;
     ctx.textAlign = content.align || 'left';
 
     // Handle text transforms
@@ -387,6 +394,41 @@ export class TemplateRenderer {
     }
 
     return lines;
+  }
+
+  // Enhanced variable resolution
+  private resolveVariable(value: string, placement: TemplatePlacement): string {
+    if (!value || typeof value !== 'string') return value;
+    
+    // Handle $input.variable_name references
+    if (value.startsWith('$input.')) {
+      const inputKey = value.substring(7);
+      return placement.variables[inputKey] || value;
+    }
+    
+    // Handle embedded variables in strings like "rgba($input.color, 0.5)"
+    return value.replace(/\$input\.([a-zA-Z_][a-zA-Z0-9_]*)/g, (match, inputKey) => {
+      return placement.variables[inputKey] || match;
+    });
+  }
+
+  // Check layer conditions (like hasValue)
+  private checkLayerConditions(layer: any, placement: TemplatePlacement): boolean {
+    if (!layer.conditions || !Array.isArray(layer.conditions)) return true;
+    
+    return layer.conditions.every((condition: any) => {
+      switch (condition.type) {
+        case 'hasValue':
+          if (condition.reference?.startsWith('$input.')) {
+            const inputKey = condition.reference.substring(7);
+            const value = placement.variables[inputKey] || placement.assets[inputKey];
+            return value !== undefined && value !== null && value !== '';
+          }
+          return true;
+        default:
+          return true;
+      }
+    });
   }
 
   private async renderAIImage(
