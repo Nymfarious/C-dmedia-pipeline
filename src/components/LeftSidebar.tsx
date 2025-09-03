@@ -58,6 +58,14 @@ export function LeftSidebar({
   const { deleteCanvas, setActiveCanvas } = useAppStore();
   const [showProjectModal, setShowProjectModal] = React.useState(false);
   
+  // Enhanced canvas management
+  const emptyCanvases = canvases.filter(canvas => !canvas.asset);
+  const hasEmptyCanvases = emptyCanvases.length > 0;
+  
+  const handleBulkDeleteEmpty = () => {
+    emptyCanvases.forEach(canvas => deleteCanvas(canvas.id));
+  };
+  
   const getCanvasIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-4 w-4" />;
@@ -154,9 +162,22 @@ export function LeftSidebar({
             <div className="flex-1 overflow-hidden">
               <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-foreground">
-                    Active Canvases ({canvases.length})
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-foreground">
+                      Active Canvases ({canvases.length})
+                    </h3>
+                    {hasEmptyCanvases && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleBulkDeleteEmpty}
+                        className="text-xs text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Clear Empty ({emptyCanvases.length})
+                      </Button>
+                    )}
+                  </div>
                   {onOpenAIModal && (
                     <Button
                       variant="ghost"
@@ -171,7 +192,7 @@ export function LeftSidebar({
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 px-4">
+              <ScrollArea className="flex-1 px-4 max-h-[400px]">
                 <div className="space-y-2 pb-4">
                   {sortedCanvases.map((canvas) => (
                     <Card
@@ -213,12 +234,19 @@ export function LeftSidebar({
                               <h3 className="text-sm font-medium text-foreground truncate">
                                 {canvas.name}
                               </h3>
-                              <Badge 
-                                variant="outline" 
-                                className={cn("text-xs", getCanvasTypeColor(canvas.type))}
-                              >
-                                {canvas.type}
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn("text-xs", getCanvasTypeColor(canvas.type))}
+                                >
+                                  {canvas.type}
+                                </Badge>
+                                {!canvas.asset && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Empty
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center text-xs text-muted-foreground">
                               <Clock className="h-3 w-3 mr-1" />

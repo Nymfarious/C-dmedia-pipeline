@@ -56,6 +56,7 @@ export interface ImageGenParams {
   width?: number;
   height?: number;
   steps?: number;
+  image?: string; // For template compositing and image-to-image operations
 }
 
 export interface ImageEditParams { 

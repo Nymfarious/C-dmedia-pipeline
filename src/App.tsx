@@ -13,6 +13,7 @@ import { AssetsPage } from './components/AssetsPage';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
+import { useCanvasAutoCleanup } from '@/hooks/useCanvasAutoCleanup';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Debug } from "./pages/Debug";
@@ -28,6 +29,7 @@ const queryClient = new QueryClient({
 
 function AppWrapper() {
   const isHydrating = useAppBootstrap();
+  useCanvasAutoCleanup();
 
   if (isHydrating) {
     return (

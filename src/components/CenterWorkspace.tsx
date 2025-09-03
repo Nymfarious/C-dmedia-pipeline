@@ -126,7 +126,7 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
   
 
   return (
-    <div className="flex-1 bg-stage-bg p-4 relative overflow-hidden">
+    <div className="flex-1 bg-stage-bg p-4 relative overflow-auto">
       {currentCanvas.type === 'image' && (
         <ImageCanvas 
           asset={currentCanvas.asset}

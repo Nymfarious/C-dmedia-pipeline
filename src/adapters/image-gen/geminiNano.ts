@@ -16,8 +16,10 @@ export const geminiNanoAdapter: ImageGenAdapter = {
         body: JSON.stringify({
           provider: 'replicate',
           model: modelString,
-          operation: 'generate',
+          operation: 'unified-edit',
           input: {
+            instruction: params.prompt,
+            image: params.image || null, // Add support for template input images
             prompt: params.prompt,
             width: params.width || 1024,
             height: params.height || 1024,

@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { EditPanel } from './EditPanel';
 import { 
   Layers, 
@@ -42,8 +43,9 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-auto">
-          <TabsContent value="edit" className="m-0 p-4">
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="edit" className="m-0 h-full">
+            <ScrollArea className="h-full p-4">
             {selectedAsset ? (
               <EditPanel 
                 selectedAsset={selectedAsset}
@@ -54,9 +56,11 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
                 Select an asset to edit
               </div>
             )}
+            </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="layers" className="m-0 p-4">
+          <TabsContent value="layers" className="m-0 h-full">
+            <ScrollArea className="h-full p-4">
             <div className="space-y-2">
               <h3 className="font-semibold text-sm text-foreground mb-3">Layers</h3>
               
@@ -120,10 +124,11 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
                 </CardContent>
               </Card>
             </div>
+            </ScrollArea>
           </TabsContent>
 
-
-          <TabsContent value="properties" className="m-0 p-4">
+          <TabsContent value="properties" className="m-0 h-full">
+            <ScrollArea className="h-full p-4">
             <div className="space-y-4">
               <h3 className="font-semibold text-sm text-foreground">Properties</h3>
               <div className="space-y-3">
@@ -142,6 +147,7 @@ export function RightSidebar({ selectedAsset, onEditComplete }: RightSidebarProp
                 </div>
               </div>
             </div>
+            </ScrollArea>
           </TabsContent>
         </div>
       </Tabs>

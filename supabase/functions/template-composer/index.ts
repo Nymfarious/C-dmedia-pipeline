@@ -174,18 +174,38 @@ async function processAILayer(layer: LayerSpec, placement: TemplatePlacement, su
       let aiResult
       
       if (aiOp.provider.includes('replicate')) {
-        aiResult = await supabase.functions.invoke('replicate-enhanced', {
-          body: {
-            operation: aiOp.operation,
-            model: aiOp.model || 'flux-schnell',
-            input: {
-              prompt: resolvedPrompt,
-              negative_prompt: content.negativePrompt || '',
-              num_outputs: 1,
-              ...aiOp.parameters
+        // Handle Nano Banana template compositing through Replicate
+        if (aiOp.model === 'nano-banana' || aiOp.operation === 'template-edit') {
+          aiResult = await supabase.functions.invoke('replicate-enhanced', {
+            body: {
+              provider: 'replicate',
+              model: 'simbrams/nano-banana',
+              operation: 'unified-edit',
+              input: {
+                instruction: resolvedPrompt,
+                image: content.sourceImage || placement.assets?.sourceImage?.src,
+                negative_prompt: content.negativePrompt || 'blurred, distorted, artifacts',
+                steps: 30,
+                seed: aiOp.parameters?.seed,
+                num_outputs: 1,
+                ...aiOp.parameters
+              }
             }
-          }
-        })
+          })
+        } else {
+          aiResult = await supabase.functions.invoke('replicate-enhanced', {
+            body: {
+              operation: aiOp.operation,
+              model: aiOp.model || 'flux-schnell',
+              input: {
+                prompt: resolvedPrompt,
+                negative_prompt: content.negativePrompt || '',
+                num_outputs: 1,
+                ...aiOp.parameters
+              }
+            }
+          })
+        }
       } else if (aiOp.provider.includes('openai')) {
         aiResult = await supabase.functions.invoke('openai-image', {
           body: {

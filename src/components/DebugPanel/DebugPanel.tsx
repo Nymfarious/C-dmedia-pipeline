@@ -54,21 +54,29 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
               </TabsTrigger>
             </TabsList>
 
-            <div className="px-4 h-full">
+            <div className="px-4 h-full overflow-hidden">
               <TabsContent value="health" className="h-full">
-                <AdapterHealthView />
+                <ScrollArea className="h-full">
+                  <AdapterHealthView />
+                </ScrollArea>
               </TabsContent>
               
               <TabsContent value="jobs" className="h-full">
-                <JobHistoryView />
+                <ScrollArea className="h-full">
+                  <JobHistoryView />
+                </ScrollArea>
               </TabsContent>
               
               <TabsContent value="logs" className="h-full">
-                <StepLogsView />
+                <ScrollArea className="h-full">
+                  <StepLogsView />
+                </ScrollArea>
               </TabsContent>
               
               <TabsContent value="cache" className="h-full">
-                <CacheView />
+                <ScrollArea className="h-full">
+                  <CacheView />
+                </ScrollArea>
               </TabsContent>
             </div>
           </Tabs>
