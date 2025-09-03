@@ -17,6 +17,8 @@ import useAppStore from '@/store/appStore';
 import { Asset } from '@/types/media';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AIPromptInput } from './AIPromptInput';
+import { Sparkles } from 'lucide-react';
 
 interface TemplateCanvasProps {
   onExitTemplate?: () => void;
@@ -185,32 +187,50 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
           </div>
         );
       
-      case 'asset':
-        return (
-          <TemplateAssetUpload
-            key={key}
-            value={templateAssets[key]}
-            onChange={(asset) => handleAssetChange(key, asset)}
-            placeholder={input.description || `Upload or select ${key}`}
-            className={hasError ? "border-destructive" : ""}
-          />
-        );
-      
-      default:
-        return (
-          <Input
-            key={key}
-            value={value}
-            onChange={(e) => updateTemplateInput(key, e.target.value)}
-            placeholder={input.description || `Enter ${key}`}
-            className={cn("w-full", hasError && "border-destructive focus-visible:ring-destructive")}
-          />
-        );
+        case 'asset':
+          return (
+            <TemplateAssetUpload
+              key={key}
+              value={templateAssets[key]}
+              onChange={(asset) => handleAssetChange(key, asset)}
+              placeholder={input.description || `Upload or select ${key}`}
+              className={hasError ? "border-destructive" : ""}
+            />
+          );
+        
+        case 'ai-prompt':
+        case 'ai-style':
+        case 'ai-negative':
+        case 'ai-params':
+          return (
+            <AIPromptInput
+              key={key}
+              inputKey={key}
+              input={input}
+              value={value}
+              onChange={(newValue) => updateTemplateInput(key, newValue)}
+              error={fieldError?.message}
+            />
+          );
+        
+        default:
+          return (
+            <Input
+              key={key}
+              value={value}
+              onChange={(e) => updateTemplateInput(key, e.target.value)}
+              placeholder={input.description || `Enter ${key}`}
+              className={cn("w-full", hasError && "border-destructive focus-visible:ring-destructive")}
+            />
+          );
     }
   };
 
   const requiredInputs = Object.entries(activeTemplate.inputs || {}).filter(([_, input]) => input.required);
   const optionalInputs = Object.entries(activeTemplate.inputs || {}).filter(([_, input]) => !input.required);
+  const aiInputs = Object.entries(activeTemplate.inputs || {}).filter(([_, input]) => 
+    input.type.startsWith('ai-')
+  );
   const canGenerate = validation.isValid;
 
   return (
@@ -237,13 +257,13 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
         <Separator />
 
         {/* Required Inputs */}
-        {requiredInputs.length > 0 && (
+        {requiredInputs.filter(([_, input]) => !input.type.startsWith('ai-')).length > 0 && (
           <div>
             <h4 className="font-medium mb-3 text-sm uppercase tracking-wide">
               Required Fields
             </h4>
             <div className="space-y-4">
-              {requiredInputs.map(([key, input]) => (
+              {requiredInputs.filter(([_, input]) => !input.type.startsWith('ai-')).map(([key, input]) => (
                 <div key={key} className="space-y-2">
                   <Label className="text-sm font-medium">
                     {input.description || key.replace('_', ' ')}
@@ -256,8 +276,30 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
           </div>
         )}
 
+        {/* AI Customization */}
+        {aiInputs.length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h4 className="font-medium text-sm uppercase tracking-wide">
+                  AI Customization
+                </h4>
+              </div>
+              <div className="space-y-4">
+                {aiInputs.map(([key, input]) => (
+                  <div key={key}>
+                    {renderInputField(key, input)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Optional Inputs */}
-        {optionalInputs.length > 0 && (
+        {optionalInputs.filter(([_, input]) => !input.type.startsWith('ai-')).length > 0 && (
           <>
             <Separator />
             <div>
@@ -266,7 +308,7 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
                 Optional Fields
               </h4>
               <div className="space-y-4">
-                {optionalInputs.map(([key, input]) => (
+                {optionalInputs.filter(([_, input]) => !input.type.startsWith('ai-')).map(([key, input]) => (
                   <div key={key} className="space-y-2">
                     <Label className="text-sm font-medium">
                       {input.description || key.replace('_', ' ')}

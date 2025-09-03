@@ -11,10 +11,12 @@ export interface TemplateSpec {
 }
 
 export interface TemplateInput {
-  type: 'text' | 'asset' | 'color' | 'number';
+  type: 'text' | 'asset' | 'color' | 'number' | 'ai-prompt' | 'ai-style' | 'ai-negative' | 'ai-params';
   required?: boolean;
   default?: any;
   description?: string;
+  options?: string[]; // For style dropdown options
+  placeholder?: string; // For prompt textarea placeholder
 }
 
 export interface TemplateOutput {

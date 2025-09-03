@@ -11,16 +11,20 @@ export async function generateTemplateWithAI(
   const { supabase } = await import('@/integrations/supabase/client');
   
   try {
+    // Process AI prompt inputs and merge with template prompts
+    const processedPlacement = processAIPrompts(template, placement);
+    
     console.log('Calling template-composer with:', { 
       templateName: template.name,
       hasAssets: Object.keys(placement.assets || {}).length > 0,
-      variables: Object.keys(placement.variables || {})
+      variables: Object.keys(placement.variables || {}),
+      aiPrompts: processedPlacement.aiPrompts
     });
 
     const { data, error } = await supabase.functions.invoke('template-composer', {
       body: {
         template,
-        placement,
+        placement: processedPlacement,
         options: {
           format: template.canvas?.format || 'png',
           quality: 95,
@@ -61,4 +65,67 @@ export async function generateTemplateWithAI(
     console.error('AI template generation error:', error);
     throw error;
   }
+}
+
+/**
+ * Process AI prompt inputs and merge with template layer prompts
+ */
+function processAIPrompts(
+  template: TemplateSpec,
+  placement: { variables?: Record<string, any>; assets?: Record<string, Asset> }
+): { variables?: Record<string, any>; assets?: Record<string, Asset>; aiPrompts?: Record<string, string> } {
+  const variables = placement.variables || {};
+  const aiPrompts: Record<string, string> = {};
+
+  // Extract AI-related inputs
+  const userPrompt = variables['ai_prompt'] || '';
+  const userStyle = variables['ai_style'] || '';
+  const negativePrompt = variables['ai_negative'] || '';
+  const aiParams = variables['ai_params'] || {};
+
+  // Process each AI layer in the template
+  template.layers.forEach(layer => {
+    if (layer.type === 'ai-image') {
+      const layerContent = layer.content as any;
+      let finalPrompt = layerContent.prompt || '';
+
+      // Merge user prompt with template prompt
+      if (userPrompt) {
+        finalPrompt = userPrompt + (finalPrompt ? `, ${finalPrompt}` : '');
+      }
+
+      // Apply style modifiers
+      if (userStyle) {
+        const styleModifiers = {
+          'realistic': 'photorealistic, high detail, natural lighting',
+          'artistic': 'artistic, creative, expressive style',
+          'corporate': 'professional, clean, business style',
+          'creative': 'bold, innovative, creative design',
+          'minimal': 'minimalist, simple, clean aesthetic',
+          'vibrant': 'vibrant colors, energetic, colorful',
+          'vintage': 'vintage style, classic, timeless',
+          'abstract': 'abstract art, non-representational'
+        };
+        
+        const styleText = styleModifiers[userStyle] || userStyle;
+        finalPrompt += `, ${styleText}`;
+      }
+
+      // Add quality enhancers
+      finalPrompt += ', high quality, detailed';
+
+      // Store the processed prompt
+      aiPrompts[layer.id] = finalPrompt;
+    }
+  });
+
+  return {
+    variables: {
+      ...variables,
+      negative_prompt: negativePrompt,
+      ...aiParams
+    },
+    assets: placement.assets,
+    aiPrompts
+  };
 }

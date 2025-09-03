@@ -34,6 +34,25 @@
       "required": false,
       "default": "modern tech gradient",
       "description": "Background style description"
+    },
+    "ai_prompt": {
+      "type": "ai-prompt",
+      "required": false,
+      "default": "Professional business background with subtle geometric patterns",
+      "description": "AI Background Description",
+      "placeholder": "Describe the background style you want (e.g., modern office, abstract patterns, nature themed)"
+    },
+    "ai_style": {
+      "type": "ai-style",
+      "required": false,
+      "default": "corporate",
+      "description": "Background Style"
+    },
+    "ai_negative": {
+      "type": "ai-negative",
+      "required": false,
+      "default": "text, logos, people, cluttered",
+      "description": "Avoid in Background"
     }
   },
   "layers": [
