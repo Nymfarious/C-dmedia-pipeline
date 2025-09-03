@@ -15,6 +15,7 @@ import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenS
 import useAppStore from './store/appStore';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { Debug } from "./pages/Debug";
 
 // Create singleton QueryClient
 const queryClient = new QueryClient({

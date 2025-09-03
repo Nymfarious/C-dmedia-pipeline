@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import replicateRoutes from './routes/replicate.js';
 import unifiedRoutes from './routes/unified.js';
+import renderRoutes from './routes/render.js';
+import healthRoutes from './routes/health.js';
+import jobRoutes from './routes/jobs.js';
 import { authenticateToken, rateLimitExpensive } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
@@ -39,6 +42,11 @@ app.use('/api/replicate', authenticateToken, rateLimitExpensive, replicateRoutes
 app.use('/api/image', authenticateToken, rateLimitExpensive, unifiedRoutes);
 app.use('/api/video', authenticateToken, rateLimitExpensive, unifiedRoutes);
 app.use('/api/audio', authenticateToken, rateLimitExpensive, unifiedRoutes);
+app.use('/api/render', authenticateToken, rateLimitExpensive, renderRoutes);
+
+// Health and monitoring (no auth required)
+app.use('/api/health', healthRoutes);
+app.use('/api/jobs', authenticateToken, jobRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
