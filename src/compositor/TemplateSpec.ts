@@ -33,12 +33,12 @@ export interface CanvasSpec {
 
 export interface LayerSpec {
   id: string;
-  type: 'image' | 'text' | 'shape' | 'mask';
+  type: 'image' | 'text' | 'shape' | 'mask' | 'ai-image' | 'ai-text';
   visible?: boolean;
   opacity?: number;
   blendMode?: BlendMode;
   transform?: TransformSpec;
-  content: ImageLayerContent | TextLayerContent | ShapeLayerContent | MaskLayerContent;
+  content: ImageLayerContent | TextLayerContent | ShapeLayerContent | MaskLayerContent | AIImageLayerContent | AITextLayerContent;
 }
 
 export interface TransformSpec {
@@ -82,6 +82,33 @@ export interface MaskLayerContent {
   source: string; // Image or SVG for masking
   inverted?: boolean;
   feather?: number;
+}
+
+export interface AIImageLayerContent {
+  prompt: string; // Can include placeholders like ${prompt}
+  negativePrompt?: string;
+  aiOperation: AIOperation;
+  fallbackSource?: string; // Fallback image if AI generation fails
+  placeholder?: string; // Placeholder text during generation
+}
+
+export interface AITextLayerContent {
+  prompt: string; // AI prompt for text generation
+  aiOperation: AIOperation;
+  font: FontSpec;
+  color: string;
+  alignment: TextAlignment;
+  fallbackText?: string; // Fallback text if AI generation fails
+  maxLength?: number;
+}
+
+export interface AIOperation {
+  provider: string; // e.g., "replicate.nano-banana", "openai.dall-e"
+  operation: string; // e.g., "generate", "edit", "text-generation"
+  model?: string; // Specific model variant
+  parameters?: Record<string, any>; // AI-specific parameters
+  cache?: boolean; // Whether to cache AI results
+  retries?: number; // Number of retries for AI operations
 }
 
 export interface FontSpec {

@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.openai-text]
 verify_jwt = false
+
+[functions.template-composer]
+verify_jwt = true

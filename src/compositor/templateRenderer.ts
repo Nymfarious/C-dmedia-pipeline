@@ -70,6 +70,12 @@ export class TemplateRenderer {
         case 'image':
           await this.renderImage(layer, position, size, placement);
           break;
+        case 'ai-image':
+          await this.renderAIImage(layer, position, size, placement);
+          break;
+        case 'ai-text':
+          this.renderAIText(layer, position, size, placement);
+          break;
         default:
           console.warn(`Unsupported layer type: ${layer.type}`);
       }
@@ -383,8 +389,71 @@ export class TemplateRenderer {
     return lines;
   }
 
-  // Generate final asset from template
+  private async renderAIImage(
+    layer: any, 
+    position: { x: number; y: number }, 
+    size: { width: number; height: number },
+    placement: TemplatePlacement
+  ): Promise<void> {
+    const { ctx } = this;
+    const { content } = layer;
+    
+    // Show loading placeholder during AI generation
+    ctx.save();
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(position.x, position.y, size.width, size.height);
+    ctx.strokeStyle = '#e9ecef';
+    ctx.strokeRect(position.x, position.y, size.width, size.height);
+    
+    // Add loading icon
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generating...', position.x + size.width / 2, position.y + size.height / 2);
+    ctx.restore();
+
+    // If this is already processed (from backend), render the generated image
+    if (layer.metadata?.aiGenerated && content.source) {
+      await this.renderImage(layer, position, size, placement);
+    }
+  }
+
+  private renderAIText(
+    layer: any, 
+    position: { x: number; y: number }, 
+    size: { width: number; height: number },
+    placement: TemplatePlacement
+  ): void {
+    const { ctx } = this;
+    const { content } = layer;
+    
+    // If this is already processed (from backend), render the generated text
+    if (layer.metadata?.aiGenerated) {
+      this.renderText(layer, position, size, placement);
+    } else {
+      // Show loading placeholder for AI text generation
+      ctx.save();
+      ctx.fillStyle = '#6c757d';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Generating text...', position.x + size.width / 2, position.y + size.height / 2);
+      ctx.restore();
+    }
+  }
+
+  // Generate final asset from template (with AI integration)
   async generateAsset(template: TemplateSpec, placement: TemplatePlacement): Promise<Asset> {
+    // Check if template has AI layers that need backend processing
+    const hasAILayers = template.layers.some(layer => 
+      layer.type === 'ai-image' || layer.type === 'ai-text'
+    );
+
+    if (hasAILayers) {
+      // Use backend template composer for AI processing
+      return this.generateAssetWithAI(template, placement);
+    }
+
+    // Standard template rendering for non-AI templates
     await this.render(template, placement);
     
     return new Promise((resolve) => {
@@ -412,5 +481,52 @@ export class TemplateRenderer {
         resolve(asset);
       }, 'image/png');
     });
+  }
+
+  private async generateAssetWithAI(template: TemplateSpec, placement: TemplatePlacement): Promise<Asset> {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('template-composer', {
+        body: {
+          template,
+          placement,
+          options: {
+            format: template.canvas.format || 'png',
+            quality: 95
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(`AI template generation failed: ${error.message}`);
+      }
+
+      if (!data?.output) {
+        throw new Error('No output received from AI template generation');
+      }
+
+      return {
+        id: `ai_template_${Date.now()}`,
+        type: 'image',
+        name: `${template.name} - AI Generated`,
+        src: data.output,
+        createdAt: Date.now(),
+        category: 'generated',
+        subcategory: 'ai-templates',
+        tags: ['template', 'ai-generated', template.category || 'general'],
+        meta: {
+          width: data.metadata.width,
+          height: data.metadata.height,
+          templateName: template.name,
+          aiLayersProcessed: data.metadata.aiLayersProcessed,
+          processingTime: data.metadata.processingTime,
+          aiGenerated: true
+        }
+      };
+    } catch (error) {
+      console.error('AI template generation error:', error);
+      throw error;
+    }
   }
 }

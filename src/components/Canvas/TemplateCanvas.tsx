@@ -10,7 +10,8 @@ import { useTemplateStore } from '@/store/templateStore';
 import { useAppStore } from '@/store/appStore';
 import { Asset } from '@/types/media';
 import { TemplateRenderer } from '@/compositor/templateRenderer';
-import { Download, Upload, Eye, EyeOff, RefreshCw, Palette } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Download, Upload, Eye, EyeOff, RefreshCw, Palette, Sparkles } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface TemplateCanvasProps {
@@ -23,6 +24,7 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(true);
   const [isRendering, setIsRendering] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<TemplateRenderer | null>(null);
 
@@ -40,10 +42,35 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
     }
   }, [activeTemplate, templateInputs, templateAssets, previewVisible]);
 
+  // Check if template has AI layers
+  const hasAILayers = activeTemplate?.layers.some(layer => 
+    layer.type === 'ai-image' || layer.type === 'ai-text'
+  ) || false;
+
   const renderPreview = async () => {
     if (!activeTemplate || !rendererRef.current) return;
     
     setIsRendering(true);
+    
+    // Show AI progress for templates with AI layers
+    if (hasAILayers) {
+      setAiProgress(0);
+      const progressInterval = setInterval(() => {
+        setAiProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+      
+      setTimeout(() => {
+        clearInterval(progressInterval);
+        setAiProgress(100);
+      }, 2000);
+    }
+    
     try {
       const placement = {
         variables: templateInputs,
@@ -60,6 +87,9 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
       });
     } finally {
       setIsRendering(false);
+      if (hasAILayers) {
+        setTimeout(() => setAiProgress(0), 1000);
+      }
     }
   };
 
@@ -144,6 +174,12 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <span className="text-destructive">*</span>
                 Required Fields
+                {hasAILayers && (
+                  <Badge variant="secondary" className="ml-auto">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AI Enhanced
+                  </Badge>
+                )}
               </h4>
               <div className="space-y-4">
                 {requiredInputs.map(([id, input]) => (
@@ -265,10 +301,30 @@ export const TemplateCanvas: React.FC<TemplateCanvasProps> = ({ onExitTemplate }
                   />
                   
                   {isRendering && (
-                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                      <div className="text-center">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                        <p className="text-sm text-muted-foreground">Rendering...</p>
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                      <div className="text-center space-y-3">
+                        {hasAILayers ? (
+                          <>
+                            <LoadingSpinner className="w-6 h-6 mx-auto" />
+                            <div>
+                              <p className="text-sm font-medium">Generating AI Content</p>
+                              <p className="text-xs text-muted-foreground">Processing AI layers...</p>
+                            </div>
+                            {aiProgress > 0 && (
+                              <div className="w-32 bg-muted rounded-full h-2 mx-auto">
+                                <div 
+                                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${aiProgress}%` }}
+                                />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
+                            <p className="text-sm text-muted-foreground">Rendering...</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
