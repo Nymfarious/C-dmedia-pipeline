@@ -1,5 +1,6 @@
-import { Recipe, ValidationResult, ValidationError, ValidationWarning, AutoFix } from './types';
+import { Recipe, ValidationResult, ValidationError, ValidationWarning, AutoFix, ModelConstraint } from './types';
 import { providers } from '@/adapters/registry';
+import { MODELS, getModel, getModelsByMode } from '@/models/registry';
 
 export function validateRecipe(recipe: Recipe): ValidationResult {
   const errors: ValidationError[] = [];
@@ -64,9 +65,10 @@ export function validateRecipe(recipe: Recipe): ValidationResult {
     });
   }
 
-  // Validate steps
+  // Validate steps with model registry integration
   recipe.steps.forEach((step, index) => {
     validateStep(step, index, recipe, errors, warnings, fixes);
+    validateModelCompatibility(step, index, errors, warnings, fixes);
   });
 
   // Validate outputs
@@ -275,6 +277,106 @@ function suggestSimilarProvider(providerId: string): string | null {
   });
 
   return bestMatch;
+}
+
+function validateModelCompatibility(
+  step: any,
+  index: number,
+  errors: ValidationError[],
+  warnings: ValidationWarning[],
+  fixes: AutoFix[]
+): void {
+  const basePath = `steps[${index}]`;
+  
+  // Extract model from provider or inputs
+  const modelKey = step.inputs?.model || step.provider?.split('.')[1] || 'flux-pro';
+  
+  if (!MODELS[modelKey as keyof typeof MODELS]) {
+    warnings.push({
+      path: `${basePath}.model`,
+      message: `Model "${modelKey}" not found in registry, using default`,
+      code: 'UNKNOWN_MODEL',
+      suggestion: 'Check available models in the registry'
+    });
+    return;
+  }
+  
+  const modelSpec = getModel(modelKey as keyof typeof MODELS);
+  const operation = step.operation;
+  
+  // Check if operation is compatible with model modes
+  if (!modelSpec.modes.includes(operation)) {
+    errors.push({
+      path: `${basePath}.operation`,
+      message: `Operation "${operation}" incompatible with model "${modelKey}". Supported modes: ${modelSpec.modes.join(', ')}`,
+      code: 'INCOMPATIBLE_OPERATION',
+      severity: 'error'
+    });
+  }
+  
+  // Size clamping auto-fix
+  if (step.inputs?.width || step.inputs?.height) {
+    const maxSize = modelSpec.supports?.max_size || [2048, 2048];
+    const [maxWidth, maxHeight] = maxSize;
+    
+    if (step.inputs.width > maxWidth) {
+      fixes.push({
+        path: `${basePath}.inputs.width`,
+        description: `Clamp width to model maximum (${maxWidth}px)`,
+        action: 'modify',
+        value: maxWidth
+      });
+    }
+    
+    if (step.inputs.height > maxHeight) {
+      fixes.push({
+        path: `${basePath}.inputs.height`,
+        description: `Clamp height to model maximum (${maxHeight}px)`,
+        action: 'modify',
+        value: maxHeight
+      });
+    }
+  }
+  
+  // LoRA stripping auto-fix
+  if (step.inputs?.lora && !modelSpec.supports?.lora) {
+    warnings.push({
+      path: `${basePath}.inputs.lora`,
+      message: `Model "${modelKey}" does not support LoRA`,
+      code: 'LORA_NOT_SUPPORTED',
+      suggestion: 'LoRA parameters will be stripped'
+    });
+    
+    fixes.push({
+      path: `${basePath}.inputs.lora`,
+      description: 'Remove LoRA parameters (not supported by model)',
+      action: 'remove'
+    });
+  }
+  
+  // Auto-insert background removal for non-alpha models
+  if (operation === 'generate' && !modelSpec.supports?.alpha_out) {
+    const hasBackgroundRemoval = step.outputs?.some((output: string) => 
+      output.includes('remove_background') || output.includes('matte')
+    );
+    
+    if (!hasBackgroundRemoval) {
+      fixes.push({
+        path: `steps[${index + 1}]`,
+        description: 'Auto-insert background removal step (model lacks alpha output)',
+        action: 'add',
+        value: {
+          id: `${step.id}_bg_removal`,
+          name: 'Auto Background Removal',
+          provider: 'imageEdit.background-remover',
+          operation: 'remove_background',
+          inputs: {
+            image: `$${step.id}.url`
+          }
+        }
+      });
+    }
+  }
 }
 
 function validateReference(ref: string, recipe: Recipe): boolean {

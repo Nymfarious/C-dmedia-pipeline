@@ -303,5 +303,142 @@ describe('Pipeline Validator', () => {
       expect(result.fixes.length).toBeGreaterThan(0);
       expect(result.fixes.some(f => f.description.includes('flux-pro'))).toBe(true);
     });
+
+    it('should auto-insert matte removal for non-alpha models', () => {
+      const recipe: Recipe = {
+        id: 'non-alpha-recipe',
+        name: 'Non-Alpha Recipe',
+        inputs: [
+          {
+            id: 'prompt',
+            name: 'Prompt',
+            type: 'text',
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            id: 'generate-step',
+            name: 'Generate Step',
+            provider: 'imageGen.nano-banana', // Model without alpha output
+            operation: 'generate',
+            inputs: {
+              prompt: '$input.prompt',
+              model: 'nano-banana',
+            },
+          },
+        ],
+        outputs: {
+          result: '$step.generate-step.url',
+        },
+      };
+
+      const result = validateRecipe(recipe);
+
+      expect(result.fixes.some(f => 
+        f.description.includes('background removal') && 
+        f.action === 'add'
+      )).toBe(true);
+    });
+
+    it('should clamp image sizes to model limits', () => {
+      const recipe: Recipe = {
+        id: 'oversized-recipe',
+        name: 'Oversized Recipe',
+        inputs: [],
+        steps: [
+          {
+            id: 'generate-step',
+            name: 'Generate Step',
+            provider: 'imageGen.nano-banana',
+            operation: 'generate',
+            inputs: {
+              prompt: 'test',
+              width: 3000,
+              height: 3000,
+              model: 'nano-banana',
+            },
+          },
+        ],
+        outputs: {
+          result: '$step.generate-step.url',
+        },
+      };
+
+      const result = validateRecipe(recipe);
+
+      expect(result.fixes.some(f => 
+        f.path.includes('width') && 
+        f.description.includes('Clamp')
+      )).toBe(true);
+      expect(result.fixes.some(f => 
+        f.path.includes('height') && 
+        f.description.includes('Clamp')
+      )).toBe(true);
+    });
+
+    it('should strip LoRA params for unsupported models', () => {
+      const recipe: Recipe = {
+        id: 'lora-recipe',
+        name: 'LoRA Recipe',
+        inputs: [],
+        steps: [
+          {
+            id: 'generate-step',
+            name: 'Generate Step',
+            provider: 'imageGen.nano-banana',
+            operation: 'generate',
+            inputs: {
+              prompt: 'test',
+              model: 'nano-banana',
+              lora: 'some-lora-config',
+            },
+          },
+        ],
+        outputs: {
+          result: '$step.generate-step.url',
+        },
+      };
+
+      const result = validateRecipe(recipe);
+
+      expect(result.warnings.some(w => 
+        w.code === 'LORA_NOT_SUPPORTED'
+      )).toBe(true);
+      expect(result.fixes.some(f => 
+        f.path.includes('lora') && 
+        f.action === 'remove'
+      )).toBe(true);
+    });
+
+    it('should fail on incompatible operation-model combinations', () => {
+      const recipe: Recipe = {
+        id: 'incompatible-recipe',
+        name: 'Incompatible Recipe',
+        inputs: [],
+        steps: [
+          {
+            id: 'invalid-step',
+            name: 'Invalid Step',
+            provider: 'imageGen.nano-banana',
+            operation: 'video-generation', // Not supported by nano-banana
+            inputs: {
+              prompt: 'test',
+              model: 'nano-banana',
+            },
+          },
+        ],
+        outputs: {
+          result: '$step.invalid-step.url',
+        },
+      };
+
+      const result = validateRecipe(recipe);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => 
+        e.code === 'INCOMPATIBLE_OPERATION'
+      )).toBe(true);
+    });
   });
 });

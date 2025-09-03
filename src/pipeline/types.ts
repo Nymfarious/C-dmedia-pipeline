@@ -97,6 +97,7 @@ export interface ExecutionContext {
   currentStep?: string;
   startTime: number;
   progress: ExecutionProgress;
+  draftOptions?: DraftOptions;
 }
 
 export interface ExecutionProgress {
@@ -196,6 +197,38 @@ export interface AutoFix {
   description: string;
   action: 'add' | 'remove' | 'modify';
   value?: any;
+}
+
+// Model constraint validation
+export interface ModelConstraint {
+  modelKey: string;
+  modes: string[];
+  maxSize?: [number, number];
+  supportsAlpha?: boolean;
+  supportsLora?: boolean;
+}
+
+// Draft execution options
+export interface DraftOptions {
+  enabled: boolean;
+  sizeReduction: number; // 0.5 = 50% reduction
+  stepReduction: number; // 0.5 = 50% fewer steps
+  useFasterModels: boolean;
+  skipPostProcessing: boolean;
+}
+
+// Enhanced execution context
+export interface StructuredLog {
+  trace: string;
+  op: string;
+  adapter: string;
+  model_used?: string;
+  duration_ms: number;
+  status: StepStatus;
+  artifacts?: Record<string, string>;
+  cache_hit?: boolean;
+  error?: string;
+  timestamp: number;
 }
 
 // Monitor types for debug panel

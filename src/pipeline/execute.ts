@@ -1,21 +1,25 @@
-import { Recipe, Plan, ExecutionContext, ExecutionResult, ExecutableStep, Artifact, ExecutionError, StepStatus } from './types';
+import { Recipe, Plan, ExecutionContext, ExecutionResult, ExecutableStep, Artifact, ExecutionError, StepStatus, DraftOptions, StructuredLog } from './types';
 import { resolveReferences } from './refs';
 import { validateRecipe } from './validate';
 import { providers } from '@/adapters/registry';
 import { circuitBreaker } from '@/middleware/circuitBreaker';
+import { MODELS, getModel } from '@/models/registry';
 
 export class PipelineExecutor {
   private activeExecutions = new Map<string, ExecutionContext>();
   private cache = new Map<string, Artifact>();
   private readonly maxCacheSize = 1000;
+  private logs: StructuredLog[] = [];
+  private readonly maxLogSize = 10000;
 
-  async executePlan(plan: Plan, inputs: Record<string, any>): Promise<ExecutionResult> {
+  async executePlan(plan: Plan, inputs: Record<string, any>, options?: { draft?: DraftOptions }): Promise<ExecutionResult> {
     const startTime = Date.now();
     const context: ExecutionContext = {
       planId: plan.id,
       artifacts: new Map(),
       variables: new Map(Object.entries(inputs)),
       startTime,
+      draftOptions: options?.draft,
       progress: {
         totalSteps: plan.steps.length,
         completedSteps: 0,
@@ -89,24 +93,30 @@ export class PipelineExecutor {
         return;
       }
 
-      // Check cache first
-      const cacheKey = this.getCacheKey(step);
+      // Check content-addressed cache first
+      const cacheKey = this.getCacheKey(step, context);
       if (step.cache && this.cache.has(cacheKey)) {
         const cachedArtifact = this.cache.get(cacheKey)!;
         context.artifacts.set(step.id, { ...cachedArtifact, id: step.id });
         step.status = 'completed';
         context.progress.completedSteps++;
+        
+        this.logStep(step, context, 0, 'completed', null, true);
         return;
       }
 
       // Resolve input references
       const resolvedInputs = await resolveReferences(step.resolvedInputs, context);
-      step.resolvedInputs = resolvedInputs;
+      
+      // Apply draft mode overrides
+      const finalInputs = this.applyDraftOverrides(resolvedInputs, step, context);
+      step.resolvedInputs = finalInputs;
 
       step.status = 'running';
+      const stepStartTime = Date.now();
 
       // Execute with retry logic
-      const result = await this.executeWithRetry(step, resolvedInputs);
+      const result = await this.executeWithRetry(step, finalInputs);
 
       // Store artifact
       const artifact: Artifact = {
@@ -132,6 +142,9 @@ export class PipelineExecutor {
 
       step.status = 'completed';
       context.progress.completedSteps++;
+      
+      // Log successful execution
+      this.logStep(step, context, Date.now() - stepStartTime, 'completed', result);
 
     } catch (error) {
       step.status = 'failed';
@@ -145,6 +158,9 @@ export class PipelineExecutor {
       };
 
       context.progress.errors.push(executionError);
+      
+      // Log failed execution
+      this.logStep(step, context, 0, 'failed', null, false, error.message);
 
       // Decide whether to fail the entire pipeline or continue
       if (!executionError.retryable) {
@@ -217,9 +233,37 @@ export class PipelineExecutor {
     return false;
   }
 
-  private getCacheKey(step: ExecutableStep): string {
-    const inputsHash = this.hashObject(step.resolvedInputs);
-    return `${step.provider}-${step.operation}-${inputsHash}`;
+  private getCacheKey(step: ExecutableStep, context: ExecutionContext): string {
+    // Content-addressed cache with normalized parameters
+    const normalizedInputs = this.normalizeInputs(step.resolvedInputs);
+    const inputsHash = this.hashObject(normalizedInputs);
+    const seed = normalizedInputs.seed || 'default';
+    const modelVersion = this.getModelVersion(step);
+    
+    return `${step.provider}-${step.operation}-${modelVersion}-${seed}-${inputsHash}`;
+  }
+  
+  private normalizeInputs(inputs: Record<string, any>): Record<string, any> {
+    // Sort keys and normalize values for consistent hashing
+    const normalized: Record<string, any> = {};
+    const sortedKeys = Object.keys(inputs).sort();
+    
+    for (const key of sortedKeys) {
+      const value = inputs[key];
+      if (typeof value === 'object' && value !== null) {
+        normalized[key] = JSON.parse(JSON.stringify(value, Object.keys(value).sort()));
+      } else {
+        normalized[key] = value;
+      }
+    }
+    
+    return normalized;
+  }
+  
+  private getModelVersion(step: ExecutableStep): string {
+    const modelKey = step.resolvedInputs?.model || step.provider?.split('.')[1] || 'flux-pro';
+    const modelSpec = MODELS[modelKey as keyof typeof MODELS];
+    return modelSpec?.model || 'unknown';
   }
 
   private hashObject(obj: any): string {
@@ -319,6 +363,79 @@ export class PipelineExecutor {
 
   getAllActiveExecutions() {
     return Array.from(this.activeExecutions.keys());
+  }
+  
+  private applyDraftOverrides(inputs: Record<string, any>, step: ExecutableStep, context: ExecutionContext): Record<string, any> {
+    if (!context.draftOptions?.enabled) return inputs;
+    
+    const draftInputs = { ...inputs };
+    const options = context.draftOptions;
+    
+    // Reduce image dimensions
+    if (draftInputs.width && options.sizeReduction) {
+      draftInputs.width = Math.floor(draftInputs.width * options.sizeReduction);
+    }
+    if (draftInputs.height && options.sizeReduction) {
+      draftInputs.height = Math.floor(draftInputs.height * options.sizeReduction);
+    }
+    
+    // Reduce inference steps
+    if (draftInputs.steps && options.stepReduction) {
+      draftInputs.steps = Math.max(1, Math.floor(draftInputs.steps * options.stepReduction));
+    }
+    
+    // Use faster models
+    if (options.useFasterModels && step.provider.includes('flux')) {
+      draftInputs.model = 'flux-schnell'; // Faster variant
+    }
+    
+    return draftInputs;
+  }
+  
+  private logStep(
+    step: ExecutableStep, 
+    context: ExecutionContext, 
+    duration: number, 
+    status: StepStatus, 
+    result?: any, 
+    cacheHit: boolean = false,
+    error?: string
+  ): void {
+    const log: StructuredLog = {
+      trace: `${context.planId}.${step.id}`,
+      op: step.operation,
+      adapter: step.provider,
+      model_used: step.resolvedInputs?.model || 'default',
+      duration_ms: duration,
+      status,
+      cache_hit: cacheHit,
+      timestamp: Date.now()
+    };
+    
+    if (result?.url) {
+      log.artifacts = { [step.operation]: result.url };
+    }
+    
+    if (error) {
+      log.error = error;
+    }
+    
+    this.logs.push(log);
+    this.evictLogsIfNeeded();
+  }
+  
+  private evictLogsIfNeeded(): void {
+    if (this.logs.length > this.maxLogSize) {
+      this.logs = this.logs.slice(-Math.floor(this.maxLogSize * 0.8));
+    }
+  }
+  
+  // Public method to access structured logs
+  getStructuredLogs(planId?: string): StructuredLog[] {
+    if (planId) {
+      return this.logs.filter(log => log.trace.startsWith(planId));
+    }
+    return [...this.logs];
   }
 }
 

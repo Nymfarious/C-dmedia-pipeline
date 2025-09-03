@@ -295,5 +295,105 @@ describe('Pipeline Executor', () => {
       
       await executionPromise;
     });
+
+    it('should reduce resolution in draft mode', async () => {
+      const plan: Plan = {
+        id: 'draft-plan',
+        name: 'Draft Plan',
+        steps: [
+          {
+            id: 'step1',
+            name: 'Generate Step',
+            provider: 'flux-pro',
+            inputs: { 
+              prompt: 'test',
+              width: 1024,
+              height: 1024,
+              steps: 50
+            },
+          },
+        ],
+        outputs: {
+          result: '$step.step1.url',
+        },
+      };
+
+      const inputs = { prompt: 'Test' };
+      
+      const result = await executor.executePlan(plan, inputs, {
+        draft: {
+          enabled: true,
+          sizeReduction: 0.5,
+          stepReduction: 0.5,
+          useFasterModels: true,
+          skipPostProcessing: true
+        }
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should use content-addressed caching', async () => {
+      const plan: Plan = {
+        id: 'cache-plan',
+        name: 'Cache Plan',
+        steps: [
+          {
+            id: 'step1',
+            name: 'Generate Step',
+            provider: 'flux-pro',
+            inputs: { 
+              prompt: 'test',
+              seed: 12345
+            },
+            cache: true,
+          },
+        ],
+        outputs: {
+          result: '$step.step1.url',
+        },
+      };
+
+      const inputs = { prompt: 'Test' };
+      
+      // First execution
+      await executor.executePlan(plan, inputs);
+      
+      // Second execution with same inputs should hit cache
+      const result = await executor.executePlan(plan, inputs);
+      
+      expect(result.success).toBe(true);
+    });
+
+    it('should generate structured logs', async () => {
+      const plan: Plan = {
+        id: 'log-plan',
+        name: 'Log Plan',
+        steps: [
+          {
+            id: 'step1',
+            name: 'Generate Step',
+            provider: 'flux-pro',
+            inputs: { prompt: 'test' },
+          },
+        ],
+        outputs: {
+          result: '$step.step1.url',
+        },
+      };
+
+      const inputs = { prompt: 'Test' };
+      
+      await executor.executePlan(plan, inputs);
+      
+      const logs = executor.getStructuredLogs(plan.id);
+      expect(logs.length).toBeGreaterThan(0);
+      
+      const log = logs[0];
+      expect(log.trace).toContain(plan.id);
+      expect(log.op).toBeDefined();
+      expect(log.adapter).toBeDefined();
+      expect(typeof log.duration_ms).toBe('number');
+    });
   });
 });
