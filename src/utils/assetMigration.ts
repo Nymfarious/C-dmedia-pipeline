@@ -56,11 +56,12 @@ function shouldMigrateAsset(asset: Asset): boolean {
     return false;
   }
   
-  // Skip if in cooldown period (exponential backoff)
+  // Skip if in cooldown period (exponential backoff - longer delays)
   if (attempts && attempts.count > 0) {
-    const cooldownTime = Math.min(1000 * Math.pow(2, attempts.count), 30000); // Max 30s
+    const cooldownTime = Math.min(5000 * Math.pow(3, attempts.count), 300000); // Max 5 minutes
     const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
     if (timeSinceLastAttempt < cooldownTime) {
+      console.log(`⏭️ Skipping migration - too soon since last attempt (${Math.round(cooldownTime/1000)}s cooldown)`);
       return false;
     }
   }

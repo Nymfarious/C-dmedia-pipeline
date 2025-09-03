@@ -64,4 +64,15 @@ app.use('*', notFoundHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Frame Fuser API Server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`🛠️ Debug: NODE_ENV=${process.env.NODE_ENV}`);
+  console.log(`🔧 Debug: Available routes:`);
+  console.log(`   - GET  /health`);
+  console.log(`   - GET  /api/health/*`);
+  console.log(`   - GET  /api/jobs/*`);
+  console.log(`   - POST /api/replicate/*`);
+  console.log(`   - POST /api/image/*`);
+  console.log(`   - POST /api/render/*`);
+}).on('error', (err) => {
+  console.error('❌ Failed to start server:', err);
+  process.exit(1);
 });

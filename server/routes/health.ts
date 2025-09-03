@@ -7,6 +7,7 @@ const healthMonitor = new AdapterHealthMonitor();
 // Overall health endpoint
 router.get('/', async (req, res) => {
   try {
+    console.log('🔍 Health check request received for /');
     const health = await healthMonitor.checkOverallHealth();
     
     const statusCode = health.status === 'healthy' ? 200 : 
@@ -14,7 +15,7 @@ router.get('/', async (req, res) => {
     
     res.status(statusCode).json(health);
   } catch (error) {
-    console.error('Health check error:', error);
+    console.error('❌ Health check error:', error);
     res.status(500).json({
       status: 'failed',
       error: 'Health check failed',
@@ -26,12 +27,16 @@ router.get('/', async (req, res) => {
 // Individual adapter health
 router.get('/adapters', async (req, res) => {
   try {
-    const adapters = await healthMonitor.checkAllAdapters();
-    res.json({ adapters, timestamp: new Date().toISOString() });
+    console.log('🔍 Health check request received for /adapters');
+    const healthData = await healthMonitor.getFullHealthReport();
+    console.log('📊 Health data generated successfully');
+    res.json(healthData);
   } catch (error) {
-    console.error('Adapter health check error:', error);
+    console.error('❌ Health check error:', error);
     res.status(500).json({
-      error: 'Adapter health check failed',
+      ok: false,
+      message: 'Health check failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     });
   }
@@ -40,6 +45,7 @@ router.get('/adapters', async (req, res) => {
 // Specific adapter health
 router.get('/adapters/:name', async (req, res) => {
   try {
+    console.log(`🔍 Health check request for adapter: ${req.params.name}`);
     const { name } = req.params;
     const health = await healthMonitor.checkAdapter(name);
     
@@ -49,7 +55,7 @@ router.get('/adapters/:name', async (req, res) => {
     
     res.json(health);
   } catch (error) {
-    console.error(`Health check error for ${req.params.name}:`, error);
+    console.error(`❌ Health check error for ${req.params.name}:`, error);
     res.status(500).json({
       error: 'Adapter health check failed',
       timestamp: new Date().toISOString()

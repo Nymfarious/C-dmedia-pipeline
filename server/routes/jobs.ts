@@ -5,23 +5,20 @@ const router = Router();
 const jobLogger = new JobLogger();
 
 // Get recent jobs
-router.get('/recent', async (req, res) => {
+router.get('/recent', (req, res) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    const status = req.query.status as string;
-    
-    const jobs = await jobLogger.getRecentJobs({ limit, offset, status });
-    
-    res.json({
-      jobs,
-      total: jobs.length,
-      limit,
-      offset
-    });
+    console.log('🔍 Jobs request received for /recent');
+    const limit = parseInt(req.query.limit as string) || 20;
+    const jobs = jobLogger.getRecentJobs(limit);
+    console.log(`📊 Returning ${jobs.length} recent jobs`);
+    res.json({ jobs, timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('Error fetching recent jobs:', error);
-    res.status(500).json({ error: 'Failed to fetch jobs' });
+    console.error('❌ Error fetching recent jobs:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Failed to fetch recent jobs',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
