@@ -6,11 +6,15 @@ import { LeftSidebar } from '@/components/LeftSidebar';
 import { RightSidebar } from '@/components/RightSidebar';
 import { CenterWorkspace } from '@/components/CenterWorkspace';
 import { Gallery } from '@/components/Gallery';
+import { TemplateGallery } from '@/components/TemplateGallery';
+import { TemplateEditor } from '@/components/TemplateEditor';
 
 import useAppStore from '@/store/appStore';
+import { useTemplateStore } from '@/store/templateStore';
 
 export function Dashboard() {
   const [showGallery, setShowGallery] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   
   const { 
     enqueueStep, 
@@ -26,6 +30,13 @@ export function Dashboard() {
     setActiveTool,
     inpaintingMode 
   } = useAppStore();
+
+  const { 
+    isTemplateMode, 
+    activeTemplate,
+    setActiveTemplate, 
+    setTemplateMode 
+  } = useTemplateStore();
 
   
 
@@ -70,6 +81,7 @@ export function Dashboard() {
         canUndo={false}
         canRedo={false}
         onGalleryToggle={() => setShowGallery(!showGallery)}
+        onTemplateToggle={() => setShowTemplateGallery(!showTemplateGallery)}
       />
       
       {/* Toolbar */}
@@ -119,6 +131,30 @@ export function Dashboard() {
           onEditComplete={handleEditComplete}
         />
       </div>
+
+      {/* Template Gallery Modal */}
+      {showTemplateGallery && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
+          <div className="fixed left-0 top-0 h-full w-96 bg-background border-r border-border shadow-lg">
+            <TemplateGallery 
+              onSelectTemplate={(template) => {
+                setActiveTemplate(template);
+                setTemplateMode(true);
+                setShowTemplateGallery(false);
+              }} 
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Template Editor Modal */}
+      {isTemplateMode && activeTemplate && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40">
+          <div className="fixed right-0 top-0 h-full w-80 bg-background border-l border-border shadow-lg">
+            <TemplateEditor onClose={() => setTemplateMode(false)} />
+          </div>
+        </div>
+      )}
 
     </div>
   );

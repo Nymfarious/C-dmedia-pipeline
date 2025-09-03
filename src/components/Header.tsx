@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2 } from 'lucide-react';
+import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2, FileText } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { useState } from 'react';
 import { ProjectManagementModal } from './ProjectManagementModal';
+import { DebugPanelSummary } from './DebugPanel/DebugPanel';
 
 interface HeaderProps {
   activeTab: string;
@@ -11,9 +12,10 @@ interface HeaderProps {
   canUndo: boolean;
   canRedo: boolean;
   onGalleryToggle?: () => void;
+  onTemplateToggle?: () => void;
 }
 
-export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggle }: HeaderProps) {
+export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggle, onTemplateToggle }: HeaderProps) {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const { assets } = useAppStore();
 
@@ -61,6 +63,12 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
             Gallery ({Object.keys(assets).length})
           </Button>
         )}
+        {onTemplateToggle && (
+          <Button variant="outline" size="sm" className="h-8" onClick={onTemplateToggle}>
+            <FileText className="h-4 w-4 mr-2" />
+            Templates
+          </Button>
+        )}
         <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/assets'}>
           <FolderOpen className="h-4 w-4 mr-2" />
           Assets ({Object.keys(assets).length})
@@ -73,6 +81,7 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
           <Archive className="h-4 w-4 mr-2" />
           Projects
         </Button>
+        <DebugPanelSummary />
       </div>
       
       <ProjectManagementModal

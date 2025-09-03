@@ -2,9 +2,25 @@ export interface TemplateSpec {
   version: string;
   name: string;
   description?: string;
+  category?: string;
   canvas: CanvasSpec;
   layers: LayerSpec[];
+  inputs?: Record<string, TemplateInput>;
+  outputs?: Record<string, TemplateOutput>;
   metadata?: Record<string, any>;
+}
+
+export interface TemplateInput {
+  type: 'text' | 'asset' | 'color' | 'number';
+  required?: boolean;
+  default?: any;
+  description?: string;
+}
+
+export interface TemplateOutput {
+  type: 'image' | 'pdf';
+  format?: string;
+  quality?: number;
 }
 
 export interface CanvasSpec {
@@ -110,7 +126,8 @@ export type FontStyle = 'normal' | 'italic' | 'oblique';
 export type FontVariant = 'normal' | 'small-caps';
 
 export interface TemplatePlacement {
-  [key: string]: any; // Dynamic values for placeholders
+  variables?: Record<string, any>;
+  assets?: Record<string, any>;
 }
 
 export interface RenderOptions {
