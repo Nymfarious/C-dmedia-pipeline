@@ -1,0 +1,432 @@
+{
+  "id": "planner_weekly_v1",
+  "name": "Weekly Planner Layout",
+  "description": "Organized weekly planner with date fields, daily sections, and goal tracking",
+  "version": "1.0.0",
+  "category": "productivity",
+  "canvas": {
+    "width": 800,
+    "height": 1000,
+    "backgroundColor": "#ffffff"
+  },
+  "inputs": {
+    "week_start_date": {
+      "type": "text",
+      "required": true,
+      "default": "March 4, 2024",
+      "description": "Starting date of the week"
+    },
+    "week_theme": {
+      "type": "text",
+      "required": false,
+      "default": "Focus & Growth",
+      "description": "Theme or focus for the week"
+    },
+    "user_name": {
+      "type": "text",
+      "required": false,
+      "default": "Your Name",
+      "description": "Planner owner name"
+    },
+    "accent_color": {
+      "type": "color",
+      "required": false,
+      "default": "#6366f1",
+      "description": "Accent color for headers and highlights"
+    },
+    "background_pattern": {
+      "type": "asset",
+      "required": false,
+      "description": "Optional subtle background pattern"
+    }
+  },
+  "layers": [
+    {
+      "id": "background_pattern",
+      "type": "image",
+      "content": {
+        "source": "$input.background_pattern",
+        "fit": "tile",
+        "opacity": 0.05
+      },
+      "transform": {
+        "position": { "x": "0%", "y": "0%" },
+        "size": { "width": "100%", "height": "100%" },
+        "anchor": "top-left"
+      },
+      "visible": true,
+      "conditions": [
+        {
+          "type": "hasValue",
+          "reference": "$input.background_pattern"
+        }
+      ]
+    },
+    {
+      "id": "header_background",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "$input.accent_color",
+        "stroke": "none"
+      },
+      "transform": {
+        "position": { "x": "0%", "y": "0%" },
+        "size": { "width": "100%", "height": "12%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "planner_title",
+      "type": "text",
+      "content": {
+        "text": "WEEKLY PLANNER",
+        "font": {
+          "family": "sans-serif",
+          "size": 32,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "#ffffff",
+        "align": "center",
+        "letterSpacing": 2
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "3%" },
+        "size": { "width": "60%", "height": "4%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "week_dates",
+      "type": "text",
+      "content": {
+        "text": "$input.week_start_date",
+        "font": {
+          "family": "sans-serif",
+          "size": 18,
+          "weight": "normal",
+          "style": "normal"
+        },
+        "color": "#ffffff",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "25%", "y": "7%" },
+        "size": { "width": "30%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "user_name_header",
+      "type": "text",
+      "content": {
+        "text": "$input.user_name",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "normal",
+          "style": "italic"
+        },
+        "color": "#ffffff",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "75%", "y": "7%" },
+        "size": { "width": "25%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "week_theme_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#f8fafc",
+        "stroke": "$input.accent_color",
+        "strokeWidth": 2
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "15%" },
+        "size": { "width": "90%", "height": "8%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "week_theme_label",
+      "type": "text",
+      "content": {
+        "text": "WEEK THEME:",
+        "font": {
+          "family": "sans-serif",
+          "size": 14,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "left"
+      },
+      "transform": {
+        "position": { "x": "8%", "y": "16%" },
+        "size": { "width": "25%", "height": "3%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "week_theme_text",
+      "type": "text",
+      "content": {
+        "text": "$input.week_theme",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "normal",
+          "style": "normal"
+        },
+        "color": "#1f2937",
+        "align": "left"
+      },
+      "transform": {
+        "position": { "x": "8%", "y": "19%" },
+        "size": { "width": "80%", "height": "3%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "monday_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#ffffff",
+        "stroke": "#e5e7eb",
+        "strokeWidth": 1
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "27%" },
+        "size": { "width": "42%", "height": "20%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "monday_header",
+      "type": "text",
+      "content": {
+        "text": "MONDAY",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "26%", "y": "29%" },
+        "size": { "width": "20%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "tuesday_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#ffffff",
+        "stroke": "#e5e7eb",
+        "strokeWidth": 1
+      },
+      "transform": {
+        "position": { "x": "53%", "y": "27%" },
+        "size": { "width": "42%", "height": "20%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "tuesday_header",
+      "type": "text",
+      "content": {
+        "text": "TUESDAY",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "74%", "y": "29%" },
+        "size": { "width": "20%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "wednesday_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#ffffff",
+        "stroke": "#e5e7eb",
+        "strokeWidth": 1
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "50%" },
+        "size": { "width": "42%", "height": "20%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "wednesday_header",
+      "type": "text",
+      "content": {
+        "text": "WEDNESDAY",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "26%", "y": "52%" },
+        "size": { "width": "20%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "thursday_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#ffffff",
+        "stroke": "#e5e7eb",
+        "strokeWidth": 1
+      },
+      "transform": {
+        "position": { "x": "53%", "y": "50%" },
+        "size": { "width": "42%", "height": "20%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "thursday_header",
+      "type": "text",
+      "content": {
+        "text": "THURSDAY",
+        "font": {
+          "family": "sans-serif",
+          "size": 16,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "74%", "y": "52%" },
+        "size": { "width": "20%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "weekend_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#f8fafc",
+        "stroke": "$input.accent_color",
+        "strokeWidth": 2
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "73%" },
+        "size": { "width": "90%", "height": "15%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "weekend_header",
+      "type": "text",
+      "content": {
+        "text": "WEEKEND PLANS",
+        "font": {
+          "family": "sans-serif",
+          "size": 18,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "75%" },
+        "size": { "width": "40%", "height": "4%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "goals_section",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#ffffff",
+        "stroke": "#e5e7eb",
+        "strokeWidth": 1
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "91%" },
+        "size": { "width": "90%", "height": "8%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "goals_header",
+      "type": "text",
+      "content": {
+        "text": "WEEKLY GOALS & PRIORITIES",
+        "font": {
+          "family": "sans-serif",
+          "size": 14,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "$input.accent_color",
+        "align": "center"
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "93%" },
+        "size": { "width": "50%", "height": "3%" },
+        "anchor": "center"
+      },
+      "visible": true
+    }
+  ],
+  "outputs": {
+    "weekly_planner": {
+      "type": "image",
+      "format": "pdf",
+      "quality": 100
+    }
+  }
+}
