@@ -40,6 +40,32 @@ class ReplicateService {
     }
   }
 
+  /**
+   * Generic method to call any Replicate model
+   */
+  async callReplicate(model: string, input: Record<string, any>): Promise<AssetResponse> {
+    const prediction = await this.makeRequest('/predictions', {
+      version: model,
+      input,
+    });
+
+    const result = await this.pollPrediction(prediction.id);
+
+    if (result.status === 'failed') {
+      throw new Error(result.error || 'Replicate operation failed');
+    }
+
+    // Determine asset type based on output
+    let assetType: 'image' | 'audio' | 'animation' = 'image';
+    if (model.includes('tts') || model.includes('audio')) {
+      assetType = 'audio';
+    } else if (model.includes('video') || model.includes('i2v')) {
+      assetType = 'animation';
+    }
+
+    return this.createAssetFromOutput(result.output!, { model, ...input }, assetType);
+  }
+
   private async makeRequest(endpoint: string, data: any): Promise<ReplicateResponse> {
     if (!this.apiKey) {
       // Return stub response for development

@@ -11,7 +11,6 @@ import {
   ApiResponse 
 } from '../types.js';
 import { replicateService } from '../services/replicate.js';
-import { geminiService } from '../services/gemini.js';
 import { bananaService } from '../services/banana.js';
 
 const router = Router();
@@ -42,15 +41,11 @@ router.post('/generate', validateBody(UnifiedImageGenSchema), asyncHandler(async
   let asset;
 
   try {
-    switch (request.provider) {
-      case 'replicate':
-        asset = await replicateService.generateImage(request);
-        break;
-      case 'gemini':
-        asset = await geminiService.generateImage(request);
-        break;
-      default:
-        throw new Error(`Unsupported provider: ${request.provider}`);
+    // Route all requests through Replicate
+    if (request.provider === 'replicate' || request.provider === 'gemini') {
+      asset = await replicateService.generateImage(request);
+    } else {
+      throw new Error(`Unsupported provider: ${request.provider}`);
     }
 
     const response: ApiResponse = {
@@ -77,15 +72,11 @@ router.post('/edit', validateBody(UnifiedImageEditSchema), asyncHandler(async (r
   let asset;
 
   try {
-    switch (request.provider) {
-      case 'replicate':
-        asset = await replicateService.editImage(request);
-        break;
-      case 'gemini':
-        asset = await geminiService.editImage(request);
-        break;
-      default:
-        throw new Error(`Unsupported provider: ${request.provider}`);
+    // Route all requests through Replicate
+    if (request.provider === 'replicate' || request.provider === 'gemini') {
+      asset = await replicateService.editImage(request);
+    } else {
+      throw new Error(`Unsupported provider: ${request.provider}`);
     }
 
     const response: ApiResponse = {
@@ -112,15 +103,11 @@ router.post('/img2img', validateBody(UnifiedImg2ImgSchema), asyncHandler(async (
   let asset;
 
   try {
-    switch (request.provider) {
-      case 'replicate':
-        asset = await replicateService.img2img(request);
-        break;
-      case 'gemini':
-        asset = await geminiService.img2img(request);
-        break;
-      default:
-        throw new Error(`Unsupported provider: ${request.provider}`);
+    // Route all requests through Replicate
+    if (request.provider === 'replicate' || request.provider === 'gemini') {
+      asset = await replicateService.img2img(request);
+    } else {
+      throw new Error(`Unsupported provider: ${request.provider}`);
     }
 
     const response: ApiResponse = {

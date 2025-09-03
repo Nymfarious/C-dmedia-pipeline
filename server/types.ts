@@ -163,9 +163,8 @@ export const REPLICATE_MODELS = {
   'recraft-v3-svg': 'recraft-ai/recraft-v3-svg',
 } as const;
 
-export const GEMINI_MODELS = {
-  'gemini-2.5-flash-image': 'gemini-2.5-flash-image',
-} as const;
+// Gemini models are now routed through Replicate
+// Remove this constant to prevent direct Gemini usage
 
 // Type exports
 export type UnifiedImageGenRequest = z.infer<typeof UnifiedImageGenSchema>;

@@ -1,9 +1,6 @@
 import { replicateStable } from './image-gen/replicateStable';
 import { replicateAdapter } from './image-gen/replicateAdapter';
-import { geminiGen } from './image-gen/gemini';
-import { fluxProAdapter } from './image-gen/fluxPro';
-import { fluxUltraAdapter } from './image-gen/fluxUltra';
-import { geminiNanoAdapter as geminiNanoGenAdapter } from './image-gen/geminiNano';
+import { replicateUnifiedAdapter } from './image-gen/replicateUnified';
 import { openaiAdapter } from './image-gen/openaiAdapter';
 
 // Import all new Replicate models
@@ -23,12 +20,11 @@ import { objectRemoverAdapter } from './image-edit/objectRemover';
 import { objectAdderAdapter } from './image-edit/objectAdder';
 import { colorEnhancerAdapter } from './image-edit/colorEnhancer';
 import { enhancedUpscalerAdapter } from './image-edit/enhancedUpscaler';
-import { geminiNanoAdapter } from './image-edit/geminiNano';
+import { replicateUnifiedEditAdapter } from './image-edit/replicateUnified';
 import { poseAdjustmentAdapter } from './image-edit/poseAdjustment';
 import { smartCropAdapter } from './image-edit/smartCrop';
 import { faceConsistencyAdapter } from './image-edit/faceConsistency';
 import { seedEditAdapter } from './image-edit/seedEdit';
-import { geminiConversationalAdapter } from './image-edit/geminiConversational';
 import { replicateEdit } from './image-edit/replicateEdit';
 
 // Enhanced Replicate Edit Adapters
@@ -56,15 +52,19 @@ import { klingAdapter } from './video-gen/klingAdapter';
 import { sedanceAdapter } from './video-edit/sedanceAdapter';
 
 export const providers = {
-  imageGen: { 
-    // Working models first
+  imageGen: {
+    // Primary unified adapter - routes everything through Replicate
+    "replicate.unified": replicateUnifiedAdapter,
     "replicate.flux": replicateAdapter,
     "replicate.sd": replicateStable,
     "openai.dall-e": openaiAdapter,
-    "huggingface.flux": {} as any, // Placeholder
+    
+    // Google models (now via Replicate)
+    "google.nano-banana": replicateUnifiedAdapter,
+    "google.flash-1": replicateUnifiedAdapter,
     
     // Flux Models - Premium Speed & Quality
-    "replicate.flux-schnell": replicateAdapter, // Use working adapter as fallback
+    "replicate.flux-schnell": replicateAdapter,
     "replicate.flux-dev": replicateAdapter,
     "replicate.flux-pro": replicateAdapter,
     "replicate.flux-ultra": replicateAdapter,
@@ -100,15 +100,16 @@ export const providers = {
     // Specialized Models
     "replicate.logo-diffusion": logoDiffusionAdapter,
     "replicate.interior-design": interiorDesignAdapter,
-    "replicate.fashion-diffusion": fashionDiffusionAdapter,
-    
-    // Legacy Support (keep for existing functionality)
-    "gemini.img": geminiGen,
-    "flux.pro": fluxProAdapter,
-    "flux.ultra": fluxUltraAdapter,
-    "gemini.nano": geminiNanoGenAdapter
+    "replicate.fashion-diffusion": fashionDiffusionAdapter
   },
-  imageEdit: { 
+  imageEdit: {
+    // Primary unified adapter - routes everything through Replicate
+    "replicate.unified": replicateUnifiedEditAdapter,
+    
+    // Google models (now via Replicate)
+    "google.nano-banana": replicateUnifiedEditAdapter,
+    "google.conversational-edit": replicateUnifiedEditAdapter,
+    
     // Enhanced Replicate Models
     "replicate.nano-banana": nanoBananaAdapter,
     "replicate.professional-upscaler": professionalUpscalerAdapter,
@@ -118,13 +119,12 @@ export const providers = {
     "replicate.face-enhancement": faceEnhancementAdapter,
     "replicate.style-transfer": styleTransferAdapter,
     
-    // Legacy adapters (still available)
+    // Core editing operations
     "replicate.flux": replicateEdit,
     "replicate.seed-edit": seedEditAdapter,
-    "gemini.conversational-edit": geminiConversationalAdapter,
-  "replicate.rembg": backgroundRemoverAdapter,
-  "birefnet": backgroundRemoverAdapter,
-    "replicate.birefnet": backgroundRemoverAdapter, // Better background removal
+    "replicate.rembg": backgroundRemoverAdapter,
+    "birefnet": backgroundRemoverAdapter,
+    "replicate.birefnet": backgroundRemoverAdapter,
     "replicate.upscale": upscalerAdapter,
     "replicate.object-remove": objectRemoverAdapter,
     "replicate.object-add": objectAdderAdapter,
