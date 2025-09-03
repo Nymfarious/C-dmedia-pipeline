@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { JobLogger } from '../services/jobLogger';
+import { JobLogger } from '../services/jobLogger.js';
 
 const router = Router();
 const jobLogger = new JobLogger();

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AdapterHealthMonitor } from '../services/healthMonitor';
+import { AdapterHealthMonitor } from '../services/healthMonitor.js';
 
 const router = Router();
 const healthMonitor = new AdapterHealthMonitor();

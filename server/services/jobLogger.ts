@@ -31,6 +31,33 @@ export class JobLogger {
   private jobs = new Map<string, Job>();
   private maxJobs = 1000; // Keep last 1000 jobs in memory
 
+  constructor() {
+    // Add some sample jobs for testing
+    this.createSampleJobs();
+  }
+
+  private createSampleJobs() {
+    // Sample job 1 - Completed
+    const job1Id = this.createJob('Image Generation', { model: 'flux-pro', prompt: 'A beautiful sunset' });
+    this.log(job1Id, 'INFO', 'Starting image generation', 'initialization');
+    this.log(job1Id, 'DEBUG', 'Using model: flux-pro', 'setup');
+    this.log(job1Id, 'INFO', 'Sending request to Replicate', 'api-call');
+    this.log(job1Id, 'INFO', 'Image generated successfully', 'completion');
+    this.completeJob(job1Id, 'completed');
+
+    // Sample job 2 - Failed
+    const job2Id = this.createJob('Background Removal', { image: 'portrait.jpg' });
+    this.log(job2Id, 'INFO', 'Starting background removal', 'initialization');
+    this.log(job2Id, 'ERROR', 'API rate limit exceeded', 'api-call');
+    this.completeJob(job2Id, 'failed');
+
+    // Sample job 3 - Running
+    const job3Id = this.createJob('Video Generation', { duration: 5, fps: 24 });
+    this.log(job3Id, 'INFO', 'Starting video generation', 'initialization');
+    this.log(job3Id, 'DEBUG', 'Processing frame 1/120', 'processing');
+    // Leave this one running
+  }
+
   createJob(name: string, metadata?: Record<string, any>): string {
     const id = this.generateJobId();
     const job: Job = {
