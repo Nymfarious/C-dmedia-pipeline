@@ -30,55 +30,60 @@ export function TemplateGallery({ onSelectTemplate, className }: TemplateGallery
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateCard | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load available templates
   useEffect(() => {
     const loadTemplates = async () => {
+      setIsLoading(true);
       try {
         // Load built-in templates
-        const businessCardResponse = await fetch('/templates/business_card_v1.json');
-        const businessCardSpec = await businessCardResponse.json();
-        
-        const plannerResponse = await fetch('/templates/planner_weekly_v1.json');
-        const plannerSpec = await plannerResponse.json();
-        
-        const tarotResponse = await fetch('/templates/tarot_major_v1.json');
-        const tarotSpec = await tarotResponse.json();
+        const templateIds = ['business_card_v1', 'planner_weekly_v1', 'tarot_major_v1'];
+        const loadedTemplates: TemplateCard[] = [];
 
-        const templateCards: TemplateCard[] = [
-          {
-            id: 'business_card_v1',
-            name: businessCardSpec.name,
-            description: businessCardSpec.description,
-            category: businessCardSpec.category,
-            spec: businessCardSpec,
-            requiredInputs: Object.keys(businessCardSpec.inputs).filter(key => businessCardSpec.inputs[key].required),
-            optionalInputs: Object.keys(businessCardSpec.inputs).filter(key => !businessCardSpec.inputs[key].required)
-          },
-          {
-            id: 'planner_weekly_v1', 
-            name: plannerSpec.name,
-            description: plannerSpec.description,
-            category: plannerSpec.category,
-            spec: plannerSpec,
-            requiredInputs: Object.keys(plannerSpec.inputs).filter(key => plannerSpec.inputs[key].required),
-            optionalInputs: Object.keys(plannerSpec.inputs).filter(key => !plannerSpec.inputs[key].required)
-          },
-          {
-            id: 'tarot_major_v1',
-            name: tarotSpec.name, 
-            description: tarotSpec.description,
-            category: tarotSpec.category,
-            spec: tarotSpec,
-            requiredInputs: Object.keys(tarotSpec.inputs).filter(key => tarotSpec.inputs[key].required),
-            optionalInputs: Object.keys(tarotSpec.inputs).filter(key => !tarotSpec.inputs[key].required)
+        for (const id of templateIds) {
+          try {
+            const response = await fetch(`/templates/${id}.json`);
+            if (response.ok) {
+              const spec: TemplateSpec = await response.json();
+              
+              // Process inputs to create template card
+              const requiredInputs: string[] = [];
+              const optionalInputs: string[] = [];
+              
+              Object.entries(spec.inputs).forEach(([key, input]) => {
+                if (input.required) {
+                  requiredInputs.push(key);
+                } else {
+                  optionalInputs.push(key);
+                }
+              });
+
+              loadedTemplates.push({
+                id,
+                name: spec.name,
+                description: spec.description || 'No description available',
+                category: spec.category || 'general',
+                thumbnail: undefined,
+                spec,
+                requiredInputs,
+                optionalInputs,
+              });
+            }
+          } catch (error) {
+            console.warn(`Failed to load template ${id}:`, error);
+            setError(`Failed to load template ${id}`);
           }
-        ];
+        }
 
-        setTemplates(templateCards);
-        setFilteredTemplates(templateCards);
+        setTemplates(loadedTemplates);
+        setFilteredTemplates(loadedTemplates);
       } catch (error) {
         console.error('Failed to load templates:', error);
+        setError('Failed to load templates');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -126,6 +131,21 @@ export function TemplateGallery({ onSelectTemplate, className }: TemplateGallery
     <div className={`flex flex-col h-full ${className}`}>
       <div className="p-4 border-b border-border">
         <h2 className="text-xl font-semibold mb-4">Template Gallery</h2>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground mt-2">Loading templates...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-8">
+            <p className="text-destructive">{error}</p>
+          </div>
+        )}
         
         {/* Search */}
         <div className="relative mb-4">

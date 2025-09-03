@@ -1,0 +1,223 @@
+{
+  "id": "tarot_major_v1",
+  "name": "Major Arcana Tarot Card",
+  "description": "Classic tarot card template with character placement, symbols, and mystical text areas",
+  "version": "1.0.0",
+  "category": "cards",
+  "canvas": {
+    "width": 400,
+    "height": 700,
+    "backgroundColor": "#1a1a2e"
+  },
+  "inputs": {
+    "character_image": {
+      "type": "asset",
+      "required": true,
+      "description": "Main character or figure for the card"
+    },
+    "card_title": {
+      "type": "text",
+      "required": true,
+      "default": "THE FOOL",
+      "description": "Major arcana card name"
+    },
+    "card_number": {
+      "type": "text",
+      "required": true,
+      "default": "0",
+      "description": "Roman numeral or number"
+    },
+    "mystical_symbol": {
+      "type": "asset",
+      "required": false,
+      "description": "Optional mystical symbol or rune"
+    },
+    "card_meaning": {
+      "type": "text",
+      "required": false,
+      "default": "New beginnings, innocence, spontaneity",
+      "description": "Brief card meaning"
+    }
+  },
+  "layers": [
+    {
+      "id": "background_border",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#d4af37",
+        "stroke": "#8b7355",
+        "strokeWidth": 3
+      },
+      "transform": {
+        "position": { "x": "5%", "y": "5%" },
+        "size": { "width": "90%", "height": "90%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "inner_background",
+      "type": "shape",
+      "content": {
+        "type": "rectangle",
+        "fill": "#0f0f23",
+        "stroke": "none"
+      },
+      "transform": {
+        "position": { "x": "8%", "y": "8%" },
+        "size": { "width": "84%", "height": "84%" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "card_number_top",
+      "type": "text",
+      "content": {
+        "text": "$input.card_number",
+        "font": {
+          "family": "serif",
+          "size": 24,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "#d4af37",
+        "align": "center",
+        "letterSpacing": 2
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "12%" },
+        "size": { "width": "30%", "height": "8%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "main_character",
+      "type": "image",
+      "content": {
+        "source": "$input.character_image",
+        "fit": "cover",
+        "filters": {
+          "brightness": 1.1,
+          "contrast": 1.2,
+          "saturation": 0.9
+        }
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "45%" },
+        "size": { "width": "70%", "height": "50%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "mystical_symbol_overlay",
+      "type": "image",
+      "content": {
+        "source": "$input.mystical_symbol",
+        "fit": "contain",
+        "opacity": 0.3
+      },
+      "transform": {
+        "position": { "x": "85%", "y": "25%" },
+        "size": { "width": "15%", "height": "15%" },
+        "anchor": "center"
+      },
+      "visible": true,
+      "conditions": [
+        {
+          "type": "hasValue",
+          "reference": "$input.mystical_symbol"
+        }
+      ]
+    },
+    {
+      "id": "card_title",
+      "type": "text",
+      "content": {
+        "text": "$input.card_title",
+        "font": {
+          "family": "serif",
+          "size": 28,
+          "weight": "bold",
+          "style": "normal"
+        },
+        "color": "#d4af37",
+        "align": "center",
+        "letterSpacing": 3,
+        "textTransform": "uppercase"
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "78%" },
+        "size": { "width": "80%", "height": "8%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "card_meaning",
+      "type": "text",
+      "content": {
+        "text": "$input.card_meaning",
+        "font": {
+          "family": "sans-serif",
+          "size": 12,
+          "weight": "normal",
+          "style": "italic"
+        },
+        "color": "#b8860b",
+        "align": "center",
+        "lineHeight": 1.4
+      },
+      "transform": {
+        "position": { "x": "50%", "y": "88%" },
+        "size": { "width": "75%", "height": "8%" },
+        "anchor": "center"
+      },
+      "visible": true
+    },
+    {
+      "id": "decorative_corner_tl",
+      "type": "shape",
+      "content": {
+        "type": "polygon",
+        "points": [
+          [0, 20], [20, 20], [20, 0], [15, 0], [15, 15], [0, 15]
+        ],
+        "fill": "#d4af37"
+      },
+      "transform": {
+        "position": { "x": "8%", "y": "8%" },
+        "size": { "width": "20px", "height": "20px" },
+        "anchor": "top-left"
+      },
+      "visible": true
+    },
+    {
+      "id": "decorative_corner_br",
+      "type": "shape",
+      "content": {
+        "type": "polygon",
+        "points": [
+          [0, 0], [5, 0], [5, 5], [20, 5], [20, 20], [0, 20]
+        ],
+        "fill": "#d4af37"
+      },
+      "transform": {
+        "position": { "x": "92%", "y": "92%" },
+        "size": { "width": "20px", "height": "20px" },
+        "anchor": "bottom-right"
+      },
+      "visible": true
+    }
+  ],
+  "outputs": {
+    "final_card": {
+      "type": "image",
+      "format": "png",
+      "quality": 95
+    }
+  }
+}

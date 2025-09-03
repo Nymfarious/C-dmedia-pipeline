@@ -8,9 +8,11 @@ import { CenterWorkspace } from '@/components/CenterWorkspace';
 import { Gallery } from '@/components/Gallery';
 import { TemplateGallery } from '@/components/TemplateGallery';
 import { TemplateEditor } from '@/components/TemplateEditor';
+import { TemplateCanvas } from '@/components/Canvas/TemplateCanvas';
 
 import useAppStore from '@/store/appStore';
 import { useTemplateStore } from '@/store/templateStore';
+import { useTemplateMode } from '@/hooks/useTemplateMode';
 
 export function Dashboard() {
   const [showGallery, setShowGallery] = useState(false);
@@ -32,11 +34,11 @@ export function Dashboard() {
   } = useAppStore();
 
   const { 
-    isTemplateMode, 
     activeTemplate,
-    setActiveTemplate, 
-    setTemplateMode 
+    setActiveTemplate
   } = useTemplateStore();
+  
+  const { isTemplateMode, enterTemplateMode, exitTemplateMode } = useTemplateMode();
 
   
 
@@ -81,7 +83,8 @@ export function Dashboard() {
         canUndo={false}
         canRedo={false}
         onGalleryToggle={() => setShowGallery(!showGallery)}
-        onTemplateToggle={() => setShowTemplateGallery(!showTemplateGallery)}
+        onTemplateToggle={() => isTemplateMode ? setShowTemplateGallery(true) : setShowTemplateGallery(!showTemplateGallery)}
+        isTemplateMode={isTemplateMode}
       />
       
       {/* Toolbar */}
@@ -115,31 +118,38 @@ export function Dashboard() {
           onLoadProject={loadProjectData}
         />
         
-        {/* Center Workspace */}
-        <CenterWorkspace 
-          currentCanvas={currentCanvas}
-          onCanvasAssetUpdate={updateCanvasAsset}
-          onCreateCanvas={(type) => {
-            const canvasId = createCanvas(type);
-            setActiveCanvas(canvasId);
-          }}
-        />
-        
-        {/* Right Sidebar */}
-        <RightSidebar 
-          selectedAsset={currentCanvas?.asset}
-          onEditComplete={handleEditComplete}
-        />
+        {/* Template Canvas or Regular Canvas */}
+        {isTemplateMode ? (
+          <TemplateCanvas onExitTemplate={exitTemplateMode} />
+        ) : (
+          <>
+            {/* Center Workspace */}
+            <CenterWorkspace 
+              currentCanvas={currentCanvas}
+              onCanvasAssetUpdate={updateCanvasAsset}
+              onCreateCanvas={(type) => {
+                const canvasId = createCanvas(type);
+                setActiveCanvas(canvasId);
+              }}
+            />
+            
+            {/* Right Sidebar */}
+            <RightSidebar 
+              selectedAsset={currentCanvas?.asset}
+              onEditComplete={handleEditComplete}
+            />
+          </>
+        )}
       </div>
 
       {/* Template Gallery Modal */}
-      {showTemplateGallery && (
+      {showTemplateGallery && !isTemplateMode && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
           <div className="fixed left-0 top-0 h-full w-96 bg-background border-r border-border shadow-lg">
             <TemplateGallery 
               onSelectTemplate={(template) => {
                 setActiveTemplate(template);
-                setTemplateMode(true);
+                enterTemplateMode(template);
                 setShowTemplateGallery(false);
               }} 
             />
@@ -147,11 +157,16 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Template Editor Modal */}
-      {isTemplateMode && activeTemplate && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40">
-          <div className="fixed right-0 top-0 h-full w-80 bg-background border-l border-border shadow-lg">
-            <TemplateEditor onClose={() => setTemplateMode(false)} />
+      {/* Template Gallery for editing mode */}
+      {showTemplateGallery && isTemplateMode && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
+          <div className="fixed left-0 top-0 h-full w-96 bg-background border-r border-border shadow-lg">
+            <TemplateGallery 
+              onSelectTemplate={(template) => {
+                setActiveTemplate(template);
+                setShowTemplateGallery(false);
+              }} 
+            />
           </div>
         </div>
       )}

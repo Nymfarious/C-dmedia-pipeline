@@ -13,9 +13,10 @@ interface HeaderProps {
   canRedo: boolean;
   onGalleryToggle?: () => void;
   onTemplateToggle?: () => void;
+  isTemplateMode?: boolean;
 }
 
-export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggle, onTemplateToggle }: HeaderProps) {
+export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggle, onTemplateToggle, isTemplateMode }: HeaderProps) {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const { assets } = useAppStore();
 
@@ -64,9 +65,14 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
           </Button>
         )}
         {onTemplateToggle && (
-          <Button variant="outline" size="sm" className="h-8" onClick={onTemplateToggle}>
+          <Button 
+            variant={isTemplateMode ? "default" : "outline"} 
+            size="sm" 
+            className="h-8" 
+            onClick={onTemplateToggle}
+          >
             <FileText className="h-4 w-4 mr-2" />
-            Templates
+            {isTemplateMode ? "Exit Templates" : "Templates"}
           </Button>
         )}
         <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/assets'}>
