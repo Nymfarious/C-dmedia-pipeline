@@ -133,51 +133,61 @@ export function TemplateGallery({ onSelectTemplate, className }: TemplateGallery
         <h2 className="text-xl font-semibold mb-4">Template Gallery</h2>
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-2">Loading templates...</p>
+        {isLoading && !error && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading templates...</p>
           </div>
         )}
 
         {/* Error State */}
         {error && (
           <div className="text-center py-8">
-            <p className="text-destructive">{error}</p>
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 mb-4">
+              <p className="text-destructive font-medium">Failed to load templates</p>
+              <p className="text-sm text-muted-foreground mt-1">{error}</p>
+            </div>
           </div>
         )}
-        
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search templates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
 
-        {/* Category Filter */}
-        <div className="flex gap-2 flex-wrap">
-          {categories.map(category => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-              className="capitalize"
-            >
-              {category !== 'all' && getCategoryIcon(category)}
-              {category}
-            </Button>
-          ))}
-        </div>
+        {/* Search and Filters - Only show when not loading */}
+        {!isLoading && (
+          <>
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            {/* Category Filter */}
+            <div className="flex gap-2 flex-wrap">
+              {categories.map(category => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className="capitalize"
+                >
+                  {category !== 'all' && getCategoryIcon(category)}
+                  {category}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <ScrollArea className="flex-1 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredTemplates.map(template => (
+        {/* Templates Grid - Only show when loaded and not empty */}
+        {!isLoading && !error && filteredTemplates.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredTemplates.map(template => (
             <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -275,13 +285,25 @@ export function TemplateGallery({ onSelectTemplate, className }: TemplateGallery
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {filteredTemplates.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileImage className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No templates found matching your criteria</p>
+        {/* Empty State */}
+        {!isLoading && !error && filteredTemplates.length === 0 && templates.length > 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium mb-2">No templates found</p>
+            <p className="text-sm">Try adjusting your search or category filter</p>
+          </div>
+        )}
+
+        {/* No templates loaded state */}
+        {!isLoading && !error && templates.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileImage className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium mb-2">No templates available</p>
+            <p className="text-sm">Templates will appear here once they're loaded</p>
           </div>
         )}
       </ScrollArea>

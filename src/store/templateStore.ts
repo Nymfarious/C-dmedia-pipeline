@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { TemplateSpec, TemplatePlacement } from '@/compositor/TemplateSpec';
+import { TemplateRenderer } from '@/compositor/templateRenderer';
 import { Asset } from '@/types/media';
 
 interface TemplateState {
@@ -54,42 +55,27 @@ export const useTemplateStore = create<TemplateState>((set, get) => ({
     }));
   },
 
-  generateTemplate: async () => {
-    const { activeTemplate, templateInputs, templateAssets } = get();
-    if (!activeTemplate) return null;
+  generateTemplate: async (): Promise<Asset | null> => {
+    const state = get();
+    if (!state.activeTemplate) return null;
 
     try {
-      // Import renderer
-      const { renderPNG } = await import('@/compositor/renderer');
-      
-      // Create placement data
-      const placement: TemplatePlacement = {
-        variables: templateInputs,
-        assets: templateAssets
+      // Create a temporary canvas for rendering
+      const canvas = document.createElement('canvas');
+      const renderer = new TemplateRenderer(canvas);
+
+      // Create placement object from current state
+      const placement = {
+        variables: state.templateInputs,
+        assets: state.templateAssets
       };
 
-      // Render template
-      const resultBuffer = await renderPNG(activeTemplate, placement);
-      
-      // Create blob and URL from result
-      const blob = new Blob([resultBuffer], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create asset from result
-      const asset: Asset = {
-        id: crypto.randomUUID(),
-        type: 'image',
-        name: `${activeTemplate.name} - ${new Date().toLocaleString()}`,
-        src: url,
-        createdAt: Date.now(),
-        category: 'generated',
-        subcategory: 'Template'
-      };
-
+      // Generate the asset
+      const asset = await renderer.generateAsset(state.activeTemplate, placement);
       return asset;
     } catch (error) {
-      console.error('Failed to generate template:', error);
-      return null;
+      console.error('Template generation failed:', error);
+      throw error;
     }
   },
 
