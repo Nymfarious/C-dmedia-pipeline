@@ -1,6 +1,25 @@
 // Robust API client with proper error handling for JSON responses
 
+// Stub mode - returns mock data when backend is unavailable
+const STUB_MODE = true;
+
 export async function safeApiCall(url: string, options?: RequestInit): Promise<any | null> {
+  // Return stub data if stub mode is enabled
+  if (STUB_MODE) {
+    console.log(`[STUB MODE] API call to ${url} - returning mock data`);
+    
+    if (url.includes('/api/health')) {
+      return { ok: true, timestamp: Date.now() };
+    }
+    
+    if (url.includes('/api/jobs')) {
+      return [];
+    }
+    
+    // Default stub response
+    return { ok: true, stub: true, message: 'Stub response - backend not configured' };
+  }
+
   try {
     const response = await fetch(url, options);
     const contentType = response.headers.get('content-type') || '';

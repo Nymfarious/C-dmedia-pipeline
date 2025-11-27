@@ -27,8 +27,24 @@ export function getApiUrl(endpoint: string): string {
   return `${API_CONFIG.BASE_URL}${endpoint}`;
 }
 
+// Stub mode for API requests when backend is unavailable
+const STUB_MODE = true;
+
 // Helper function to make authenticated requests with JSON response parsing
 export async function makeApiRequest(endpoint: string, options: RequestInit = {}): Promise<{success: boolean, data?: any, error?: string}> {
+  // Return stub response if stub mode is enabled
+  if (STUB_MODE) {
+    console.log(`[STUB MODE] API request to ${endpoint} - returning mock response`);
+    return { 
+      success: true, 
+      data: { 
+        stub: true, 
+        message: 'Stub response - backend not configured',
+        endpoint 
+      } 
+    };
+  }
+
   const url = getApiUrl(endpoint);
   
   const defaultHeaders = {
