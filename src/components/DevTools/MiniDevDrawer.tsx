@@ -12,6 +12,10 @@ import { SecurityPanel } from './SecurityPanel';
 import { APIsPanel } from './APIsPanel';
 import { PipelineMonitorPanel } from './PipelineMonitorPanel';
 import { TextContentPanel } from './TextContentPanel';
+import { FlowchartPanel } from './FlowchartPanel';
+import { MCPAgentsPanel } from './MCPAgentsPanel';
+import { AudioPanel } from './AudioPanel';
+import { VideoAnimationPanel } from './VideoAnimationPanel';
 
 const sections = [
   { id: 'overview', name: 'Overview', icon: Eye },
@@ -62,6 +66,14 @@ export function MiniDevDrawer() {
         return <PipelineMonitorPanel />;
       case 'text':
         return <TextContentPanel />;
+      case 'flowchart':
+        return <FlowchartPanel />;
+      case 'mcp':
+        return <MCPAgentsPanel />;
+      case 'audio':
+        return <AudioPanel />;
+      case 'video':
+        return <VideoAnimationPanel />;
       default:
         return (
           <div>
