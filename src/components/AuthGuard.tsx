@@ -7,9 +7,17 @@ interface AuthGuardProps {
   children: React.ReactNode;
 }
 
+// Temporary bypass for development - set to true to disable auth
+const AUTH_DISABLED = true;
+
 const AuthGuard = ({ children }: AuthGuardProps) => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Bypass auth if disabled
+  if (AUTH_DISABLED) {
+    return <>{children}</>;
+  }
 
   useEffect(() => {
     if (!loading && !user) {
