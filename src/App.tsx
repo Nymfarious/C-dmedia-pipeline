@@ -113,6 +113,17 @@ function AIGalleryPageWrapper() {
   );
 }
 
+// Layout component that includes DevTools
+function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <MiniDevButton />
+      <MiniDevDrawer />
+    </>
+  );
+}
+
 // Create router with v7 future flags
 const router = createBrowserRouter([
   {
@@ -122,46 +133,60 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <AuthGuard>
-        <AppWrapper />
-      </AuthGuard>
+      <RootLayout>
+        <AuthGuard>
+          <AppWrapper />
+        </AuthGuard>
+      </RootLayout>
     )
   },
   {
     path: "/assets", 
     element: (
-      <AuthGuard>
-        <AssetsPageWrapper />
-      </AuthGuard>
+      <RootLayout>
+        <AuthGuard>
+          <AssetsPageWrapper />
+        </AuthGuard>
+      </RootLayout>
     )
   },
   {
     path: "/ai-gallery",
     element: (
-      <AuthGuard>
-        <AIGalleryPageWrapper />
-      </AuthGuard>
+      <RootLayout>
+        <AuthGuard>
+          <AIGalleryPageWrapper />
+        </AuthGuard>
+      </RootLayout>
     )
   },
    {
      path: "/image-gen-studio",
      element: (
-       <AuthGuard>
-         <ImageGenStudioPageWrapper />
-       </AuthGuard>
+       <RootLayout>
+         <AuthGuard>
+           <ImageGenStudioPageWrapper />
+         </AuthGuard>
+       </RootLayout>
      )
    },
    {
      path: "/debug",
      element: (
-       <AuthGuard>
-         <Debug />
-       </AuthGuard>
+       <RootLayout>
+         <AuthGuard>
+           <Debug />
+         </AuthGuard>
+       </RootLayout>
      )
    },
    {
      path: "*",
-     element: <NotFound />
+     element: (
+       <RootLayout>
+         <NotFound />
+       </RootLayout>
+     )
    }
 ]);
 
@@ -187,8 +212,6 @@ const App = () => (
               v7_startTransition: true
             }} 
           />
-          <MiniDevButton />
-          <MiniDevDrawer />
         </TooltipProvider>
       </MiniDevProvider>
     </AuthProvider>
