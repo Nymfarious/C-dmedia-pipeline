@@ -2,20 +2,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useDevToolsStore } from '@/store/devToolsStore';
+import { useDevToolsStore } from '../stores/devToolsStore';
+import { useMiniDevContext } from '../MiniDevContext';
 import { User, Package, Calendar } from 'lucide-react';
 
 export function OverviewPanel() {
   const navigate = useNavigate();
+  const { config } = useMiniDevContext();
   const setActiveSection = useDevToolsStore((state) => state.setActiveSection);
 
   // Mock data - replace with actual Supabase data when available
-  const appMetadata = {
-    name: 'Storybook',
-    version: '0.1.0',
-    environment: 'dev',
-  };
-
   const currentUser = {
     display_name: 'Developer',
     email: 'dev@storybook.app',
@@ -34,16 +30,25 @@ export function OverviewPanel() {
         <CardHeader>
           <CardTitle className="text-slate-100 flex items-center justify-between">
             <span>App Info</span>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-              {appMetadata.environment}
+            <Badge 
+              variant="secondary" 
+              className={
+                config.app.environment === 'production' 
+                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                  : config.app.environment === 'staging'
+                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+              }
+            >
+              {config.app.environment}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-slate-300">
           <div className="flex items-center gap-2">
             <Package className="h-4 w-4 text-slate-400" />
-            <span className="font-semibold">{appMetadata.name}</span>
-            <span className="text-slate-400 text-sm">v{appMetadata.version}</span>
+            <span className="font-semibold">{config.app.name}</span>
+            <span className="text-slate-400 text-sm">v{config.app.version}</span>
           </div>
         </CardContent>
       </Card>

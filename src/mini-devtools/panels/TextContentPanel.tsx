@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, FileJson } from 'lucide-react';
-import { logDevEvent } from '@/store/devLogsStore';
+import { logDevEvent } from '../stores/devLogsStore';
 
 interface PageData {
   id: string;

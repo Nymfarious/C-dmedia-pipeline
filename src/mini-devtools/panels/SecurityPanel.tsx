@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CheckCircle, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { logDevEvent } from '@/store/devLogsStore';
+import { logDevEvent } from '../stores/devLogsStore';
 
 const edgeFunctions = [
   'nano-banana-gen',

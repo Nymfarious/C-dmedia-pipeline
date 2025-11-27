@@ -3,39 +3,62 @@ import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Pal
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useDevToolsStore } from '@/store/devToolsStore';
-import { useDevLogsStore } from '@/store/devLogsStore';
-import { OverviewPanel } from './OverviewPanel';
-import { UITokensPanel } from './UITokensPanel';
-import { LogsPanel } from './LogsPanel';
-import { SecurityPanel } from './SecurityPanel';
-import { APIsPanel } from './APIsPanel';
-import { PipelineMonitorPanel } from './PipelineMonitorPanel';
-import { TextContentPanel } from './TextContentPanel';
-import { FlowchartPanel } from './FlowchartPanel';
-import { MCPAgentsPanel } from './MCPAgentsPanel';
-import { AudioPanel } from './AudioPanel';
-import { VideoAnimationPanel } from './VideoAnimationPanel';
+import { useDevToolsStore } from './stores/devToolsStore';
+import { useDevLogsStore } from './stores/devLogsStore';
+import { useMiniDevContext } from './MiniDevContext';
+import { useFeatureFlags } from './hooks/useFeatureFlags';
 
-const sections = [
-  { id: 'overview', name: 'Overview', icon: Eye },
-  { id: 'audio', name: 'Audio', icon: Volume2 },
-  { id: 'video', name: 'Video/Animation', icon: Film },
-  { id: 'text', name: 'Text/Content', icon: FileText },
-  { id: 'libraries', name: 'Libraries', icon: Code },
-  { id: 'apis', name: 'APIs', icon: Network },
-  { id: 'mcp', name: 'MCP/Agents', icon: Bot },
-  { id: 'data', name: 'Data & Test', icon: TestTube },
-  { id: 'flowchart', name: 'Flowchart', icon: Map },
-  { id: 'tokens', name: 'UI Tokens', icon: Palette },
-  { id: 'logs', name: 'Logs', icon: AlertCircle },
-  { id: 'security', name: 'Security', icon: Shield },
-  { id: 'pipeline', name: 'Pipeline Monitor', icon: Activity },
+// Import all panels
+import { OverviewPanel } from './panels/OverviewPanel';
+import { UITokensPanel } from './panels/UITokensPanel';
+import { LogsPanel } from './panels/LogsPanel';
+import { SecurityPanel } from './panels/SecurityPanel';
+import { APIsPanel } from './panels/APIsPanel';
+import { PipelineMonitorPanel } from './panels/PipelineMonitorPanel';
+import { TextContentPanel } from './panels/TextContentPanel';
+import { FlowchartPanel } from './panels/FlowchartPanel';
+import { MCPAgentsPanel } from './panels/MCPAgentsPanel';
+import { AudioPanel } from './panels/AudioPanel';
+import { VideoAnimationPanel } from './panels/VideoAnimationPanel';
+
+const coreSections = [
+  { id: 'overview', name: 'Overview', icon: Eye, component: OverviewPanel },
+  { id: 'audio', name: 'Audio', icon: Volume2, component: AudioPanel },
+  { id: 'video', name: 'Video/Animation', icon: Film, component: VideoAnimationPanel },
+  { id: 'text', name: 'Text/Content', icon: FileText, component: TextContentPanel },
+  { id: 'libraries', name: 'Libraries', icon: Code, component: null },
+  { id: 'apis', name: 'APIs', icon: Network, component: APIsPanel },
+  { id: 'mcp', name: 'MCP/Agents', icon: Bot, component: MCPAgentsPanel },
+  { id: 'data', name: 'Data & Test', icon: TestTube, component: null },
+  { id: 'flowchart', name: 'Flowchart', icon: Map, component: FlowchartPanel },
+  { id: 'tokens', name: 'UI Tokens', icon: Palette, component: UITokensPanel },
+  { id: 'logs', name: 'Logs', icon: AlertCircle, component: LogsPanel },
+  { id: 'security', name: 'Security', icon: Shield, component: SecurityPanel },
+  { id: 'pipeline', name: 'Pipeline Monitor', icon: Activity, component: PipelineMonitorPanel },
 ];
 
 export function MiniDevDrawer() {
+  const { config } = useMiniDevContext();
   const { isOpen, activeSection, setActiveSection, closeDrawer } = useDevToolsStore();
   const hasUnreadErrors = useDevLogsStore((state) => state.hasUnreadErrors);
+  const flags = useFeatureFlags();
+
+  // Merge core sections with custom panels
+  const allSections = [
+    ...coreSections,
+    ...(config.customPanels || []).map(panel => ({
+      id: panel.id,
+      name: panel.name,
+      icon: panel.icon,
+      component: panel.component,
+    })),
+  ];
+
+  // Filter sections based on config and feature flags
+  const enabledPanels = flags.devtools_panels || config.panels;
+  const sections = enabledPanels
+    ? allSections.filter(s => enabledPanels.includes(s.id))
+    : allSections;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -51,39 +74,21 @@ export function MiniDevDrawer() {
   if (!isOpen) return null;
 
   const renderContent = () => {
-    switch (activeSection) {
-      case 'overview':
-        return <OverviewPanel />;
-      case 'tokens':
-        return <UITokensPanel />;
-      case 'logs':
-        return <LogsPanel />;
-      case 'security':
-        return <SecurityPanel />;
-      case 'apis':
-        return <APIsPanel />;
-      case 'pipeline':
-        return <PipelineMonitorPanel />;
-      case 'text':
-        return <TextContentPanel />;
-      case 'flowchart':
-        return <FlowchartPanel />;
-      case 'mcp':
-        return <MCPAgentsPanel />;
-      case 'audio':
-        return <AudioPanel />;
-      case 'video':
-        return <VideoAnimationPanel />;
-      default:
-        return (
-          <div>
-            <h3 className="text-2xl font-bold text-slate-100 capitalize">
-              {sections.find((s) => s.id === activeSection)?.name || activeSection}
-            </h3>
-            <p className="text-slate-400 mt-2">Section content will go here</p>
-          </div>
-        );
+    const section = sections.find((s) => s.id === activeSection);
+    
+    if (section?.component) {
+      const Component = section.component;
+      return <Component />;
     }
+
+    return (
+      <div>
+        <h3 className="text-2xl font-bold text-slate-100 capitalize">
+          {section?.name || activeSection}
+        </h3>
+        <p className="text-slate-400 mt-2">Section content will go here</p>
+      </div>
+    );
   };
 
   return (
@@ -140,9 +145,18 @@ export function MiniDevDrawer() {
             {/* Header */}
             <div className="h-16 border-b border-slate-700 px-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-slate-100">Storybook</h2>
-                <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
-                  dev
+                <h2 className="text-lg font-semibold text-slate-100">{config.app.name}</h2>
+                <Badge 
+                  variant="secondary" 
+                  className={
+                    config.app.environment === 'production' 
+                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                      : config.app.environment === 'staging'
+                      ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                      : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  }
+                >
+                  {config.app.environment}
                 </Badge>
               </div>
               <Button

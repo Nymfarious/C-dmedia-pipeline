@@ -6,8 +6,8 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Volume2, VolumeX, Play } from 'lucide-react';
-import { useAudioStore } from '@/store/audioStore';
-import { logDevEvent } from '@/store/devLogsStore';
+import { useAudioStore } from '../stores/audioStore';
+import { logDevEvent } from '../stores/devLogsStore';
 
 export function AudioPanel() {
   const {

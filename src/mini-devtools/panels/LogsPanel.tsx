@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useDevLogsStore, LogLevel } from '@/store/devLogsStore';
+import { useDevLogsStore, LogLevel } from '../stores/devLogsStore';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
