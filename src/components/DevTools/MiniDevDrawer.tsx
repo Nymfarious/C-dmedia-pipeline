@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDevToolsStore } from '@/store/devToolsStore';
+import { useDevLogsStore } from '@/store/devLogsStore';
+import { OverviewPanel } from './OverviewPanel';
+import { UITokensPanel } from './UITokensPanel';
+import { LogsPanel } from './LogsPanel';
 
 const sections = [
   { id: 'overview', name: 'Overview', icon: Eye },
@@ -23,6 +27,7 @@ const sections = [
 
 export function MiniDevDrawer() {
   const { isOpen, activeSection, setActiveSection, closeDrawer } = useDevToolsStore();
+  const hasUnreadErrors = useDevLogsStore((state) => state.hasUnreadErrors);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -36,6 +41,26 @@ export function MiniDevDrawer() {
   }, [isOpen, closeDrawer]);
 
   if (!isOpen) return null;
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'overview':
+        return <OverviewPanel />;
+      case 'tokens':
+        return <UITokensPanel />;
+      case 'logs':
+        return <LogsPanel />;
+      default:
+        return (
+          <div>
+            <h3 className="text-2xl font-bold text-slate-100 capitalize">
+              {sections.find((s) => s.id === activeSection)?.name || activeSection}
+            </h3>
+            <p className="text-slate-400 mt-2">Section content will go here</p>
+          </div>
+        );
+    }
+  };
 
   return (
     <>
@@ -58,19 +83,23 @@ export function MiniDevDrawer() {
               {sections.map((section) => {
                 const Icon = section.icon;
                 const isActive = activeSection === section.id;
+                const showRedDot = section.id === 'logs' && hasUnreadErrors;
                 
                 return (
                   <Tooltip key={section.id}>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => setActiveSection(section.id)}
-                        className={`w-10 h-10 rounded-md flex items-center justify-center transition-all ${
+                        className={`w-10 h-10 rounded-md flex items-center justify-center transition-all relative ${
                           isActive
                             ? 'bg-slate-700 ring-2 ring-blue-500 text-blue-400'
                             : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
                         }`}
                       >
                         <Icon className="h-5 w-5" />
+                        {showRedDot && (
+                          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        )}
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="left">
@@ -104,10 +133,7 @@ export function MiniDevDrawer() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <h3 className="text-2xl font-bold text-slate-100 capitalize">
-                {sections.find((s) => s.id === activeSection)?.name || activeSection}
-              </h3>
-              <p className="text-slate-400 mt-2">Section content will go here</p>
+              {renderContent()}
             </div>
           </div>
         </div>
