@@ -10,6 +10,8 @@ import { UITokensPanel } from './UITokensPanel';
 import { LogsPanel } from './LogsPanel';
 import { SecurityPanel } from './SecurityPanel';
 import { APIsPanel } from './APIsPanel';
+import { PipelineMonitorPanel } from './PipelineMonitorPanel';
+import { TextContentPanel } from './TextContentPanel';
 
 const sections = [
   { id: 'overview', name: 'Overview', icon: Eye },
@@ -56,6 +58,10 @@ export function MiniDevDrawer() {
         return <SecurityPanel />;
       case 'apis':
         return <APIsPanel />;
+      case 'pipeline':
+        return <PipelineMonitorPanel />;
+      case 'text':
+        return <TextContentPanel />;
       default:
         return (
           <div>
