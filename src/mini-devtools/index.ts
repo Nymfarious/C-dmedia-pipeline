@@ -29,3 +29,7 @@ export { FlowchartPanel } from './panels/FlowchartPanel';
 export { MCPAgentsPanel } from './panels/MCPAgentsPanel';
 export { AudioPanel } from './panels/AudioPanel';
 export { VideoAnimationPanel } from './panels/VideoAnimationPanel';
+export { PanelGeneratorPanel } from './panels/PanelGeneratorPanel';
+export { StyleGuidePanel } from './panels/StyleGuidePanel';
+export { ShortcutsPanel } from './panels/ShortcutsPanel';
+export { ExportPanel } from './panels/ExportPanel';
