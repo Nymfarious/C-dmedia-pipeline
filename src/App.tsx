@@ -14,6 +14,8 @@ import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useCanvasAutoCleanup } from '@/hooks/useCanvasAutoCleanup';
+import { MiniDevButton } from '@/components/DevTools/MiniDevButton';
+import { MiniDevDrawer } from '@/components/DevTools/MiniDevDrawer';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Debug } from "./pages/Debug";
@@ -176,6 +178,8 @@ const App = () => (
             v7_startTransition: true
           }} 
         />
+        <MiniDevButton />
+        <MiniDevDrawer />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
