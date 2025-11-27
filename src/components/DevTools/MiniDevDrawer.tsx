@@ -8,6 +8,8 @@ import { useDevLogsStore } from '@/store/devLogsStore';
 import { OverviewPanel } from './OverviewPanel';
 import { UITokensPanel } from './UITokensPanel';
 import { LogsPanel } from './LogsPanel';
+import { SecurityPanel } from './SecurityPanel';
+import { APIsPanel } from './APIsPanel';
 
 const sections = [
   { id: 'overview', name: 'Overview', icon: Eye },
@@ -50,6 +52,10 @@ export function MiniDevDrawer() {
         return <UITokensPanel />;
       case 'logs':
         return <LogsPanel />;
+      case 'security':
+        return <SecurityPanel />;
+      case 'apis':
+        return <APIsPanel />;
       default:
         return (
           <div>
