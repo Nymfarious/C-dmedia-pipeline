@@ -20,6 +20,10 @@ import { FlowchartPanel } from './panels/FlowchartPanel';
 import { MCPAgentsPanel } from './panels/MCPAgentsPanel';
 import { AudioPanel } from './panels/AudioPanel';
 import { VideoAnimationPanel } from './panels/VideoAnimationPanel';
+import { PanelGeneratorPanel } from './panels/PanelGeneratorPanel';
+import { StyleGuidePanel } from './panels/StyleGuidePanel';
+import { ShortcutsPanel } from './panels/ShortcutsPanel';
+import { ExportPanel } from './panels/ExportPanel';
 
 const coreSections = [
   { id: 'overview', name: 'Overview', icon: Eye, component: OverviewPanel },
@@ -35,6 +39,10 @@ const coreSections = [
   { id: 'logs', name: 'Logs', icon: AlertCircle, component: LogsPanel },
   { id: 'security', name: 'Security', icon: Shield, component: SecurityPanel },
   { id: 'pipeline', name: 'Pipeline Monitor', icon: Activity, component: PipelineMonitorPanel },
+  { id: 'generator', name: 'Panel Generator', icon: Code, component: PanelGeneratorPanel },
+  { id: 'styleguide', name: 'Style Guide', icon: Palette, component: StyleGuidePanel },
+  { id: 'shortcuts', name: 'Shortcuts', icon: Activity, component: ShortcutsPanel },
+  { id: 'export', name: 'Export Report', icon: FileText, component: ExportPanel },
 ];
 
 export function MiniDevDrawer() {
