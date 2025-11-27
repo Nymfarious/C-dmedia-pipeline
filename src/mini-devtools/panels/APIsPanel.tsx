@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
-import { logDevEvent } from '@/store/devLogsStore';
+import { logDevEvent } from '../stores/devLogsStore';
 
 type ApiStatus = 'live' | 'testing' | 'planned' | 'deprecated';
 type ApiCategory = 'AI Generation' | 'Storage' | 'Auth' | 'Analytics' | 'Audio';

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type LogLevel = 'error' | 'warn' | 'info';
+export type LogLevel = 'info' | 'warn' | 'error';
 
 export interface DevLog {
   id: string;
@@ -13,47 +13,41 @@ export interface DevLog {
 
 interface DevLogsStore {
   logs: DevLog[];
-  hasUnreadErrors: boolean;
-  addLog: (level: LogLevel, message: string, context?: any) => void;
-  markAllRead: () => void;
+  addLog: (log: Omit<DevLog, 'id' | 'timestamp' | 'read'>) => void;
   clearLogs: () => void;
+  markAllRead: () => void;
+  hasUnreadErrors: boolean;
 }
 
 export const useDevLogsStore = create<DevLogsStore>((set, get) => ({
   logs: [],
   hasUnreadErrors: false,
   
-  addLog: (level, message, context) => {
+  addLog: (log) => {
     const newLog: DevLog = {
+      ...log,
       id: `${Date.now()}-${Math.random()}`,
-      level,
-      message,
-      context,
       timestamp: new Date(),
       read: false,
     };
     
     set((state) => ({
-      logs: [newLog, ...state.logs],
-      hasUnreadErrors: level === 'error' || state.hasUnreadErrors,
+      logs: [newLog, ...state.logs].slice(0, 100), // Keep last 100 logs
+      hasUnreadErrors: log.level === 'error' ? true : state.hasUnreadErrors,
     }));
   },
   
-  markAllRead: () => {
-    set((state) => ({
-      logs: state.logs.map((log) => ({ ...log, read: true })),
-      hasUnreadErrors: false,
-    }));
-  },
+  clearLogs: () => set({ logs: [], hasUnreadErrors: false }),
   
-  clearLogs: () => {
-    set({ logs: [], hasUnreadErrors: false });
-  },
+  markAllRead: () => set((state) => ({
+    logs: state.logs.map(log => ({ ...log, read: true })),
+    hasUnreadErrors: false,
+  })),
 }));
 
-// Global error handler
+// Helper function for easy logging
 export function logDevEvent(level: LogLevel, message: string, context?: any) {
-  useDevLogsStore.getState().addLog(level, message, context);
+  useDevLogsStore.getState().addLog({ level, message, context });
 }
 
 // Intercept console errors and warnings
@@ -62,12 +56,12 @@ if (typeof window !== 'undefined') {
   const originalWarn = console.warn;
   
   console.error = (...args) => {
-    logDevEvent('error', args.join(' '), args);
+    logDevEvent('error', args.join(' '), { args });
     originalError.apply(console, args);
   };
   
   console.warn = (...args) => {
-    logDevEvent('warn', args.join(' '), args);
+    logDevEvent('warn', args.join(' '), { args });
     originalWarn.apply(console, args);
   };
 }

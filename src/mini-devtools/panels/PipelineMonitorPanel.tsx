@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle, XCircle, Trash2, ArrowRight } from 'lucide-react';
-import { usePipelineStore, PipelineStep, recordPipelineEvent } from '@/store/pipelineStore';
+import { usePipelineStore, PipelineStep, recordPipelineEvent } from '../stores/pipelineStore';
 import { format } from 'date-fns';
 
 const stepConfig: Record<PipelineStep, { color: string; label: string }> = {

@@ -14,8 +14,7 @@ import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useCanvasAutoCleanup } from '@/hooks/useCanvasAutoCleanup';
-import { MiniDevButton } from '@/components/DevTools/MiniDevButton';
-import { MiniDevDrawer } from '@/components/DevTools/MiniDevDrawer';
+import { MiniDevProvider, MiniDevButton, MiniDevDrawer } from '@/mini-devtools';
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Debug } from "./pages/Debug";
@@ -169,18 +168,29 @@ const router = createBrowserRouter([
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <RouterProvider 
-          router={router} 
-          future={{ 
-            v7_startTransition: true
-          }} 
-        />
-        <MiniDevButton />
-        <MiniDevDrawer />
-      </TooltipProvider>
+      <MiniDevProvider
+        config={{
+          app: {
+            name: 'Storybook',
+            version: '0.1.0',
+            environment: 'dev',
+          },
+          position: 'bottom-right',
+        }}
+      >
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <RouterProvider 
+            router={router} 
+            future={{ 
+              v7_startTransition: true
+            }} 
+          />
+          <MiniDevButton />
+          <MiniDevDrawer />
+        </TooltipProvider>
+      </MiniDevProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

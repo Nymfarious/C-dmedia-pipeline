@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Film, RefreshCw, Activity } from 'lucide-react';
-import { logDevEvent } from '@/store/devLogsStore';
+import { logDevEvent } from '../stores/devLogsStore';
 
 const mockAnimations = [
   { id: '1', name: 'narrator.riv', size: '245 KB' },

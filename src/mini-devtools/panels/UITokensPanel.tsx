@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDevToolsStore } from '@/store/devToolsStore';
+import { useDevToolsStore } from '../stores/devToolsStore';
 import { Sun, Moon, Monitor } from 'lucide-react';
 
 const colors = {
