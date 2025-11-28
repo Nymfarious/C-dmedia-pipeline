@@ -13,6 +13,8 @@ import { AssetsPage } from './components/AssetsPage';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
 import { TimelineWorkspace } from './components/workspace/TimelineWorkspace';
+import { ModeFerryProvider } from './components/workspace/ModeFerryContext';
+import { ModeFerry } from './components/workspace/ModeFerry';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useCanvasAutoCleanup } from '@/hooks/useCanvasAutoCleanup';
 import { MiniDevProvider, MiniDevButton, MiniDevDrawer } from '@/mini-devtools';
@@ -114,11 +116,12 @@ function AIGalleryPageWrapper() {
   );
 }
 
-// Layout component that includes DevTools
+// Layout component that includes DevTools and ModeFerry
 function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
+      <ModeFerry />
       <MiniDevButton />
       <MiniDevDrawer />
     </>
@@ -204,27 +207,29 @@ const router = createBrowserRouter([
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <MiniDevProvider
-        config={{
-          app: {
-            name: 'Storybook',
-            version: '0.1.0',
-            environment: 'dev',
-          },
-          position: 'bottom-right',
-        }}
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <RouterProvider 
-            router={router} 
-            future={{ 
-              v7_startTransition: true
-            }} 
-          />
-        </TooltipProvider>
-      </MiniDevProvider>
+      <ModeFerryProvider>
+        <MiniDevProvider
+          config={{
+            app: {
+              name: 'Storybook',
+              version: '0.1.0',
+              environment: 'dev',
+            },
+            position: 'bottom-right',
+          }}
+        >
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <RouterProvider 
+              router={router} 
+              future={{ 
+                v7_startTransition: true
+              }} 
+            />
+          </TooltipProvider>
+        </MiniDevProvider>
+      </ModeFerryProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
