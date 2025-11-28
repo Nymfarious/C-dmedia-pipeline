@@ -155,6 +155,8 @@ export function MiniDevDrawer() {
   const renderMobileTabBar = () => (
     <div 
       ref={tabBarRef}
+      role="tablist"
+      aria-label="DevTools sections"
       className="md:hidden w-full overflow-x-auto border-b border-border/50 bg-secondary/50"
     >
       <div className="flex gap-1 p-2 min-w-max">
@@ -167,8 +169,11 @@ export function MiniDevDrawer() {
             <button
               key={section.id}
               ref={isActive ? activeTabRef : null}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={section.name}
               onClick={() => setActiveSection(section.id)}
-              className={`w-12 h-12 rounded-md flex items-center justify-center transition-all relative touch-manipulation ${
+              className={`w-12 h-12 rounded-md flex items-center justify-center transition-all relative touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
                 isActive
                   ? 'bg-secondary ring-2 ring-primary text-primary'
                   : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
@@ -176,7 +181,7 @@ export function MiniDevDrawer() {
             >
               <Icon className="h-5 w-5" />
               {showRedDot && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" aria-label="Has unread errors" />
               )}
             </button>
           );
@@ -187,7 +192,11 @@ export function MiniDevDrawer() {
 
   // Desktop vertical icon rail
   const renderDesktopIconRail = () => (
-    <div className="hidden md:flex w-12 bg-secondary/50 border-r border-border flex-col items-center py-4 gap-2">
+    <nav 
+      role="tablist" 
+      aria-label="DevTools sections"
+      className="hidden md:flex w-12 bg-secondary/50 border-r border-border flex-col items-center py-4 gap-2"
+    >
       <TooltipProvider delayDuration={200}>
         {sections.map((section) => {
           const Icon = section.icon;
@@ -198,8 +207,11 @@ export function MiniDevDrawer() {
             <Tooltip key={section.id}>
               <TooltipTrigger asChild>
                 <button
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={section.name}
                   onClick={() => setActiveSection(section.id)}
-                  className={`w-10 h-10 rounded-md flex items-center justify-center transition-all relative ${
+                  className={`w-10 h-10 rounded-md flex items-center justify-center transition-all relative focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
                     isActive
                       ? 'bg-secondary ring-2 ring-primary text-primary'
                       : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
@@ -207,7 +219,7 @@ export function MiniDevDrawer() {
                 >
                   <Icon className="h-5 w-5" />
                   {showRedDot && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" aria-label="Has unread errors" />
                   )}
                 </button>
               </TooltipTrigger>
@@ -218,7 +230,7 @@ export function MiniDevDrawer() {
           );
         })}
       </TooltipProvider>
-    </div>
+    </nav>
   );
 
   return (
@@ -231,6 +243,9 @@ export function MiniDevDrawer() {
 
       {/* Drawer */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Developer Tools"
         className={`fixed right-0 top-0 h-full w-full md:w-[420px] max-w-full bg-background/95 backdrop-blur-xl border-l border-border z-50 transition-transform duration-300 overflow-x-hidden safe-area-bottom touch-manipulation ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}

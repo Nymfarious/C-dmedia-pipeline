@@ -28,16 +28,16 @@ export function UITokensPanel() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Theme</CardTitle>
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Theme</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <Button
               variant={theme === 'light' ? 'default' : 'outline'}
-              className="flex-1"
+              className="flex-1 h-10 md:h-9 touch-manipulation"
               onClick={() => handleThemeChange('light')}
             >
               <Sun className="h-4 w-4 mr-2" />
@@ -45,7 +45,7 @@ export function UITokensPanel() {
             </Button>
             <Button
               variant={theme === 'dark' ? 'default' : 'outline'}
-              className="flex-1"
+              className="flex-1 h-10 md:h-9 touch-manipulation"
               onClick={() => handleThemeChange('dark')}
             >
               <Moon className="h-4 w-4 mr-2" />
@@ -53,7 +53,7 @@ export function UITokensPanel() {
             </Button>
             <Button
               variant={theme === 'system' ? 'default' : 'outline'}
-              className="flex-1"
+              className="flex-1 h-10 md:h-9 touch-manipulation"
               onClick={() => handleThemeChange('system')}
             >
               <Monitor className="h-4 w-4 mr-2" />
@@ -63,47 +63,47 @@ export function UITokensPanel() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Color Palette</CardTitle>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Color Palette</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             {Object.entries(colors).map(([key, color]) => (
-              <div key={key} className="space-y-2">
-                <div className={`${color.bg} h-16 rounded-md border border-slate-600`} />
-                <div className="text-sm text-slate-300 font-medium">{color.name}</div>
-                <div className="text-xs text-slate-400 font-mono">{color.value}</div>
+              <div key={key} className="space-y-1 md:space-y-2">
+                <div className={`${color.bg} h-12 md:h-16 rounded-md border border-border`} />
+                <div className="text-xs md:text-sm text-foreground/80 font-medium">{color.name}</div>
+                <div className="text-xs text-muted-foreground font-mono">{color.value}</div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Typography</CardTitle>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Typography</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           <div>
-            <div className="text-4xl font-bold text-slate-100">Heading 1</div>
-            <div className="text-xs text-slate-400 font-mono mt-1">text-4xl font-bold</div>
+            <div className="text-2xl md:text-4xl font-bold text-foreground">Heading 1</div>
+            <div className="text-xs text-muted-foreground font-mono mt-1">text-4xl font-bold</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold text-slate-100">Heading 2</div>
-            <div className="text-xs text-slate-400 font-mono mt-1">text-2xl font-semibold</div>
+            <div className="text-xl md:text-2xl font-semibold text-foreground">Heading 2</div>
+            <div className="text-xs text-muted-foreground font-mono mt-1">text-2xl font-semibold</div>
           </div>
           <div>
-            <div className="text-lg font-medium text-slate-100">Heading 3</div>
-            <div className="text-xs text-slate-400 font-mono mt-1">text-lg font-medium</div>
+            <div className="text-base md:text-lg font-medium text-foreground">Heading 3</div>
+            <div className="text-xs text-muted-foreground font-mono mt-1">text-lg font-medium</div>
           </div>
           <div>
-            <div className="text-base text-slate-300">Body Text</div>
-            <div className="text-xs text-slate-400 font-mono mt-1">text-base</div>
+            <div className="text-sm md:text-base text-foreground/80">Body Text</div>
+            <div className="text-xs text-muted-foreground font-mono mt-1">text-base</div>
           </div>
           <div>
-            <div className="text-sm text-slate-400">Small Text</div>
-            <div className="text-xs text-slate-400 font-mono mt-1">text-sm text-slate-400</div>
+            <div className="text-xs md:text-sm text-muted-foreground">Small Text</div>
+            <div className="text-xs text-muted-foreground font-mono mt-1">text-sm</div>
           </div>
         </CardContent>
       </Card>

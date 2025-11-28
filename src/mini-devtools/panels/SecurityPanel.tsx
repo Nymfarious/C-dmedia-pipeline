@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { logDevEvent } from '../stores/devLogsStore';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const edgeFunctions = [
   'nano-banana-gen',
@@ -40,6 +41,7 @@ export function SecurityPanel() {
     }), {})
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMobile = useIsMobile();
 
   const checkEdgeHealth = async (functionName: string) => {
     setFunctionHealth(prev => ({
@@ -83,26 +85,26 @@ export function SecurityPanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       <div>
-        <h3 className="text-2xl font-bold text-slate-100">Security</h3>
-        <p className="text-slate-400 mt-2">Monitor backend security and infrastructure</p>
+        <h3 className="text-lg md:text-2xl font-bold text-foreground">Security</h3>
+        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">Monitor backend security and infrastructure</p>
       </div>
 
       {/* Edge Functions */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-slate-100">Edge Functions</CardTitle>
-              <CardDescription className="text-slate-400">Backend serverless functions status</CardDescription>
+              <CardTitle className="text-foreground text-sm md:text-base">Edge Functions</CardTitle>
+              <CardDescription className="text-muted-foreground text-xs md:text-sm">Backend serverless functions status</CardDescription>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={refreshAll}
               disabled={isRefreshing}
-              className="text-slate-300 hover:text-slate-100"
+              className="text-foreground/70 hover:text-foreground w-full md:w-auto h-10 md:h-9 touch-manipulation"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh All
@@ -110,18 +112,18 @@ export function SecurityPanel() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {edgeFunctions.map((fn) => {
               const health = functionHealth[fn];
               return (
-                <div key={fn} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
-                  <div className="flex items-center gap-3">
+                <div key={fn} className="flex items-center justify-between p-2 md:p-3 bg-background/50 rounded-lg gap-2">
+                  <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                     {getStatusIcon(health.status)}
-                    <div>
-                      <div className="text-sm font-medium text-slate-200">{fn}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs md:text-sm font-medium text-foreground truncate">{fn}</div>
                       {health.lastChecked && (
-                        <div className="text-xs text-slate-500">
-                          Last checked: {health.lastChecked.toLocaleTimeString()}
+                        <div className="text-xs text-muted-foreground">
+                          {isMobile ? health.lastChecked.toLocaleTimeString() : `Last: ${health.lastChecked.toLocaleTimeString()}`}
                         </div>
                       )}
                     </div>
@@ -131,7 +133,7 @@ export function SecurityPanel() {
                     size="sm"
                     onClick={() => checkEdgeHealth(fn)}
                     disabled={health.status === 'checking'}
-                    className="text-xs text-slate-400 hover:text-slate-200"
+                    className="text-xs text-muted-foreground hover:text-foreground h-9 w-14 touch-manipulation"
                   >
                     Test
                   </Button>
@@ -143,17 +145,18 @@ export function SecurityPanel() {
       </Card>
 
       {/* RLS Policies */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Row Level Security</CardTitle>
-          <CardDescription className="text-slate-400">Database table RLS policy status</CardDescription>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Row Level Security</CardTitle>
+          <CardDescription className="text-muted-foreground text-xs md:text-sm">Database table RLS policy status</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2">
+          {/* Responsive grid - 2 cols on mobile, 2-3 on larger */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {tables.map((table) => (
-              <div key={table} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded">
-                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                <span className="text-sm text-slate-300">{table}</span>
+              <div key={table} className="flex items-center gap-2 p-2 bg-background/50 rounded">
+                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-500 flex-shrink-0" />
+                <span className="text-xs md:text-sm text-foreground/80 truncate">{table}</span>
               </div>
             ))}
           </div>
@@ -161,20 +164,20 @@ export function SecurityPanel() {
       </Card>
 
       {/* Secrets Manager */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Secrets Manager</CardTitle>
-          <CardDescription className="text-slate-400">
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Secrets Manager</CardTitle>
+          <CardDescription className="text-muted-foreground text-xs md:text-sm">
             Environment variables (managed in Supabase Dashboard)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {secrets.map((secret) => (
-              <div key={secret.key} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+              <div key={secret.key} className="flex items-center justify-between p-2 md:p-3 bg-background/50 rounded-lg gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-300">{secret.key}</div>
-                  <div className="text-xs font-mono text-slate-500 mt-1">
+                  <div className="text-xs md:text-sm font-medium text-foreground/80 truncate">{secret.key}</div>
+                  <div className="text-xs font-mono text-muted-foreground mt-0.5">
                     {secret.masked || (
                       <span className="text-yellow-500">Not Set</span>
                     )}
@@ -183,7 +186,7 @@ export function SecurityPanel() {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground touch-manipulation">
                         <AlertCircle className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>

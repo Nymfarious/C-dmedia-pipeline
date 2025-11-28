@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
 import { logDevEvent } from '../stores/devLogsStore';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type ApiStatus = 'live' | 'testing' | 'planned' | 'deprecated';
 type ApiCategory = 'AI Generation' | 'Storage' | 'Auth' | 'Analytics' | 'Audio';
@@ -80,7 +81,7 @@ const mockApiRegistry: ApiEntry[] = [
 const statusConfig: Record<ApiStatus, { color: string; label: string }> = {
   live: { color: 'bg-green-500/20 text-green-400 border-green-500/30', label: 'Live' },
   testing: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'Testing' },
-  planned: { color: 'bg-slate-500/20 text-slate-400 border-slate-500/30', label: 'Planned' },
+  planned: { color: 'bg-muted/50 text-muted-foreground border-muted', label: 'Planned' },
   deprecated: { color: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Deprecated' },
 };
 
@@ -88,6 +89,7 @@ export function APIsPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [testingStatus, setTestingStatus] = useState<Record<string, 'idle' | 'testing' | 'success' | 'error'>>({});
+  const isMobile = useIsMobile();
 
   const filteredApis = mockApiRegistry.filter((api) => {
     const matchesSearch = api.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -137,30 +139,30 @@ export function APIsPanel() {
   const categories = ['all', ...Array.from(new Set(mockApiRegistry.map(api => api.category)))];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       <div>
-        <h3 className="text-2xl font-bold text-slate-100">API Registry</h3>
-        <p className="text-slate-400 mt-2">External services and integrations</p>
+        <h3 className="text-lg md:text-2xl font-bold text-foreground">API Registry</h3>
+        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">External services and integrations</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
+      {/* Filters - Stack on mobile */}
+      <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search APIs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-slate-800/50 border-slate-700 text-slate-200"
+            className="pl-10 bg-secondary/50 border-border text-foreground"
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[180px] bg-slate-800/50 border-slate-700 text-slate-200">
+          <SelectTrigger className="w-full md:w-[180px] bg-secondary/50 border-border text-foreground">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
+          <SelectContent className="bg-popover border-border">
             {categories.map((cat) => (
-              <SelectItem key={cat} value={cat} className="text-slate-200">
+              <SelectItem key={cat} value={cat} className="text-foreground">
                 {cat === 'all' ? 'All Categories' : cat}
               </SelectItem>
             ))}
@@ -168,11 +170,11 @@ export function APIsPanel() {
         </Select>
       </div>
 
-      {/* API Cards */}
-      <div className="space-y-3">
+      {/* API Cards - Single column on mobile, responsive grid */}
+      <div className="grid grid-cols-1 gap-3">
         {filteredApis.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="py-8 text-center text-slate-400">
+          <Card className="bg-secondary/50 border-border">
+            <CardContent className="py-8 text-center text-muted-foreground">
               No APIs found matching your filters
             </CardContent>
           </Card>
@@ -182,17 +184,17 @@ export function APIsPanel() {
             const statusStyle = statusConfig[api.status];
 
             return (
-              <Card key={api.id} className="bg-slate-800/50 border-slate-700">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <CardTitle className="text-base text-slate-100">{api.name}</CardTitle>
-                        <Badge className={statusStyle.color}>
+              <Card key={api.id} className="bg-secondary/50 border-border">
+                <CardHeader className="pb-2 md:pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <CardTitle className="text-sm md:text-base text-foreground">{api.name}</CardTitle>
+                        <Badge className={`${statusStyle.color} text-xs`}>
                           {statusStyle.label}
                         </Badge>
                       </div>
-                      <CardDescription className="text-slate-400 text-sm">
+                      <CardDescription className="text-muted-foreground text-xs md:text-sm">
                         {api.vendor} • {api.category}
                       </CardDescription>
                     </div>
@@ -201,16 +203,16 @@ export function APIsPanel() {
                       size="sm"
                       onClick={() => testConnection(api)}
                       disabled={status === 'testing'}
-                      className="text-slate-300 hover:text-slate-100"
+                      className="text-foreground/70 hover:text-foreground h-10 w-10 md:h-9 md:w-auto md:px-3 touch-manipulation"
                     >
                       {getTestIcon(status)}
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-500">{api.purpose}</span>
-                    <Badge variant="outline" className="text-slate-400 border-slate-600">
+                  <div className="flex items-center justify-between text-xs gap-2">
+                    <span className="text-muted-foreground truncate">{api.purpose}</span>
+                    <Badge variant="outline" className="text-muted-foreground border-border flex-shrink-0">
                       {api.auth_type}
                     </Badge>
                   </div>
