@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Palette, AlertCircle, Shield, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { useDevToolsStore } from './stores/devToolsStore';
 import { useDevLogsStore } from './stores/devLogsStore';
 import { useMiniDevContext } from './MiniDevContext';
 import { useFeatureFlags } from './hooks/useFeatureFlags';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import all panels
 import { OverviewPanel } from './panels/OverviewPanel';
@@ -50,6 +51,15 @@ export function MiniDevDrawer() {
   const { isOpen, activeSection, setActiveSection, closeDrawer } = useDevToolsStore();
   const hasUnreadErrors = useDevLogsStore((state) => state.hasUnreadErrors);
   const flags = useFeatureFlags();
+  const isMobile = useIsMobile();
+  
+  // Swipe-to-close state
+  const touchStartX = useRef<number>(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  
+  // Ref for active tab auto-scroll
+  const activeTabRef = useRef<HTMLButtonElement>(null);
+  const tabBarRef = useRef<HTMLDivElement>(null);
 
   // Merge core sections with custom panels
   const allSections = [
@@ -68,6 +78,7 @@ export function MiniDevDrawer() {
     ? allSections.filter(s => enabledPanels.includes(s.id))
     : allSections;
 
+  // Escape key handler
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -78,6 +89,47 @@ export function MiniDevDrawer() {
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, closeDrawer]);
+
+  // Auto-scroll active tab into view on mobile
+  useEffect(() => {
+    if (isMobile && isOpen && activeTabRef.current && tabBarRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeSection, isMobile, isOpen]);
+
+  // Swipe-to-close handlers (mobile only)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    touchStartX.current = e.touches[0].clientX;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !isSwiping) return;
+    // Allow vertical scrolling to work normally
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = Math.abs(e.touches[0].clientY - (e.target as HTMLElement).getBoundingClientRect().top);
+    
+    // If vertical movement is greater, don't interfere
+    if (deltaY > Math.abs(deltaX)) {
+      setIsSwiping(false);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile || !isSwiping) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    
+    // Swipe right to close (threshold 50px)
+    if (deltaX > 50) {
+      closeDrawer();
+    }
+    setIsSwiping(false);
+  };
 
   if (!isOpen) return null;
 
@@ -91,13 +143,83 @@ export function MiniDevDrawer() {
 
     return (
       <div>
-        <h3 className="text-2xl font-bold text-slate-100 capitalize">
+        <h3 className="text-2xl font-bold text-foreground capitalize">
           {section?.name || activeSection}
         </h3>
-        <p className="text-slate-400 mt-2">Section content will go here</p>
+        <p className="text-muted-foreground mt-2">Section content will go here</p>
       </div>
     );
   };
+
+  // Mobile horizontal tab bar
+  const renderMobileTabBar = () => (
+    <div 
+      ref={tabBarRef}
+      className="md:hidden w-full overflow-x-auto border-b border-border/50 bg-secondary/50"
+    >
+      <div className="flex gap-1 p-2 min-w-max">
+        {sections.map((section) => {
+          const Icon = section.icon;
+          const isActive = activeSection === section.id;
+          const showRedDot = section.id === 'logs' && hasUnreadErrors;
+          
+          return (
+            <button
+              key={section.id}
+              ref={isActive ? activeTabRef : null}
+              onClick={() => setActiveSection(section.id)}
+              className={`w-12 h-12 rounded-md flex items-center justify-center transition-all relative touch-manipulation ${
+                isActive
+                  ? 'bg-secondary ring-2 ring-primary text-primary'
+                  : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              {showRedDot && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Desktop vertical icon rail
+  const renderDesktopIconRail = () => (
+    <div className="hidden md:flex w-12 bg-secondary/50 border-r border-border flex-col items-center py-4 gap-2">
+      <TooltipProvider delayDuration={200}>
+        {sections.map((section) => {
+          const Icon = section.icon;
+          const isActive = activeSection === section.id;
+          const showRedDot = section.id === 'logs' && hasUnreadErrors;
+          
+          return (
+            <Tooltip key={section.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-10 h-10 rounded-md flex items-center justify-center transition-all relative ${
+                    isActive
+                      ? 'bg-secondary ring-2 ring-primary text-primary'
+                      : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {showRedDot && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>{section.name}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </TooltipProvider>
+    </div>
+  );
 
   return (
     <>
@@ -109,60 +231,35 @@ export function MiniDevDrawer() {
 
       {/* Drawer */}
       <div
-        className={`fixed right-0 top-0 h-full w-[420px] bg-slate-900/95 backdrop-blur-xl border-l border-slate-700 z-50 transition-transform duration-300 ${
+        className={`fixed right-0 top-0 h-full w-full md:w-[420px] max-w-full bg-background/95 backdrop-blur-xl border-l border-border z-50 transition-transform duration-300 overflow-x-hidden safe-area-bottom touch-manipulation ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="flex h-full">
-          {/* Icon Rail */}
-          <div className="w-12 bg-slate-800/50 border-r border-slate-700 flex flex-col items-center py-4 gap-2">
-            <TooltipProvider delayDuration={200}>
-              {sections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                const showRedDot = section.id === 'logs' && hasUnreadErrors;
-                
-                return (
-                  <Tooltip key={section.id}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setActiveSection(section.id)}
-                        className={`w-10 h-10 rounded-md flex items-center justify-center transition-all relative ${
-                          isActive
-                            ? 'bg-slate-700 ring-2 ring-blue-500 text-blue-400'
-                            : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {showRedDot && (
-                          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <p>{section.name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </TooltipProvider>
-          </div>
+        <div className="flex flex-col md:flex-row h-full">
+          {/* Mobile: Horizontal tab bar at top */}
+          {renderMobileTabBar()}
+          
+          {/* Desktop: Vertical icon rail on left */}
+          {renderDesktopIconRail()}
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="h-16 border-b border-slate-700 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold text-slate-100">{config.app.name}</h2>
+            <div className="h-14 md:h-16 border-b border-border px-3 md:px-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <h2 className="text-base md:text-lg font-semibold text-foreground truncate">{config.app.name}</h2>
                 <Badge 
                   variant="secondary" 
-                  className={
+                  className={`shrink-0 text-xs ${
                     config.app.environment === 'production' 
                       ? 'bg-green-500/20 text-green-400 border-green-500/30'
                       : config.app.environment === 'staging'
                       ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                       : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                  }
+                  }`}
                 >
                   {config.app.environment}
                 </Badge>
@@ -171,14 +268,14 @@ export function MiniDevDrawer() {
                 variant="ghost"
                 size="icon"
                 onClick={closeDrawer}
-                className="text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+                className="text-muted-foreground hover:text-foreground hover:bg-secondary h-10 w-10 touch-manipulation"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
               {renderContent()}
             </div>
           </div>
