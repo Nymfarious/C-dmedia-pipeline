@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Image, Music, Sparkles, Settings, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -8,6 +8,9 @@ import { TimeRuler } from './TimeRuler';
 import { Track } from './Track';
 import { Playhead } from './Playhead';
 import { PlaybackControls } from './PlaybackControls';
+import { RangeSelection } from './RangeSelection';
+import { CutToolbar } from './CutToolbar';
+import { MendingOverlay } from './MendingOverlay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTimelineStore } from './TimelineStore';
 import { cn } from '@/lib/utils';
@@ -26,13 +29,22 @@ export function TimelineRail({ className }: TimelineRailProps) {
   const isMobile = useIsMobile();
   const [mobileLayout, setMobileLayout] = useState<'right' | 'left' | 'horizontal'>('right');
   const containerRef = useRef<HTMLDivElement>(null);
+  const rulerRef = useRef<HTMLDivElement>(null);
+  const [isSelectingRange, setIsSelectingRange] = useState(false);
+  const [rangeStartX, setRangeStartX] = useState(0);
   
   const { 
     playheadPosition, 
     setPlayheadPosition, 
     zoom, 
     setZoom,
-    duration 
+    duration,
+    rangeSelection,
+    setRangeSelection,
+    cutInside,
+    cutOutside,
+    showMendingAt,
+    clearMendingAnimation,
   } = useTimelineStore();
 
   // Convert playhead position from seconds to pixels
@@ -50,6 +62,47 @@ export function TimelineRail({ className }: TimelineRailProps) {
       setZoom(zoom + delta);
     }
   }, [zoom, setZoom]);
+
+  // Range selection on ruler
+  const handleRulerMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!rulerRef.current) return;
+    const rect = rulerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - 96; // Subtract label width
+    const time = Math.max(0, x / zoom);
+    
+    setIsSelectingRange(true);
+    setRangeStartX(time);
+    setRangeSelection({ startTime: time, endTime: time });
+  }, [zoom, setRangeSelection]);
+
+  const handleRulerMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isSelectingRange || !rulerRef.current) return;
+    const rect = rulerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - 96;
+    const time = Math.max(0, x / zoom);
+    
+    const startTime = Math.min(rangeStartX, time);
+    const endTime = Math.max(rangeStartX, time);
+    setRangeSelection({ startTime, endTime });
+  }, [isSelectingRange, rangeStartX, zoom, setRangeSelection]);
+
+  const handleRulerMouseUp = useCallback(() => {
+    setIsSelectingRange(false);
+    // Clear selection if it's too small
+    if (rangeSelection && rangeSelection.endTime - rangeSelection.startTime < 0.1) {
+      setRangeSelection(null);
+    }
+  }, [rangeSelection, setRangeSelection]);
+
+  // Calculate toolbar position
+  const getToolbarPosition = useCallback(() => {
+    if (!rangeSelection) return { x: 0, y: 0 };
+    const midTime = (rangeSelection.startTime + rangeSelection.endTime) / 2;
+    return {
+      x: 96 + midTime * zoom,
+      y: 24, // Just below the ruler
+    };
+  }, [rangeSelection, zoom]);
 
   // Mobile vertical layout
   if (isMobile && mobileLayout !== 'horizontal') {
@@ -111,14 +164,51 @@ export function TimelineRail({ className }: TimelineRailProps) {
       {/* Playback Controls */}
       <PlaybackControls />
 
-      {/* Time Ruler */}
-      <TimeRuler pixelsPerSecond={zoom} duration={duration} />
+      {/* Time Ruler with range selection */}
+      <div 
+        ref={rulerRef}
+        className="relative cursor-crosshair"
+        onMouseDown={handleRulerMouseDown}
+        onMouseMove={handleRulerMouseMove}
+        onMouseUp={handleRulerMouseUp}
+        onMouseLeave={handleRulerMouseUp}
+      >
+        <TimeRuler pixelsPerSecond={zoom} duration={duration} />
+      </div>
 
       {/* Tracks Container with synchronized scroll */}
       <div 
         className="flex-1 flex flex-col overflow-x-auto overflow-y-hidden relative"
         onScroll={handleScroll}
       >
+        {/* Range Selection Overlay */}
+        {rangeSelection && (
+          <RangeSelection
+            startTime={rangeSelection.startTime}
+            endTime={rangeSelection.endTime}
+            zoom={zoom}
+          />
+        )}
+
+        {/* Cut Toolbar */}
+        {rangeSelection && !isSelectingRange && rangeSelection.endTime - rangeSelection.startTime > 0.1 && (
+          <CutToolbar
+            position={getToolbarPosition()}
+            onCutInside={cutInside}
+            onCutOutside={cutOutside}
+            onClear={() => setRangeSelection(null)}
+            selectionDuration={rangeSelection.endTime - rangeSelection.startTime}
+          />
+        )}
+
+        {/* Mending Animation */}
+        {showMendingAt !== null && (
+          <MendingOverlay
+            position={showMendingAt}
+            onComplete={clearMendingAnimation}
+          />
+        )}
+
         {/* Playhead */}
         <Playhead 
           position={playheadPixels}

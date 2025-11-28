@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Grid, List, Upload, Download, Trash2, Star, StarOff } from 'lucide-react';
+import { Search, Grid, List, Upload, Download, Trash2, Star, StarOff, GripVertical } from 'lucide-react';
+
 interface Asset {
   id: string;
   name: string;
@@ -7,7 +8,9 @@ interface Asset {
   url: string;
   favorite: boolean;
   tags: string[];
+  duration?: number;
 }
+
 export function AssetLibraryPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -18,28 +21,32 @@ export function AssetLibraryPanel() {
     type: 'image',
     url: '/api/placeholder/80/80',
     favorite: true,
-    tags: ['nature', 'landscape']
+    tags: ['nature', 'landscape'],
+    duration: 5,
   }, {
     id: '2',
     name: 'Abstract pattern',
     type: 'texture',
     url: '/api/placeholder/80/80',
     favorite: false,
-    tags: ['abstract', 'pattern']
+    tags: ['abstract', 'pattern'],
+    duration: 3,
   }, {
     id: '3',
     name: 'Heart shape',
     type: 'shape',
     url: '/api/placeholder/80/80',
     favorite: false,
-    tags: ['shape', 'love']
+    tags: ['shape', 'love'],
+    duration: 2,
   }, {
     id: '4',
     name: 'Smile emoji',
     type: 'sticker',
     url: '/api/placeholder/80/80',
     favorite: true,
-    tags: ['emoji', 'happy']
+    tags: ['emoji', 'happy'],
+    duration: 4,
   }]);
   const categories = [{
     id: 'all',
@@ -73,9 +80,19 @@ export function AssetLibraryPanel() {
       favorite: !asset.favorite
     } : asset));
   };
-  const handleDragStart = (asset: Asset) => {
-    // Would implement drag data transfer
-    console.log('Dragging asset:', asset);
+
+  const handleDragStart = (e: React.DragEvent, asset: Asset) => {
+    // Set proper data transfer for timeline drop
+    const dragData = JSON.stringify({
+      id: asset.id,
+      name: asset.name,
+      type: asset.type,
+      url: asset.url,
+      thumbnail: asset.url,
+      duration: asset.duration || 5,
+    });
+    e.dataTransfer.setData('application/json', dragData);
+    e.dataTransfer.effectAllowed = 'copy';
   };
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -158,11 +175,15 @@ export function AssetLibraryPanel() {
             <div
               key={asset.id}
               draggable
-              onDragStart={() => handleDragStart(asset)}
-              className={`group relative border border-border rounded-lg overflow-hidden cursor-move hover:shadow-md transition-all ${
+              onDragStart={(e) => handleDragStart(e, asset)}
+              className={`group relative border border-border rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md transition-all hover:ring-2 hover:ring-primary/50 ${
                 viewMode === 'list' ? 'flex items-center p-2' : 'aspect-square'
               }`}
             >
+              {/* Drag handle indicator */}
+              <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <GripVertical className="h-4 w-4 text-foreground/60" />
+              </div>
               <img
                 src={asset.url}
                 alt={asset.name}
