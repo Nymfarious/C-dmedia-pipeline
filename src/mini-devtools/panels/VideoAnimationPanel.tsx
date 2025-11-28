@@ -37,39 +37,40 @@ export function VideoAnimationPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4 overflow-x-hidden">
       {/* Rive Status */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Film className="h-5 w-5" />
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-sm md:text-base">
+            <Film className="h-4 w-4 md:h-5 md:w-5" />
             Rive Runtime
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Status</span>
+          <div className="flex items-center justify-between min-h-[44px]">
+            <span className="text-xs md:text-sm text-muted-foreground">Status</span>
             <Badge 
               variant={riveStatus === 'loaded' ? 'default' : 'destructive'}
-              className={riveStatus === 'loaded' ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}
+              className={`text-xs ${riveStatus === 'loaded' ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}`}
             >
               {riveStatus === 'loaded' ? 'Runtime loaded' : riveStatus === 'error' ? 'Error' : 'Not initialized'}
             </Badge>
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="debug-mode" className="text-slate-300">Debug Mode</Label>
+          <div className="flex items-center justify-between min-h-[44px]">
+            <Label htmlFor="debug-mode" className="text-foreground/80 text-sm">Debug Mode</Label>
             <Switch
               id="debug-mode"
               checked={debugMode}
               onCheckedChange={handleDebugToggle}
+              className="touch-manipulation"
             />
           </div>
 
           <Button
             onClick={handleRestart}
             variant="outline"
-            className="w-full"
+            className="w-full h-10 md:h-9 touch-manipulation"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Restart Animation
@@ -78,40 +79,40 @@ export function VideoAnimationPanel() {
       </Card>
 
       {/* FPS Counter */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100 flex items-center gap-2">
-            <Activity className="h-5 w-5" />
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-sm md:text-base">
+            <Activity className="h-4 w-4 md:h-5 md:w-5" />
             Performance
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Current FPS</span>
+            <span className="text-xs md:text-sm text-muted-foreground">Current FPS</span>
             <div className="flex items-center gap-2">
-              <span className={`text-2xl font-mono font-bold ${fps >= 58 ? 'text-green-400' : 'text-yellow-400'}`}>
+              <span className={`text-xl md:text-2xl font-mono font-bold ${fps >= 58 ? 'text-green-400' : 'text-yellow-400'}`}>
                 {fps}
               </span>
-              <span className="text-sm text-slate-500">fps</span>
+              <span className="text-xs md:text-sm text-muted-foreground">fps</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Target FPS</span>
-            <Badge variant="outline" className="text-slate-300">
+            <span className="text-xs md:text-sm text-muted-foreground">Target FPS</span>
+            <Badge variant="outline" className="text-foreground/80 text-xs">
               60 fps
             </Badge>
           </div>
 
           {/* FPS Bar */}
           <div className="space-y-1">
-            <div className="h-2 bg-slate-900/50 rounded-full overflow-hidden">
+            <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-300"
                 style={{ width: `${(fps / 60) * 100}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500 text-center">
+            <p className="text-xs text-muted-foreground text-center">
               {fps >= 58 ? 'Optimal' : 'Below target'}
             </p>
           </div>
@@ -119,18 +120,18 @@ export function VideoAnimationPanel() {
       </Card>
 
       {/* Loaded Animations */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Loaded Animations</CardTitle>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Loaded Animations</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {mockAnimations.map((anim) => (
             <div
               key={anim.id}
-              className="flex items-center justify-between p-2 rounded bg-slate-900/50 border border-slate-700"
+              className="flex items-center justify-between p-2 md:p-3 rounded bg-background/50 border border-border"
             >
-              <span className="text-sm text-slate-300 font-mono">{anim.name}</span>
-              <span className="text-xs text-slate-500">{anim.size}</span>
+              <span className="text-xs md:text-sm text-foreground/80 font-mono truncate">{anim.name}</span>
+              <span className="text-xs text-muted-foreground flex-shrink-0">{anim.size}</span>
             </div>
           ))}
         </CardContent>

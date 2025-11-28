@@ -6,11 +6,13 @@ import { useDevLogsStore, LogLevel } from '../stores/devLogsStore';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function LogsPanel() {
   const { logs, clearLogs, markAllRead } = useDevLogsStore();
   const [filter, setFilter] = useState<'all' | LogLevel>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     markAllRead();
@@ -49,14 +51,23 @@ export function LogsPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 overflow-x-hidden">
+      {/* Header with filters */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-          <TabsList className="bg-slate-800/50 border border-slate-700">
-            <TabsTrigger value="all" className="data-[state=active]:bg-slate-700">All</TabsTrigger>
-            <TabsTrigger value="error" className="data-[state=active]:bg-slate-700">Errors</TabsTrigger>
-            <TabsTrigger value="warn" className="data-[state=active]:bg-slate-700">Warnings</TabsTrigger>
-            <TabsTrigger value="info" className="data-[state=active]:bg-slate-700">Info</TabsTrigger>
+          <TabsList className="bg-secondary/50 border border-border w-full md:w-auto">
+            <TabsTrigger value="all" className="data-[state=active]:bg-secondary text-xs md:text-sm flex-1 md:flex-none">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="error" className="data-[state=active]:bg-secondary text-xs md:text-sm flex-1 md:flex-none">
+              Errors
+            </TabsTrigger>
+            <TabsTrigger value="warn" className="data-[state=active]:bg-secondary text-xs md:text-sm flex-1 md:flex-none">
+              Warn
+            </TabsTrigger>
+            <TabsTrigger value="info" className="data-[state=active]:bg-secondary text-xs md:text-sm flex-1 md:flex-none">
+              Info
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -64,17 +75,18 @@ export function LogsPanel() {
           variant="ghost"
           size="sm"
           onClick={clearLogs}
-          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 w-full md:w-auto"
         >
           <Trash2 className="h-4 w-4 mr-2" />
-          Clear Logs
+          Clear
         </Button>
       </div>
 
-      <div className="space-y-2 max-h-[600px] overflow-y-auto">
+      {/* Log entries - constrained height for mobile */}
+      <div className="space-y-2 max-h-[50vh] md:max-h-[600px] overflow-y-auto overflow-x-hidden">
         {filteredLogs.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="py-8 text-center text-slate-400">
+          <Card className="bg-secondary/50 border-border">
+            <CardContent className="py-8 text-center text-muted-foreground">
               No logs to display
             </CardContent>
           </Card>
@@ -83,41 +95,63 @@ export function LogsPanel() {
             const isExpanded = expandedIds.has(log.id);
             
             return (
-              <Card key={log.id} className="bg-slate-800/50 border-slate-700">
-                <CardContent className="py-3 px-4">
+              <Card key={log.id} className="bg-secondary/50 border-border">
+                <CardContent className="py-2 md:py-3 px-3 md:px-4">
                   <div
-                    className="flex items-start gap-3 cursor-pointer"
+                    className="flex items-start gap-2 md:gap-3 cursor-pointer touch-manipulation min-h-[44px]"
                     onClick={() => toggleExpand(log.id)}
                   >
                     {log.context ? (
                       isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-slate-400 mt-1 flex-shrink-0" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
                       )
                     ) : (
                       <div className="w-4 flex-shrink-0" />
                     )}
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge 
-                          variant={getLevelBadgeVariant(log.level)}
-                          className="text-xs"
-                        >
-                          {log.level}
-                        </Badge>
-                        <span className="text-xs text-slate-400">
-                          {format(log.timestamp, 'HH:mm:ss.SSS')}
-                        </span>
-                      </div>
-                      
-                      <div className={`text-sm ${getLevelColor(log.level)} break-words`}>
-                        {log.message}
-                      </div>
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      {/* Mobile: Stack vertically */}
+                      {isMobile ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={getLevelBadgeVariant(log.level)}
+                              className="text-xs"
+                            >
+                              {log.level}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(log.timestamp, 'HH:mm:ss')}
+                            </span>
+                          </div>
+                          <div className={`text-sm ${getLevelColor(log.level)} break-words`}>
+                            {log.message}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Desktop: Inline layout */
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge 
+                              variant={getLevelBadgeVariant(log.level)}
+                              className="text-xs"
+                            >
+                              {log.level}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {format(log.timestamp, 'HH:mm:ss.SSS')}
+                            </span>
+                          </div>
+                          <div className={`text-sm ${getLevelColor(log.level)} break-words`}>
+                            {log.message}
+                          </div>
+                        </>
+                      )}
                       
                       {isExpanded && log.context && (
-                        <pre className="mt-2 text-xs text-slate-300 bg-slate-900/50 p-2 rounded overflow-x-auto">
+                        <pre className="mt-2 text-xs text-foreground/80 bg-background/50 p-2 rounded overflow-x-auto max-w-full">
                           {JSON.stringify(log.context, null, 2)}
                         </pre>
                       )}

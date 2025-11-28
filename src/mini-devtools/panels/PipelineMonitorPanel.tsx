@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { CheckCircle, XCircle, Trash2, ArrowRight } from 'lucide-react';
 import { usePipelineStore, PipelineStep, recordPipelineEvent } from '../stores/pipelineStore';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const stepConfig: Record<PipelineStep, { color: string; label: string }> = {
   generate_image: { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'Generate' },
@@ -20,6 +21,7 @@ const stepConfig: Record<PipelineStep, { color: string; label: string }> = {
 export function PipelineMonitorPanel() {
   const { events, clearEvents } = usePipelineStore();
   const [stepFilter, setStepFilter] = useState<string>('all');
+  const isMobile = useIsMobile();
 
   // Generate mock events on mount for demo
   useEffect(() => {
@@ -57,29 +59,32 @@ export function PipelineMonitorPanel() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       <div>
-        <h3 className="text-2xl font-bold text-slate-100">Pipeline Monitor</h3>
-        <p className="text-slate-400 mt-2">Track AI generation pipeline operations</p>
+        <h3 className="text-lg md:text-2xl font-bold text-foreground">Pipeline Monitor</h3>
+        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">Track AI generation pipeline operations</p>
       </div>
 
-      {/* Summary Stats */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-slate-100 text-base">Summary Statistics</CardTitle>
+      {/* Summary Stats - Responsive layout */}
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-3">
+          <CardTitle className="text-foreground text-sm md:text-base">Summary Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-6 text-sm">
-            <div>
-              <span className="text-slate-400">Last 10 ops:</span>
-              <span className="ml-2 text-green-400">{successCount} success</span>
-              <span className="mx-1 text-slate-600">/</span>
-              <span className="text-red-400">{failCount} failed</span>
+          {/* Mobile: vertical stack, Desktop: horizontal */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6 text-sm">
+            <div className="flex items-center justify-between md:justify-start gap-2 p-2 md:p-0 bg-background/30 md:bg-transparent rounded">
+              <span className="text-muted-foreground">Last 10 ops:</span>
+              <div>
+                <span className="text-green-400">{successCount} success</span>
+                <span className="mx-1 text-muted-foreground">/</span>
+                <span className="text-red-400">{failCount} failed</span>
+              </div>
             </div>
-            <div className="h-4 w-px bg-slate-700" />
-            <div>
-              <span className="text-slate-400">Avg duration:</span>
-              <span className="ml-2 text-slate-200">{avgDuration}s</span>
+            <div className="hidden md:block h-4 w-px bg-border" />
+            <div className="flex items-center justify-between md:justify-start gap-2 p-2 md:p-0 bg-background/30 md:bg-transparent rounded">
+              <span className="text-muted-foreground">Avg duration:</span>
+              <span className="text-foreground">{avgDuration}s</span>
             </div>
           </div>
         </CardContent>
@@ -87,23 +92,23 @@ export function PipelineMonitorPanel() {
 
       {/* Asset Lineage */}
       {assetLineage.length > 0 && (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-slate-100 text-base">Asset Lineage (img-001)</CardTitle>
-            <CardDescription className="text-slate-400">Transformation pipeline</CardDescription>
+        <Card className="bg-secondary/50 border-border">
+          <CardHeader className="pb-2 md:pb-3">
+            <CardTitle className="text-foreground text-sm md:text-base">Asset Lineage (img-001)</CardTitle>
+            <CardDescription className="text-muted-foreground text-xs md:text-sm">Transformation pipeline</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
               {assetLineage.map((event, idx) => (
-                <div key={event.id} className="flex items-center gap-2">
+                <div key={event.id} className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex flex-col items-center gap-1">
-                    <Badge className={stepConfig[event.step].color}>
+                    <Badge className={`${stepConfig[event.step].color} text-xs`}>
                       {stepConfig[event.step].label}
                     </Badge>
-                    <span className="text-xs text-slate-500">{event.provider}</span>
+                    <span className="text-xs text-muted-foreground">{event.provider}</span>
                   </div>
                   {idx < assetLineage.length - 1 && (
-                    <ArrowRight className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   )}
                 </div>
               ))}
@@ -113,15 +118,15 @@ export function PipelineMonitorPanel() {
       )}
 
       {/* Filters & Clear */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <Select value={stepFilter} onValueChange={setStepFilter}>
-          <SelectTrigger className="w-[200px] bg-slate-800/50 border-slate-700 text-slate-200">
+          <SelectTrigger className="w-full md:w-[200px] bg-secondary/50 border-border text-foreground">
             <SelectValue placeholder="Filter by step" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-700">
-            <SelectItem value="all" className="text-slate-200">All Steps</SelectItem>
+          <SelectContent className="bg-popover border-border">
+            <SelectItem value="all" className="text-foreground">All Steps</SelectItem>
             {Object.entries(stepConfig).map(([step, config]) => (
-              <SelectItem key={step} value={step} className="text-slate-200">
+              <SelectItem key={step} value={step} className="text-foreground">
                 {config.label}
               </SelectItem>
             ))}
@@ -132,7 +137,7 @@ export function PipelineMonitorPanel() {
           variant="ghost"
           size="sm"
           onClick={clearEvents}
-          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Clear Events
@@ -140,10 +145,10 @@ export function PipelineMonitorPanel() {
       </div>
 
       {/* Event List */}
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[50vh] md:max-h-none overflow-y-auto">
         {filteredEvents.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="py-8 text-center text-slate-400">
+          <Card className="bg-secondary/50 border-border">
+            <CardContent className="py-8 text-center text-muted-foreground">
               No pipeline events to display
             </CardContent>
           </Card>
@@ -156,41 +161,63 @@ export function PipelineMonitorPanel() {
                 <AccordionItem
                   key={event.id}
                   value={event.id}
-                  className="bg-slate-800/50 border border-slate-700 rounded-lg px-4"
+                  className="bg-secondary/50 border border-border rounded-lg px-3 md:px-4"
                 >
-                  <AccordionTrigger className="hover:no-underline py-3">
-                    <div className="flex items-center gap-3 w-full">
-                      {event.success ? (
-                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                      )}
-                      
-                      <Badge className={stepStyle.color}>
-                        {stepStyle.label}
-                      </Badge>
-                      
-                      <span className="text-sm text-slate-400">{event.provider}</span>
-                      
-                      <div className="flex-1" />
-                      
-                      <span className="text-sm text-slate-500">
-                        {(event.duration / 1000).toFixed(2)}s
-                      </span>
-                      
-                      <span className="text-xs text-slate-500">
-                        {format(event.timestamp, 'HH:mm:ss')}
-                      </span>
-                    </div>
+                  <AccordionTrigger className="hover:no-underline py-3 min-h-[48px] touch-manipulation">
+                    {/* Mobile: stacked layout */}
+                    {isMobile ? (
+                      <div className="flex flex-col items-start gap-2 w-full pr-2">
+                        <div className="flex items-center gap-2 w-full">
+                          {event.success ? (
+                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                          )}
+                          <Badge className={`${stepStyle.color} text-xs`}>
+                            {stepStyle.label}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{event.provider}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground pl-6">
+                          <span>{(event.duration / 1000).toFixed(2)}s</span>
+                          <span>{format(event.timestamp, 'HH:mm:ss')}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Desktop: inline layout */
+                      <div className="flex items-center gap-3 w-full">
+                        {event.success ? (
+                          <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                        )}
+                        
+                        <Badge className={stepStyle.color}>
+                          {stepStyle.label}
+                        </Badge>
+                        
+                        <span className="text-sm text-muted-foreground">{event.provider}</span>
+                        
+                        <div className="flex-1" />
+                        
+                        <span className="text-sm text-muted-foreground">
+                          {(event.duration / 1000).toFixed(2)}s
+                        </span>
+                        
+                        <span className="text-xs text-muted-foreground">
+                          {format(event.timestamp, 'HH:mm:ss')}
+                        </span>
+                      </div>
+                    )}
                   </AccordionTrigger>
                   <AccordionContent className="pt-2 pb-3">
-                    <div className="bg-slate-900/50 rounded p-3">
-                      <div className="text-xs text-slate-400 mb-2">Metadata:</div>
-                      <pre className="text-xs text-slate-300 overflow-x-auto">
+                    <div className="bg-background/50 rounded p-3">
+                      <div className="text-xs text-muted-foreground mb-2">Metadata:</div>
+                      <pre className="text-xs text-foreground/80 overflow-x-auto max-w-full">
                         {JSON.stringify(event.metadata || {}, null, 2)}
                       </pre>
                       {event.assetId && (
-                        <div className="mt-2 text-xs text-slate-500">
+                        <div className="mt-2 text-xs text-muted-foreground">
                           Asset ID: {event.assetId}
                         </div>
                       )}

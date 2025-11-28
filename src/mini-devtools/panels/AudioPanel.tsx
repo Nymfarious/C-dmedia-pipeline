@@ -53,15 +53,15 @@ export function AudioPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4 overflow-x-hidden">
       {/* Audio Context Status */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardContent className="py-4">
+      <Card className="bg-secondary/50 border-border">
+        <CardContent className="py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-400">Audio Context Status</span>
+            <span className="text-xs md:text-sm text-muted-foreground">Audio Context Status</span>
             <Badge 
               variant={audioContextStatus === 'active' ? 'default' : 'secondary'}
-              className={audioContextStatus === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}
+              className={`text-xs ${audioContextStatus === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : ''}`}
             >
               {audioContextStatus}
             </Badge>
@@ -70,27 +70,28 @@ export function AudioPanel() {
       </Card>
 
       {/* Master Controls */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100 flex items-center gap-2">
-            {masterMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground flex items-center gap-2 text-sm md:text-base">
+            {masterMuted ? <VolumeX className="h-4 w-4 md:h-5 md:w-5" /> : <Volume2 className="h-4 w-4 md:h-5 md:w-5" />}
             Master Controls
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="master-mute" className="text-slate-300">Master Mute</Label>
+          <div className="flex items-center justify-between min-h-[44px]">
+            <Label htmlFor="master-mute" className="text-foreground/80 text-sm">Master Mute</Label>
             <Switch
               id="master-mute"
               checked={masterMuted}
               onCheckedChange={setMasterMuted}
+              className="touch-manipulation"
             />
           </div>
 
           <Button
             onClick={testAudio}
             variant="outline"
-            className="w-full"
+            className="w-full h-10 md:h-9 touch-manipulation"
             disabled={masterMuted}
           >
             <Play className="h-4 w-4 mr-2" />
@@ -100,15 +101,15 @@ export function AudioPanel() {
       </Card>
 
       {/* Volume Sliders */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">Volume Levels</CardTitle>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Volume Levels</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 md:space-y-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-300">Music</Label>
-              <span className="text-xs text-slate-400">{musicVolume}%</span>
+              <Label className="text-foreground/80 text-sm">Music</Label>
+              <span className="text-xs text-muted-foreground">{musicVolume}%</span>
             </div>
             <Slider
               value={[musicVolume]}
@@ -116,14 +117,14 @@ export function AudioPanel() {
               max={100}
               step={1}
               disabled={masterMuted}
-              className="cursor-pointer"
+              className="cursor-pointer touch-manipulation"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-300">SFX</Label>
-              <span className="text-xs text-slate-400">{sfxVolume}%</span>
+              <Label className="text-foreground/80 text-sm">SFX</Label>
+              <span className="text-xs text-muted-foreground">{sfxVolume}%</span>
             </div>
             <Slider
               value={[sfxVolume]}
@@ -131,14 +132,14 @@ export function AudioPanel() {
               max={100}
               step={1}
               disabled={masterMuted}
-              className="cursor-pointer"
+              className="cursor-pointer touch-manipulation"
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-300">Narration</Label>
-              <span className="text-xs text-slate-400">{narrationVolume}%</span>
+              <Label className="text-foreground/80 text-sm">Narration</Label>
+              <span className="text-xs text-muted-foreground">{narrationVolume}%</span>
             </div>
             <Slider
               value={[narrationVolume]}
@@ -146,7 +147,7 @@ export function AudioPanel() {
               max={100}
               step={1}
               disabled={masterMuted}
-              className="cursor-pointer"
+              className="cursor-pointer touch-manipulation"
             />
           </div>
         </CardContent>

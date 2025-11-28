@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, FileJson } from 'lucide-react';
 import { logDevEvent } from '../stores/devLogsStore';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageData {
   id: string;
@@ -22,7 +23,7 @@ const samplePageData: PageData = {
   layout_type: 'hero_with_text',
   content_json: {
     title: 'The Enchanted Forest',
-    body: 'Deep in the heart of the ancient woods, where sunlight barely touched the forest floor...',
+    body: 'Deep in the heart of the ancient woods...',
     background_image: '/assets/forest-bg.png',
     character_sprite: '/assets/hero-sprite.png',
   },
@@ -35,6 +36,7 @@ const requiredFields = ['id', 'chapter_id', 'content_json'];
 export function TextContentPanel() {
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; missing?: string[] } | null>(null);
+  const isMobile = useIsMobile();
 
   const validateSchema = () => {
     if (!pageData) {
@@ -75,19 +77,19 @@ export function TextContentPanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       <div>
-        <h3 className="text-2xl font-bold text-slate-100">Text/Content Inspector</h3>
-        <p className="text-slate-400 mt-2">Validate and inspect page content JSON</p>
+        <h3 className="text-lg md:text-2xl font-bold text-foreground">Text/Content Inspector</h3>
+        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">Validate and inspect page content JSON</p>
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-3">
+      {/* Actions - Stack on mobile */}
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3">
         <Button
           onClick={generateSample}
           variant="default"
           size="sm"
-          className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30"
+          className="bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 h-10 md:h-9 touch-manipulation"
         >
           <FileJson className="h-4 w-4 mr-2" />
           Generate Sample
@@ -97,7 +99,7 @@ export function TextContentPanel() {
           disabled={!pageData}
           variant="default"
           size="sm"
-          className="bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 disabled:opacity-50"
+          className="bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 disabled:opacity-50 h-10 md:h-9 touch-manipulation"
         >
           <CheckCircle className="h-4 w-4 mr-2" />
           Validate Schema
@@ -107,7 +109,7 @@ export function TextContentPanel() {
             onClick={clearData}
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-slate-200"
+            className="text-muted-foreground hover:text-foreground h-10 md:h-9 touch-manipulation"
           >
             Clear
           </Button>
@@ -117,20 +119,20 @@ export function TextContentPanel() {
       {/* Validation Result */}
       {validationResult && (
         <Card className={`border ${validationResult.valid ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-          <CardContent className="py-4">
+          <CardContent className="py-3 md:py-4">
             <div className="flex items-center gap-3">
               {validationResult.valid ? (
                 <>
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-green-400 font-medium">Schema Valid</span>
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  <span className="text-green-400 font-medium text-sm md:text-base">Schema Valid</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-red-500" />
-                  <div>
-                    <div className="text-red-400 font-medium">Schema Invalid</div>
-                    <div className="text-sm text-red-300 mt-1">
-                      Missing fields: {validationResult.missing?.join(', ')}
+                  <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-red-400 font-medium text-sm md:text-base">Schema Invalid</div>
+                    <div className="text-xs md:text-sm text-red-300 mt-1 break-words">
+                      Missing: {validationResult.missing?.join(', ')}
                     </div>
                   </div>
                 </>
@@ -141,17 +143,17 @@ export function TextContentPanel() {
       )}
 
       {/* JSON Inspector */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100">JSON Inspector</CardTitle>
-          <CardDescription className="text-slate-400">
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">JSON Inspector</CardTitle>
+          <CardDescription className="text-muted-foreground text-xs md:text-sm">
             Current page state visualization
           </CardDescription>
         </CardHeader>
         <CardContent>
           {pageData ? (
-            <div className="bg-slate-900/50 rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm">
+            <div className="bg-background/50 rounded-lg p-3 md:p-4 overflow-x-auto max-w-full">
+              <pre className="text-xs md:text-sm">
                 <code>
                   {'{'}
                   {'\n'}
@@ -170,7 +172,7 @@ export function TextContentPanel() {
                               <span className="text-purple-400">"{k}"</span>
                               {': '}
                               <span className="text-green-400">
-                                {typeof v === 'string' ? `"${v}"` : String(v)}
+                                {typeof v === 'string' ? `"${isMobile && String(v).length > 20 ? String(v).slice(0, 20) + '...' : v}"` : String(v)}
                               </span>
                               {i < a.length - 1 ? ',' : ''}
                               {'\n'}
@@ -180,7 +182,7 @@ export function TextContentPanel() {
                         </>
                       ) : (
                         <span className={typeof value === 'string' ? 'text-green-400' : 'text-blue-400'}>
-                          {typeof value === 'string' ? `"${value}"` : String(value)}
+                          {typeof value === 'string' ? `"${isMobile && String(value).length > 30 ? String(value).slice(0, 30) + '...' : value}"` : String(value)}
                         </span>
                       )}
                       {idx < arr.length - 1 ? ',' : ''}
@@ -192,29 +194,29 @@ export function TextContentPanel() {
               </pre>
             </div>
           ) : (
-            <div className="py-12 text-center text-slate-400">
-              <FileJson className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No data loaded</p>
-              <p className="text-sm mt-1">Click "Generate Sample" to create placeholder data</p>
+            <div className="py-8 md:py-12 text-center text-muted-foreground">
+              <FileJson className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm md:text-base">No data loaded</p>
+              <p className="text-xs md:text-sm mt-1">Click "Generate Sample" to create placeholder data</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Schema Reference */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-slate-100 text-base">Schema Reference</CardTitle>
+      <Card className="bg-secondary/50 border-border">
+        <CardHeader className="pb-2 md:pb-4">
+          <CardTitle className="text-foreground text-sm md:text-base">Schema Reference</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs text-red-400 border-red-500/30">Required</Badge>
-              <span className="text-slate-300">id, chapter_id, content_json</span>
+          <div className="space-y-2 text-xs md:text-sm">
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+              <Badge variant="outline" className="text-xs text-red-400 border-red-500/30 w-fit">Required</Badge>
+              <span className="text-foreground/80">id, chapter_id, content_json</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">Optional</Badge>
-              <span className="text-slate-300">index, layout_type, narration_url, created_at</span>
+            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+              <Badge variant="outline" className="text-xs text-muted-foreground border-border w-fit">Optional</Badge>
+              <span className="text-foreground/80">index, layout_type, narration_url, created_at</span>
             </div>
           </div>
         </CardContent>
