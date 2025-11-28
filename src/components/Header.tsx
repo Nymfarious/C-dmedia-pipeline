@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2, FileText, Bug } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2, FileText, Bug, MoreHorizontal } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { useState } from 'react';
 import { ProjectManagementModal } from './ProjectManagementModal';
@@ -57,11 +59,13 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
         </div>
       </div>
       
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Primary Actions - Always visible */}
         {onGalleryToggle && (
           <Button variant="outline" size="sm" className="h-8" onClick={onGalleryToggle}>
             <Images className="h-4 w-4 mr-2" />
-            Gallery ({Object.keys(assets).length})
+            <span className="hidden sm:inline">Gallery</span>
+            <span className="sm:hidden">({Object.keys(assets).length})</span>
           </Button>
         )}
         {onTemplateToggle && (
@@ -71,26 +75,60 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
             className="h-8" 
             onClick={onTemplateToggle}
           >
-            <FileText className="h-4 w-4 mr-2" />
-            {isTemplateMode ? "Exit Templates" : "Templates"}
+            <FileText className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{isTemplateMode ? "Exit" : "Templates"}</span>
           </Button>
         )}
-        <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/assets'}>
-          <FolderOpen className="h-4 w-4 mr-2" />
-          Assets ({Object.keys(assets).length})
-        </Button>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/image-gen-studio'}>
-          <Wand2 className="h-4 w-4 mr-2" />
-          Studio
-        </Button>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/debug'}>
-          <Bug className="h-4 w-4 mr-2" />
-          Debug
-        </Button>
-        <Button variant="outline" size="sm" className="h-8" onClick={() => setShowProjectModal(true)}>
-          <Archive className="h-4 w-4 mr-2" />
-          Projects
-        </Button>
+        
+        {/* Secondary Actions - Hidden on small screens, shown in dropdown */}
+        <div className="hidden md:flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/assets'}>
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Assets
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/image-gen-studio'}>
+            <Wand2 className="h-4 w-4 mr-2" />
+            Studio
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/debug'}>
+            <Bug className="h-4 w-4 mr-2" />
+            Debug
+          </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setShowProjectModal(true)}>
+            <Archive className="h-4 w-4 mr-2" />
+            Projects
+          </Button>
+        </div>
+
+        {/* More dropdown for smaller screens */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => window.location.href = '/assets'}>
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Assets ({Object.keys(assets).length})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/image-gen-studio'}>
+                <Wand2 className="h-4 w-4 mr-2" />
+                Studio
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/debug'}>
+                <Bug className="h-4 w-4 mr-2" />
+                Debug
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowProjectModal(true)}>
+                <Archive className="h-4 w-4 mr-2" />
+                Projects
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <DebugPanelSummary />
       </div>
       
