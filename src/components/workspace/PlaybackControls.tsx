@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Repeat, Scissors, Link } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Repeat, Scissors, Link, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,12 +14,16 @@ export function PlaybackControls() {
     duration,
     activeTool,
     snapInterval,
+    historyIndex,
+    history,
     togglePlayback,
     setPlayheadPosition,
     setIsLooping,
     setActiveTool,
     setSnapInterval,
     cutClipAtPlayhead,
+    undo,
+    redo,
   } = useTimelineStore();
 
   const animationRef = useRef<number>();
@@ -67,6 +71,17 @@ export function PlaybackControls() {
         return;
       }
 
+      // Undo/Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
       switch (e.key) {
         case ' ':
           e.preventDefault();
@@ -110,7 +125,7 @@ export function PlaybackControls() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTool, playheadPosition, duration, togglePlayback, setActiveTool, setPlayheadPosition, cutClipAtPlayhead]);
+  }, [activeTool, playheadPosition, duration, togglePlayback, setActiveTool, setPlayheadPosition, cutClipAtPlayhead, undo, redo]);
 
   // Format time as MM:SS.ms
   const formatTime = (seconds: number) => {
@@ -124,6 +139,39 @@ export function PlaybackControls() {
     <div className="h-10 border-b border-border bg-card/50 flex items-center justify-between px-3">
       {/* Left: Transport controls */}
       <div className="flex items-center gap-1">
+        {/* Undo/Redo */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={undo}
+              disabled={historyIndex < 0}
+            >
+              <Undo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={redo}
+              disabled={historyIndex >= history.length - 2}
+            >
+              <Redo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+        </Tooltip>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

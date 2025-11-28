@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { triggerHaptic } from '@/lib/haptics';
 
 export interface Clip {
   id: string;
@@ -8,6 +9,17 @@ export interface Clip {
   label: string;
   assetId?: string;
   thumbnail?: string;
+}
+
+export interface RangeSelection {
+  startTime: number;
+  endTime: number;
+  trackId?: string; // if set, only affects this track
+}
+
+interface HistoryEntry {
+  clips: Clip[];
+  description: string;
 }
 
 interface TimelineState {
@@ -20,6 +32,12 @@ interface TimelineState {
   isLooping: boolean;
   duration: number; // total timeline duration in seconds
   activeTool: 'select' | 'cut' | 'mend';
+  rangeSelection: RangeSelection | null;
+  showMendingAt: number | null; // pixel position for mending animation
+  
+  // Undo/Redo history
+  history: HistoryEntry[];
+  historyIndex: number;
   
   // Actions
   addClip: (clip: Omit<Clip, 'id'>) => void;
@@ -36,6 +54,17 @@ interface TimelineState {
   cutClipAtPlayhead: () => void;
   mendClips: (clipId1: string, clipId2: string) => void;
   snapToGrid: (time: number) => number;
+  
+  // Range selection & cut actions
+  setRangeSelection: (selection: RangeSelection | null) => void;
+  cutInside: (allTracks: boolean) => void;
+  cutOutside: (allTracks: boolean) => void;
+  clearMendingAnimation: () => void;
+  
+  // Undo/Redo
+  undo: () => void;
+  redo: () => void;
+  pushToHistory: (description: string) => void;
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => ({
@@ -48,8 +77,56 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   isLooping: false,
   duration: 120, // 2 minutes default
   activeTool: 'select',
+  rangeSelection: null,
+  showMendingAt: null,
+  history: [],
+  historyIndex: -1,
+
+  pushToHistory: (description) => {
+    const { clips, history, historyIndex } = get();
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ clips: JSON.parse(JSON.stringify(clips)), description });
+    // Keep only last 50 history entries
+    if (newHistory.length > 50) newHistory.shift();
+    set({ history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  undo: () => {
+    const { history, historyIndex, clips } = get();
+    if (historyIndex < 0) {
+      triggerHaptic('error');
+      return;
+    }
+    // Save current state if at end of history
+    if (historyIndex === history.length - 1) {
+      const newHistory = [...history];
+      newHistory.push({ clips: JSON.parse(JSON.stringify(clips)), description: 'current' });
+      set({ history: newHistory });
+    }
+    const prevState = history[historyIndex];
+    set({ 
+      clips: JSON.parse(JSON.stringify(prevState.clips)), 
+      historyIndex: historyIndex - 1 
+    });
+    triggerHaptic('tap');
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 2) {
+      triggerHaptic('error');
+      return;
+    }
+    const nextState = history[historyIndex + 2];
+    set({ 
+      clips: JSON.parse(JSON.stringify(nextState.clips)), 
+      historyIndex: historyIndex + 1 
+    });
+    triggerHaptic('tap');
+  },
 
   addClip: (clip) => {
+    get().pushToHistory('Add clip');
     const id = `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     set((state) => ({
       clips: [...state.clips, { ...clip, id }],
@@ -57,6 +134,7 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   },
 
   removeClip: (clipId) => {
+    get().pushToHistory('Remove clip');
     set((state) => ({
       clips: state.clips.filter((c) => c.id !== clipId),
       selectedClipId: state.selectedClipId === clipId ? null : state.selectedClipId,
@@ -179,6 +257,159 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   snapToGrid: (time) => {
     const { snapInterval } = get();
     if (snapInterval === 0) return time;
+    triggerHaptic('tap');
     return Math.round(time / snapInterval) * snapInterval;
+  },
+
+  setRangeSelection: (selection) => {
+    set({ rangeSelection: selection });
+  },
+
+  clearMendingAnimation: () => {
+    set({ showMendingAt: null });
+  },
+
+  cutInside: (allTracks) => {
+    const { clips, rangeSelection, zoom, pushToHistory } = get();
+    if (!rangeSelection) return;
+
+    pushToHistory('Cut inside');
+    const { startTime, endTime, trackId } = rangeSelection;
+    const selectionDuration = endTime - startTime;
+    
+    const newClips: Clip[] = [];
+    
+    for (const clip of clips) {
+      // Skip if track-specific and doesn't match
+      if (!allTracks && trackId && clip.trackType !== trackId) {
+        newClips.push(clip);
+        continue;
+      }
+
+      const clipEnd = clip.startTime + clip.duration;
+      
+      // Clip is entirely before selection - keep it
+      if (clipEnd <= startTime) {
+        newClips.push(clip);
+      }
+      // Clip is entirely within selection - delete it
+      else if (clip.startTime >= startTime && clipEnd <= endTime) {
+        // Don't add - it's deleted
+      }
+      // Clip is entirely after selection - shift it left
+      else if (clip.startTime >= endTime) {
+        newClips.push({
+          ...clip,
+          startTime: clip.startTime - selectionDuration,
+        });
+      }
+      // Clip spans the entire selection - split into two
+      else if (clip.startTime < startTime && clipEnd > endTime) {
+        newClips.push({
+          ...clip,
+          id: `${clip.id}-left`,
+          duration: startTime - clip.startTime,
+        });
+        newClips.push({
+          ...clip,
+          id: `${clip.id}-right`,
+          startTime: startTime, // After mending
+          duration: clipEnd - endTime,
+          label: `${clip.label} (2)`,
+        });
+      }
+      // Clip starts before and ends within - trim end
+      else if (clip.startTime < startTime && clipEnd <= endTime) {
+        newClips.push({
+          ...clip,
+          duration: startTime - clip.startTime,
+        });
+      }
+      // Clip starts within and ends after - trim start and shift
+      else if (clip.startTime >= startTime && clipEnd > endTime) {
+        newClips.push({
+          ...clip,
+          startTime: startTime,
+          duration: clipEnd - endTime,
+        });
+      }
+    }
+
+    // Calculate mending position
+    const mendPosition = 96 + (startTime * zoom);
+
+    set({ 
+      clips: newClips, 
+      rangeSelection: null,
+      showMendingAt: mendPosition,
+    });
+    triggerHaptic('success');
+  },
+
+  cutOutside: (allTracks) => {
+    const { clips, rangeSelection, pushToHistory } = get();
+    if (!rangeSelection) return;
+
+    pushToHistory('Cut outside');
+    const { startTime, endTime, trackId } = rangeSelection;
+    
+    const newClips: Clip[] = [];
+    
+    for (const clip of clips) {
+      // Skip if track-specific and doesn't match
+      if (!allTracks && trackId && clip.trackType !== trackId) {
+        // Shift all non-matching tracks to start at 0 based on selection
+        newClips.push({
+          ...clip,
+          startTime: Math.max(0, clip.startTime - startTime),
+        });
+        continue;
+      }
+
+      const clipEnd = clip.startTime + clip.duration;
+      
+      // Clip is entirely outside selection - delete it
+      if (clipEnd <= startTime || clip.startTime >= endTime) {
+        continue;
+      }
+      
+      // Clip is entirely within selection - shift to start at 0
+      if (clip.startTime >= startTime && clipEnd <= endTime) {
+        newClips.push({
+          ...clip,
+          startTime: clip.startTime - startTime,
+        });
+      }
+      // Clip spans the entire selection - trim both ends
+      else if (clip.startTime < startTime && clipEnd > endTime) {
+        newClips.push({
+          ...clip,
+          startTime: 0,
+          duration: endTime - startTime,
+        });
+      }
+      // Clip starts before selection - trim start
+      else if (clip.startTime < startTime && clipEnd <= endTime) {
+        newClips.push({
+          ...clip,
+          startTime: 0,
+          duration: clipEnd - startTime,
+        });
+      }
+      // Clip ends after selection - trim end
+      else if (clip.startTime >= startTime && clipEnd > endTime) {
+        newClips.push({
+          ...clip,
+          startTime: clip.startTime - startTime,
+          duration: endTime - clip.startTime,
+        });
+      }
+    }
+
+    set({ 
+      clips: newClips, 
+      rangeSelection: null,
+    });
+    triggerHaptic('success');
   },
 }));
