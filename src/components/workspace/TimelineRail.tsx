@@ -1,12 +1,15 @@
-import { useState, useRef, useCallback } from 'react';
-import { Image, Music, Sparkles, Settings } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Image, Music, Sparkles, Settings, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Slider } from '@/components/ui/slider';
 import { TimeRuler } from './TimeRuler';
 import { Track } from './Track';
 import { Playhead } from './Playhead';
+import { PlaybackControls } from './PlaybackControls';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTimelineStore } from './TimelineStore';
 import { cn } from '@/lib/utils';
 
 interface TimelineRailProps {
@@ -21,13 +24,32 @@ const tracks = [
 
 export function TimelineRail({ className }: TimelineRailProps) {
   const isMobile = useIsMobile();
-  const [playheadPosition, setPlayheadPosition] = useState(0);
   const [mobileLayout, setMobileLayout] = useState<'right' | 'left' | 'horizontal'>('right');
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    playheadPosition, 
+    setPlayheadPosition, 
+    zoom, 
+    setZoom,
+    duration 
+  } = useTimelineStore();
+
+  // Convert playhead position from seconds to pixels
+  const playheadPixels = playheadPosition * zoom;
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     // Sync scroll across all tracks if needed
   }, []);
+
+  // Handle zoom with mouse wheel
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -2 : 2;
+      setZoom(zoom + delta);
+    }
+  }, [zoom, setZoom]);
 
   // Mobile vertical layout
   if (isMobile && mobileLayout !== 'horizontal') {
@@ -81,12 +103,16 @@ export function TimelineRail({ className }: TimelineRailProps) {
     <div 
       ref={containerRef}
       className={cn(
-        "h-48 border-t border-border bg-card flex flex-col relative",
+        "border-t border-border bg-card flex flex-col relative",
         className
       )}
+      onWheel={handleWheel}
     >
+      {/* Playback Controls */}
+      <PlaybackControls />
+
       {/* Time Ruler */}
-      <TimeRuler pixelsPerSecond={20} duration={120} />
+      <TimeRuler pixelsPerSecond={zoom} duration={duration} />
 
       {/* Tracks Container with synchronized scroll */}
       <div 
@@ -95,8 +121,8 @@ export function TimelineRail({ className }: TimelineRailProps) {
       >
         {/* Playhead */}
         <Playhead 
-          position={playheadPosition}
-          onPositionChange={setPlayheadPosition}
+          position={playheadPixels}
+          onPositionChange={(px) => setPlayheadPosition(px / zoom)}
           trackHeight={144}
         />
 
@@ -108,6 +134,46 @@ export function TimelineRail({ className }: TimelineRailProps) {
             isMobile={false}
           />
         ))}
+      </div>
+
+      {/* Zoom controls */}
+      <div className="absolute bottom-2 right-2 flex items-center gap-2 bg-card/90 backdrop-blur-sm rounded-lg px-2 py-1 border border-border">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setZoom(zoom - 5)}
+            >
+              <ZoomOut className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom out</TooltipContent>
+        </Tooltip>
+        
+        <Slider
+          value={[zoom]}
+          onValueChange={([v]) => setZoom(v)}
+          min={5}
+          max={100}
+          step={5}
+          className="w-20"
+        />
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => setZoom(zoom + 5)}
+            >
+              <ZoomIn className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom in (Ctrl+Scroll)</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Mobile layout toggle (visible on smaller screens that aren't mobile) */}
