@@ -1,13 +1,14 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, Upload, Plus, Sparkles, Video } from 'lucide-react';
+import { Wand2, Upload, Plus, Sparkles, Video, Layers } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
 import { VideoCanvas } from '@/components/Canvas/VideoCanvas';
 import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
 import { VideoCanvasManager } from '@/components/Canvas/VideoCanvasManager';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
+import { useNavigate } from 'react-router-dom';
 
 interface Canvas {
   id: string;
@@ -25,6 +26,7 @@ interface CenterWorkspaceProps {
 
 export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCanvas }: CenterWorkspaceProps) {
   const { assets, createCanvas, setActiveCanvas } = useAppStore();
+  const navigate = useNavigate();
   
   
   // Get recent generated assets (from both assets and gallery)
@@ -43,18 +45,18 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
       <div className="flex-1 bg-stage-bg p-8 overflow-y-auto relative scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Create Canvas Section */}
-          <Card className="bg-card border-border">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Plus className="h-8 w-8 text-primary" />
+          <Card className="bg-card border-border overflow-hidden">
+            <div className="p-8 text-center bg-gradient-to-br from-slate-800/50 to-slate-900/50">
+              <div className="w-16 h-16 bg-foreground/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-border/50">
+                <Plus className="h-8 w-8 text-foreground/70" />
               </div>
               <h3 className="text-xl font-semibold mb-2 text-foreground">Create Your Canvas</h3>
               <p className="text-muted-foreground mb-6">
                 Start creating amazing content with AI-powered tools
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
                 <Button 
-                  className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-white font-medium"
+                  className="flex-1 bg-foreground/10 hover:bg-foreground/20 text-foreground border border-border/50 font-medium"
                   onClick={() => onCreateCanvas('image')}
                 >
                   <Wand2 className="h-4 w-4 mr-2" />
@@ -66,6 +68,14 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Import File
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-border hover:bg-muted"
+                  onClick={() => navigate('/workspace')}
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  Timeline Mode
                 </Button>
               </div>
             </div>

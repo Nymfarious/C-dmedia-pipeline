@@ -1,4 +1,11 @@
 import { WorkspaceHeader } from './WorkspaceHeader';
+import { TimelineRail } from './TimelineRail';
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from '@/components/ui/resizable';
+import { Film } from 'lucide-react';
 
 export function TimelineWorkspace() {
   return (
@@ -8,29 +15,31 @@ export function TimelineWorkspace() {
       
       {/* Main Workspace Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Preview Canvas (top) - placeholder for now */}
-        <div className="flex-1 bg-muted/20 flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center">
-              <span className="text-2xl">🎬</span>
+        <ResizablePanelGroup direction="vertical" className="flex-1">
+          {/* Preview Canvas (top) */}
+          <ResizablePanel defaultSize={65} minSize={30}>
+            <div className="h-full bg-muted/10 flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-slate-500/10 to-slate-600/10 border border-border/50 flex items-center justify-center">
+                  <Film className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-foreground font-medium">Preview Canvas</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    Video preview will render here
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground">Preview Canvas — Coming Soon</p>
-            <p className="text-xs text-muted-foreground/60">Phase 2 will add the timeline rail below</p>
-          </div>
-        </div>
-        
-        {/* Timeline Rail (bottom) - placeholder for now */}
-        <div className="h-48 border-t border-border bg-card flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <div className="flex gap-2 justify-center">
-              <div className="w-8 h-8 rounded bg-purple-500/30 animate-pulse" />
-              <div className="w-12 h-8 rounded bg-cyan-500/30 animate-pulse delay-100" />
-              <div className="w-10 h-8 rounded bg-purple-500/30 animate-pulse delay-200" />
-              <div className="w-14 h-8 rounded bg-cyan-500/30 animate-pulse delay-300" />
-            </div>
-            <p className="text-muted-foreground text-sm">Timeline Rail — Coming Soon</p>
-          </div>
-        </div>
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          {/* Timeline Rail (bottom) */}
+          <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
+            <TimelineRail />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </main>
     </div>
   );

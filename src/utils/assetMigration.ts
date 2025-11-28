@@ -178,6 +178,12 @@ export function analyzeAssets(assets: Asset[]): {
   const healthy: Asset[] = [];
   
   for (const asset of assets) {
+    // Skip demo assets from migration analysis
+    if (asset.name.includes('Demo ') || asset.src.includes('demo-')) {
+      healthy.push(asset);
+      continue;
+    }
+    
     if (isExpiredUrl(asset.src)) {
       expired.push(asset);
     } else {
