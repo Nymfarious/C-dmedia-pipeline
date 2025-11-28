@@ -54,24 +54,26 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
               <p className="text-muted-foreground mb-6">
                 Start creating amazing content with AI-powered tools
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-                <Button 
-                  className="flex-1 bg-foreground/10 hover:bg-foreground/20 text-foreground border border-border/50 font-medium"
-                  onClick={() => onCreateCanvas('image')}
-                >
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  Generate with AI
-                </Button>
+              <div className="flex flex-col gap-3 max-w-lg mx-auto">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button 
+                    className="flex-1 bg-foreground/10 hover:bg-foreground/20 text-foreground border border-border/50 font-medium"
+                    onClick={() => onCreateCanvas('image')}
+                  >
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-border hover:bg-muted"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import File
+                  </Button>
+                </div>
                 <Button 
                   variant="outline" 
-                  className="flex-1 border-border hover:bg-muted"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import File
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-border hover:bg-muted"
+                  className="w-full border-border hover:bg-muted"
                   onClick={() => navigate('/workspace')}
                 >
                   <Layers className="h-4 w-4 mr-2" />

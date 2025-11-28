@@ -129,10 +129,10 @@ export default {
 				'slide-in-right': 'slide-in-right 0.3s ease-out',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 				'shimmer': 'shimmer 2s infinite linear',
-				// Mode Ferry animations
-				'ferry-to-right': 'ferry-slide-to-right 1.5s ease-in-out forwards',
-				'ferry-to-left': 'ferry-slide-to-left 1.5s ease-in-out forwards',
-				'ferry-arrive': 'ferry-arrive-left 0.5s ease-out forwards'
+				// Mode Ferry animations - slower for better demonstration
+				'ferry-to-right': 'ferry-slide-to-right 2.5s ease-in-out forwards',
+				'ferry-to-left': 'ferry-slide-to-left 2.5s ease-in-out forwards',
+				'ferry-arrive': 'ferry-arrive-left 0.6s ease-out forwards'
 			}
 		}
 	},

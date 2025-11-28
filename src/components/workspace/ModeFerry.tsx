@@ -23,12 +23,13 @@ export function ModeFerry() {
   const isOnCanvas = location.pathname === '/';
 
   // Handle navigation after departure animation completes
+  // Slower transition: 2.5s for a more pronounced ferry effect
   useEffect(() => {
     if (ferryState === 'departing-to-editor') {
       const timer = setTimeout(() => {
         completeFerry();
         navigate('/workspace');
-      }, 1500);
+      }, 2500);
       return () => clearTimeout(timer);
     }
     
@@ -36,7 +37,7 @@ export function ModeFerry() {
       const timer = setTimeout(() => {
         completeFerry();
         navigate('/');
-      }, 1500);
+      }, 2500);
       return () => clearTimeout(timer);
     }
   }, [ferryState, navigate, completeFerry]);
@@ -85,30 +86,43 @@ export function ModeFerry() {
       onClick={handleClick}
       disabled={isAnimating}
       className={cn(
-        'fixed top-[17px] left-[245px] z-[200] flex items-center justify-center',
-        'w-9 h-9 rounded-lg',
-        'bg-purple-600/30 border border-purple-400/60',
-        'text-purple-300 transition-colors duration-200',
-        'hover:bg-purple-500/40 hover:border-purple-400/80',
-        'hover:text-purple-200',
-        'hover:drop-shadow-[0_0_12px_rgba(168,85,247,0.6)]',
+        'fixed top-[14px] left-[245px] z-[200] flex items-center justify-center gap-2',
+        'h-11 px-4 rounded-xl',
+        'bg-gradient-to-r from-slate-700/80 to-slate-800/80',
+        'border border-slate-500/40',
+        'text-slate-200 transition-all duration-300',
+        'hover:from-slate-600/80 hover:to-slate-700/80',
+        'hover:border-slate-400/60 hover:text-slate-100',
+        'hover:shadow-lg hover:shadow-slate-500/20',
         'disabled:pointer-events-none disabled:opacity-70',
         getAnimationClass()
       )}
       aria-label={isOnCanvas ? 'Open CORE Editor' : 'Return to Canvas'}
       title={isOnCanvas ? 'Open CORE Timeline Editor' : 'Return to Main Canvas'}
     >
-      <FilePen className="h-4 w-4" />
+      <FilePen className="h-5 w-5" />
+      <span className="text-sm font-medium">
+        {isOnCanvas ? 'Timeline' : 'Canvas'}
+      </span>
       
-      {/* Subtle motion trail during animation */}
+      {/* Enhanced motion trail during animation */}
       {isAnimating && (
-        <div 
-          className="absolute inset-0 rounded-lg bg-purple-500/30 blur-md -z-10"
-          style={{ 
-            transform: 'scaleX(2)',
-            opacity: 0.5 
-          }}
-        />
+        <>
+          <div 
+            className="absolute inset-0 rounded-xl bg-slate-400/20 blur-lg -z-10"
+            style={{ 
+              transform: 'scaleX(2.5)',
+              opacity: 0.6 
+            }}
+          />
+          <div 
+            className="absolute inset-0 rounded-xl bg-slate-500/10 blur-xl -z-20"
+            style={{ 
+              transform: 'scaleX(3)',
+              opacity: 0.4 
+            }}
+          />
+        </>
       )}
     </button>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, Suspense, useTransition } from 'react';
-import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Palette, AlertCircle, Shield, Activity, Loader2 } from 'lucide-react';
+import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Palette, AlertCircle, Shield, Activity, Loader2, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import { PanelGeneratorPanel } from './panels/PanelGeneratorPanel';
 import { StyleGuidePanel } from './panels/StyleGuidePanel';
 import { ShortcutsPanel } from './panels/ShortcutsPanel';
 import { ExportPanel } from './panels/ExportPanel';
+import { AssetMigrationPanel } from './panels/AssetMigrationPanel';
 
 const coreSections = [
   { id: 'overview', name: 'Overview', icon: Eye, component: OverviewPanel },
@@ -41,6 +42,7 @@ const coreSections = [
   { id: 'logs', name: 'Logs', icon: AlertCircle, component: LogsPanel },
   { id: 'security', name: 'Security', icon: Shield, component: SecurityPanel },
   { id: 'pipeline', name: 'Pipeline Monitor', icon: Activity, component: PipelineMonitorPanel },
+  { id: 'migration', name: 'Asset Migration', icon: Download, component: AssetMigrationPanel },
   { id: 'generator', name: 'Panel Generator', icon: Code, component: PanelGeneratorPanel },
   { id: 'styleguide', name: 'Style Guide', icon: Palette, component: StyleGuidePanel },
   { id: 'shortcuts', name: 'Shortcuts', icon: Activity, component: ShortcutsPanel },
