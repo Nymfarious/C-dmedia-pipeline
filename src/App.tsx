@@ -12,6 +12,7 @@ import { AssetMigrationToast } from './components/AssetMigrationToast';
 import { AssetsPage } from './components/AssetsPage';
 import { AIGalleryPanel } from './components/AIGalleryPanel';
 import { ImageGenStudioPageWrapper } from './components/ImageGenStudio/ImageGenStudioPageWrapper';
+import { TimelineWorkspace } from './components/workspace/TimelineWorkspace';
 import { useAppBootstrap } from '@/hooks/useAppBootstrap';
 import { useCanvasAutoCleanup } from '@/hooks/useCanvasAutoCleanup';
 import { MiniDevProvider, MiniDevButton, MiniDevDrawer } from '@/mini-devtools';
@@ -171,23 +172,33 @@ const router = createBrowserRouter([
      )
    },
    {
-     path: "/debug",
-     element: (
-       <RootLayout>
-         <AuthGuard>
-           <Debug />
-         </AuthGuard>
-       </RootLayout>
-     )
-   },
-   {
-     path: "*",
-     element: (
-       <RootLayout>
-         <NotFound />
-       </RootLayout>
-     )
-   }
+      path: "/debug",
+      element: (
+        <RootLayout>
+          <AuthGuard>
+            <Debug />
+          </AuthGuard>
+        </RootLayout>
+      )
+    },
+    {
+      path: "/workspace",
+      element: (
+        <RootLayout>
+          <AuthGuard>
+            <TimelineWorkspace />
+          </AuthGuard>
+        </RootLayout>
+      )
+    },
+    {
+      path: "*",
+      element: (
+        <RootLayout>
+          <NotFound />
+        </RootLayout>
+      )
+    }
 ]);
 
 const App = () => (

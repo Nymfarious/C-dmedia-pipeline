@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2, FileText, Bug } from 'lucide-react';
+import { Save, FolderOpen, Undo, Redo, Images, Archive, Wand2, FileText, Bug, Film } from 'lucide-react';
 import useAppStore from '@/store/appStore';
 import { useState } from 'react';
 import { ProjectManagementModal } from './ProjectManagementModal';
@@ -86,6 +86,10 @@ export function Header({ activeTab, undo, redo, canUndo, canRedo, onGalleryToggl
         <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/debug'}>
           <Bug className="h-4 w-4 mr-2" />
           Debug
+        </Button>
+        <Button variant="outline" size="sm" className="h-8" onClick={() => window.location.href = '/workspace'}>
+          <Film className="h-4 w-4 mr-2" />
+          CORE
         </Button>
         <Button variant="outline" size="sm" className="h-8" onClick={() => setShowProjectModal(true)}>
           <Archive className="h-4 w-4 mr-2" />
