@@ -107,6 +107,19 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-200% 0' },
 					'100%': { backgroundPosition: '200% 0' }
+				},
+				// Mode Ferry animations
+				'ferry-slide-to-right': {
+					'0%': { transform: 'translateX(0)', opacity: '1' },
+					'100%': { transform: 'translateX(calc(100vw - 300px))', opacity: '1' }
+				},
+				'ferry-slide-to-left': {
+					'0%': { transform: 'translateX(calc(100vw - 300px))', opacity: '1' },
+					'100%': { transform: 'translateX(0)', opacity: '1' }
+				},
+				'ferry-arrive-left': {
+					'0%': { transform: 'translateX(60px)', opacity: '0.7' },
+					'100%': { transform: 'translateX(0)', opacity: '1' }
 				}
 			},
 			animation: {
@@ -115,7 +128,11 @@ export default {
 				'fade-in': 'fade-in 0.3s ease-out',
 				'slide-in-right': 'slide-in-right 0.3s ease-out',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
-				'shimmer': 'shimmer 2s infinite linear'
+				'shimmer': 'shimmer 2s infinite linear',
+				// Mode Ferry animations
+				'ferry-to-right': 'ferry-slide-to-right 1.5s ease-in-out forwards',
+				'ferry-to-left': 'ferry-slide-to-left 1.5s ease-in-out forwards',
+				'ferry-arrive': 'ferry-arrive-left 0.5s ease-out forwards'
 			}
 		}
 	},

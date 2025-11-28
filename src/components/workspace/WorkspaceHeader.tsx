@@ -1,30 +1,12 @@
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeftRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function WorkspaceHeader() {
-  const navigate = useNavigate();
-
   return (
     <header className="h-12 border-b border-border flex items-center justify-between px-4 bg-card/50">
-      {/* Mode Ferry - Left side */}
+      {/* Left side - space for ModeFerry button + title */}
       <div className="flex items-center gap-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-all duration-200 hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Switch to Main Canvas</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* ModeFerry renders here via fixed positioning */}
+        <div className="w-10" /> {/* Spacer for the ferry button */}
         
         <div className="h-4 w-px bg-border" />
         
