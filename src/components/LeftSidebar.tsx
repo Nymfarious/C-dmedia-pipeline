@@ -23,6 +23,7 @@ import {
   Clock,
   GripVertical
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { ProjectManagementModal } from './ProjectManagementModal';
@@ -44,6 +45,7 @@ interface LeftSidebarProps {
   onClearWorkspace?: () => void;
   onLoadProject?: (assets: Record<string, Asset>, currentAssetId?: string) => void;
   onOpenAIModal?: () => void;
+  isCollapsed?: boolean;
 }
 
 export function LeftSidebar({ 
@@ -54,7 +56,8 @@ export function LeftSidebar({
   onLoadAssetToCanvas,
   onClearWorkspace,
   onLoadProject,
-  onOpenAIModal
+  onOpenAIModal,
+  isCollapsed = false
 }: LeftSidebarProps) {
   const assets = useAppStore((state) => state.assets);
   const { deleteCanvas, setActiveCanvas } = useAppStore();
@@ -102,8 +105,122 @@ export function LeftSidebar({
 
   const sortedCanvases = canvases.sort((a, b) => b.createdAt - a.createdAt);
 
+  // Collapsed state - show mini sidebar with icons only
+  if (isCollapsed) {
+    return (
+      <div className="w-14 bg-sidebar-bg border-r border-border flex flex-col h-full py-4">
+        <div className="flex flex-col items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateCanvas('image')}
+                className="h-10 w-10 p-0"
+              >
+                <Image className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">New Image Canvas</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateCanvas('video')}
+                className="h-10 w-10 p-0"
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">New Video Canvas</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCreateCanvas('audio')}
+                className="h-10 w-10 p-0"
+              >
+                <Music className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">New Audio Canvas</TooltipContent>
+          </Tooltip>
+        </div>
+        
+        <div className="h-px bg-border my-4 mx-2" />
+        
+        {/* Mini canvas list */}
+        <ScrollArea className="flex-1 px-1">
+          <div className="flex flex-col items-center gap-1">
+            {sortedCanvases.slice(0, 8).map((canvas) => (
+              <Tooltip key={canvas.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeCanvas === canvas.id ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => onSelectCanvas(canvas.id)}
+                    className={cn(
+                      "h-10 w-10 p-0",
+                      activeCanvas === canvas.id && "ring-2 ring-primary"
+                    )}
+                  >
+                    {getCanvasIcon(canvas.type)}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{canvas.name}</TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </ScrollArea>
+        
+        {/* Bottom actions */}
+        <div className="flex flex-col items-center gap-2 mt-auto">
+          {onOpenAIModal && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onOpenAIModal}
+                  className="h-10 w-10 p-0"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">AI Generate</TooltipContent>
+            </Tooltip>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowProjectModal(true)}
+                className="h-10 w-10 p-0"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Projects</TooltipContent>
+          </Tooltip>
+        </div>
+        
+        <ProjectManagementModal
+          isOpen={showProjectModal}
+          onClose={() => setShowProjectModal(false)}
+          onNewProject={onClearWorkspace || (() => {})}
+          onProjectLoad={onLoadProject || (() => {})}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-80 bg-sidebar-bg border-r border-border flex flex-col h-full">
+    <div className="w-72 lg:w-80 bg-sidebar-bg border-r border-border flex flex-col h-full transition-all duration-200">
       <Tabs defaultValue="canvases" className="flex-1 flex flex-col">
         <div className="p-4 border-b border-border">
           <TabsList className="grid w-full grid-cols-2">
