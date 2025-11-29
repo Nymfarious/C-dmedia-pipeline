@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
-import { X, GripVertical } from 'lucide-react';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTimelineStore } from './TimelineStore';
+import { StaticWaveform } from './AudioWaveform';
 
 interface ClipProps {
   id: string;
@@ -9,6 +10,7 @@ interface ClipProps {
   startTime: number;
   duration: number;
   label: string;
+  thumbnail?: string;
   isSelected: boolean;
   zoom: number; // pixels per second
   onSelect: () => void;
@@ -35,6 +37,7 @@ export function Clip({
   startTime,
   duration,
   label,
+  thumbnail,
   isSelected,
   zoom,
   onSelect,
@@ -53,9 +56,17 @@ export function Clip({
   
   const snapToGrid = useTimelineStore((state) => state.snapToGrid);
   const activeTool = useTimelineStore((state) => state.activeTool);
+  const { playheadPosition, isPlaying } = useTimelineStore();
 
   const width = duration * zoom;
   const left = startTime * zoom;
+
+  // Calculate playhead progress within this clip
+  const playheadProgress = useMemo(() => {
+    if (playheadPosition < startTime) return 0;
+    if (playheadPosition > startTime + duration) return 1;
+    return (playheadPosition - startTime) / duration;
+  }, [playheadPosition, startTime, duration]);
 
   // Handle clip drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -126,19 +137,75 @@ export function Clip({
     dragStartDuration.current = duration;
   }, [onSelect, duration]);
 
-  // Render waveform for audio tracks
-  const renderWaveform = () => (
-    <svg className="absolute inset-0 w-full h-full opacity-50" preserveAspectRatio="none">
-      <path
-        d="M0,12 Q5,5 10,12 T20,12 T30,12 T40,12 T50,12 T60,12 T70,12 T80,12 T90,12 T100,12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        className="text-green-400"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
+  // Render content based on track type
+  const renderContent = () => {
+    if (trackType === 'audio') {
+      return (
+        <div className="absolute inset-x-2 inset-y-0 flex items-center overflow-hidden">
+          {/* Audio waveform visualization */}
+          <div className="absolute inset-0 opacity-60">
+            <StaticWaveform width={Math.max(20, width - 16)} height={28} />
+          </div>
+          {/* Progress overlay showing played portion */}
+          <div 
+            className="absolute inset-y-0 left-0 bg-green-500/20 pointer-events-none transition-all duration-100"
+            style={{ width: `${playheadProgress * 100}%` }}
+          />
+          <span className="text-xs font-medium text-foreground truncate z-10 drop-shadow-sm relative">
+            {label}
+          </span>
+        </div>
+      );
+    }
+
+    if (trackType === 'visual' && thumbnail) {
+      return (
+        <div className="absolute inset-x-2 inset-y-0 flex items-center overflow-hidden">
+          <div className="absolute inset-0 opacity-30">
+            <img src={thumbnail} alt={label} className="w-full h-full object-cover" />
+          </div>
+          <span className="text-xs font-medium text-foreground truncate z-10 drop-shadow-sm relative">
+            {label}
+          </span>
+        </div>
+      );
+    }
+
+    // FX track or visual without thumbnail
+    if (trackType === 'fx') {
+      return (
+        <div className="absolute inset-x-2 inset-y-0 flex items-center overflow-hidden">
+          {/* FX sparkle pattern */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="h-full flex items-center gap-1">
+              {Array.from({ length: Math.floor(width / 10) }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-1 h-1 rounded-full bg-purple-400"
+                  style={{ 
+                    opacity: Math.sin(i * 0.5) * 0.5 + 0.5,
+                    transform: `scale(${Math.sin(i * 0.3) * 0.5 + 1})`
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <span className="text-xs font-medium text-foreground truncate z-10 drop-shadow-sm">
+            {label}
+          </span>
+        </div>
+      );
+    }
+
+    // Default content
+    return (
+      <div className="absolute inset-x-2 inset-y-0 flex items-center overflow-hidden">
+        <span className="text-xs font-medium text-foreground truncate z-10 drop-shadow-sm">
+          {label}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -173,12 +240,7 @@ export function Clip({
       </div>
 
       {/* Clip content */}
-      <div className="absolute inset-x-2 inset-y-0 flex items-center overflow-hidden">
-        {trackType === 'audio' && renderWaveform()}
-        <span className="text-xs font-medium text-foreground truncate z-10 drop-shadow-sm">
-          {label}
-        </span>
-      </div>
+      {renderContent()}
 
       {/* Right resize handle */}
       <div
