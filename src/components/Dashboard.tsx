@@ -9,6 +9,7 @@ import { Gallery } from '@/components/Gallery';
 import { TemplateGallery } from '@/components/TemplateGallery';
 import { TemplateEditor } from '@/components/TemplateEditor';
 import { TemplateCanvas } from '@/components/Canvas/TemplateCanvas';
+import { TutorialOverlay } from '@/components/TutorialOverlay';
 
 import useAppStore from '@/store/appStore';
 import { useTemplateStore } from '@/store/templateStore';
@@ -17,6 +18,23 @@ import { useTemplateMode } from '@/hooks/useTemplateMode';
 export function Dashboard() {
   const [showGallery, setShowGallery] = useState(false);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  
+  // Check if first visit
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      // Show tutorial after a brief delay for first-time users
+      const timer = setTimeout(() => setShowTutorial(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  
+  const handleTutorialClose = () => {
+    setShowTutorial(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
   
   const { 
     enqueueStep, 
@@ -85,6 +103,9 @@ export function Dashboard() {
         onGalleryToggle={() => setShowGallery(!showGallery)}
         onTemplateToggle={() => isTemplateMode ? setShowTemplateGallery(true) : setShowTemplateGallery(!showTemplateGallery)}
         isTemplateMode={isTemplateMode}
+        onSidebarToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isSidebarCollapsed={isSidebarCollapsed}
+        onTutorialOpen={() => setShowTutorial(true)}
       />
       
       {/* Toolbar */}
@@ -116,6 +137,7 @@ export function Dashboard() {
           onLoadAssetToCanvas={loadAssetToCanvas}
           onClearWorkspace={clearWorkspace}
           onLoadProject={loadProjectData}
+          isCollapsed={isSidebarCollapsed}
         />
         
         {/* Template Canvas or Regular Canvas */}
@@ -171,6 +193,8 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* Tutorial Overlay */}
+      <TutorialOverlay isOpen={showTutorial} onClose={handleTutorialClose} />
     </div>
   );
 }

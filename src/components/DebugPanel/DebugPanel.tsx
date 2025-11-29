@@ -86,8 +86,45 @@ export function DebugPanel({ isOpen, onClose }: DebugPanelProps) {
   );
 }
 
-export function DebugPanelSummary() {
+interface DebugPanelSummaryProps {
+  compact?: boolean;
+}
+
+export function DebugPanelSummary({ compact = false }: DebugPanelSummaryProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Compact version for dropdown menus
+  if (compact) {
+    return (
+      <>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">System Health</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsOpen(true)}
+              className="h-5 w-5 p-0"
+            >
+              <Settings className="h-3 w-3" />
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <Badge variant="default" className="bg-green-500/20 text-green-700 dark:text-green-300 text-[10px] px-1.5 py-0">
+              8 OK
+            </Badge>
+            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 text-[10px] px-1.5 py-0">
+              2 Warn
+            </Badge>
+            <Badge variant="destructive" className="bg-red-500/20 text-red-700 dark:text-red-300 text-[10px] px-1.5 py-0">
+              1 Fail
+            </Badge>
+          </div>
+        </div>
+        <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <>
