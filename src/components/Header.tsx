@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { ProjectManagementModal } from './ProjectManagementModal';
 import { DebugPanelSummary } from './DebugPanel/DebugPanel';
 import { TutorialTrigger } from './TutorialOverlay';
+import { ModeNavigation } from './ModeNavigation';
 
 interface HeaderProps {
   activeTab: string;
@@ -110,6 +111,9 @@ export function Header({
         </div>
       </div>
       
+      {/* Center section - Mode Navigation */}
+      <ModeNavigation className="hidden md:block" />
+      
       {/* Right section - Actions */}
       <div className="flex items-center gap-1 sm:gap-2">
         {/* Quick Tour - Always visible */}
@@ -203,11 +207,18 @@ export function Header({
               <DropdownMenuSeparator />
             </div>
             
-            {/* Always show these */}
-            <DropdownMenuItem onClick={() => window.location.href = '/workspace'}>
-              <Activity className="h-4 w-4 mr-2" />
-              Timeline Workspace
-            </DropdownMenuItem>
+            {/* Mode navigation for mobile */}
+            <div className="md:hidden">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => window.location.href = '/'}>
+                <Activity className="h-4 w-4 mr-2" />
+                Editor
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = '/workspace'}>
+                <Activity className="h-4 w-4 mr-2" />
+                Timeline
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
