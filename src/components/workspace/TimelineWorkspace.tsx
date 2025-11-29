@@ -1,6 +1,7 @@
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { TimelineRail } from './TimelineRail';
 import { PreviewCanvas } from './PreviewCanvas';
+import { TransportControls } from './TransportControls';
 import { 
   ResizablePanelGroup, 
   ResizablePanel, 
@@ -17,14 +18,19 @@ export function TimelineWorkspace() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <ResizablePanelGroup direction="vertical" className="flex-1">
           {/* Preview Canvas (top) */}
-          <ResizablePanel defaultSize={65} minSize={30}>
+          <ResizablePanel defaultSize={55} minSize={30}>
             <PreviewCanvas />
           </ResizablePanel>
           
           <ResizableHandle withHandle />
           
+          {/* Transport Controls */}
+          <div className="flex-shrink-0">
+            <TransportControls />
+          </div>
+          
           {/* Timeline Rail (bottom) */}
-          <ResizablePanel defaultSize={35} minSize={20} maxSize={50}>
+          <ResizablePanel defaultSize={45} minSize={20} maxSize={60}>
             <TimelineRail />
           </ResizablePanel>
         </ResizablePanelGroup>

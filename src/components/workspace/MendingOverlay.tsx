@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { triggerHaptic } from '@/lib/haptics';
+import { logMendComplete } from '@/lib/timelineLogger';
 
 interface MendingOverlayProps {
   position: number;
@@ -10,10 +11,11 @@ export function MendingOverlay({ position, onComplete }: MendingOverlayProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       triggerHaptic('success');
+      logMendComplete(position);
       onComplete();
     }, 800);
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, [onComplete, position]);
 
   return (
     <div 

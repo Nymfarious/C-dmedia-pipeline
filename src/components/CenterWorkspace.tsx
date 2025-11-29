@@ -1,11 +1,12 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, Upload, Plus, Sparkles, Video, Layers } from 'lucide-react';
+import { Wand2, Plus, Sparkles, Layers } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
 import { VideoCanvas } from '@/components/Canvas/VideoCanvas';
 import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
 import { VideoCanvasManager } from '@/components/Canvas/VideoCanvasManager';
+import { LocalFileImport } from '@/components/workspace/LocalFileImport';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { useNavigate } from 'react-router-dom';
@@ -63,13 +64,11 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
                     <Wand2 className="h-4 w-4 mr-2" />
                     Generate with AI
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <LocalFileImport
+                    variant="outline"
                     className="flex-1 border-border hover:bg-muted"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import File
-                  </Button>
+                    maxFiles={7}
+                  />
                 </div>
                 <Button 
                   variant="outline" 

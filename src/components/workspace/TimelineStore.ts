@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { triggerHaptic } from '@/lib/haptics';
+import { logClipAdded, logClipRemoved, logCutOperation, logMendComplete } from '@/lib/timelineLogger';
 
 export interface Clip {
   id: string;
@@ -131,14 +132,17 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     set((state) => ({
       clips: [...state.clips, { ...clip, id }],
     }));
+    logClipAdded(clip.trackType, clip.startTime, clip.duration);
   },
 
   removeClip: (clipId) => {
+    const clip = get().clips.find(c => c.id === clipId);
     get().pushToHistory('Remove clip');
     set((state) => ({
       clips: state.clips.filter((c) => c.id !== clipId),
       selectedClipId: state.selectedClipId === clipId ? null : state.selectedClipId,
     }));
+    if (clip) logClipRemoved(clip.trackType, clip.label);
   },
 
   updateClip: (clipId, updates) => {
@@ -277,6 +281,8 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     const { startTime, endTime, trackId } = rangeSelection;
     const selectionDuration = endTime - startTime;
     
+    logCutOperation('inside', selectionDuration);
+    
     const newClips: Clip[] = [];
     
     for (const clip of clips) {
@@ -352,6 +358,8 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
 
     pushToHistory('Cut outside');
     const { startTime, endTime, trackId } = rangeSelection;
+    
+    logCutOperation('outside', startTime + (get().duration - endTime));
     
     const newClips: Clip[] = [];
     
