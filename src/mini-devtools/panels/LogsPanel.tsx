@@ -59,6 +59,15 @@ export function LogsPanel() {
     return `[${timestamp}] [${log.level.toUpperCase()}] ${log.message}${context}`;
   };
 
+  const formatLogForJson = (log: DevLog) => ({
+    id: log.id,
+    level: log.level,
+    message: log.message,
+    timestamp: log.timestamp.toISOString(),
+    context: log.context || null,
+    read: log.read,
+  });
+
   const copyAllLogs = async () => {
     const logsText = filteredLogs.map(formatLogForExport).join('\n\n');
     await navigator.clipboard.writeText(logsText);
@@ -80,6 +89,25 @@ export function LogsPanel() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Logs downloaded');
+  };
+
+  const downloadLogsAsJson = () => {
+    const jsonData = {
+      exportedAt: new Date().toISOString(),
+      filter: filter,
+      totalLogs: filteredLogs.length,
+      logs: filteredLogs.map(formatLogForJson),
+    };
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `devtools-logs-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Logs exported as JSON');
   };
 
   const copySingleLog = async (log: DevLog) => {
@@ -108,7 +136,7 @@ export function LogsPanel() {
           </TabsList>
         </Tabs>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -127,7 +155,17 @@ export function LogsPanel() {
             disabled={filteredLogs.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Save
+            .txt
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadLogsAsJson}
+            className="flex-1 md:flex-none"
+            disabled={filteredLogs.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            .json
           </Button>
           <Button
             variant="ghost"

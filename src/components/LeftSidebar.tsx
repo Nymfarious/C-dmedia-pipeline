@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { QuickCanvasDelete } from '@/components/ui/canvas-delete';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Image, 
   Video, 
@@ -21,13 +22,18 @@ import {
   Trash2,
   Eye,
   Clock,
-  GripVertical
+  GripVertical,
+  Scissors,
+  ChevronDown,
+  Library
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { ProjectManagementModal } from './ProjectManagementModal';
 import { LocalFileImport } from './workspace/LocalFileImport';
+import { SpriteSheetSlicer } from './SpriteSheetSlicer';
+import { EnhancedAssetLibrary } from './EnhancedAssetLibrary';
 import { cn } from '@/lib/utils';
 
 interface LeftSidebarProps {
@@ -62,6 +68,8 @@ export function LeftSidebar({
   const assets = useAppStore((state) => state.assets);
   const { deleteCanvas, setActiveCanvas } = useAppStore();
   const [showProjectModal, setShowProjectModal] = React.useState(false);
+  const [showSplicer, setShowSplicer] = React.useState(false);
+  const [showLibrary, setShowLibrary] = React.useState(false);
   
   // Enhanced canvas management
   const emptyCanvases = canvases.filter(canvas => !canvas.asset);
@@ -235,23 +243,34 @@ export function LeftSidebar({
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-medium text-foreground">Quick Create</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowProjectModal(true)}
-                  className="text-xs"
-                >
-                  <Save className="h-3 w-3 mr-1" />
-                  Projects
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowLibrary(true)}
+                    className="text-xs h-7 px-2"
+                  >
+                    <Library className="h-3 w-3 mr-1" />
+                    Library
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowProjectModal(true)}
+                    className="text-xs h-7 px-2"
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    Projects
+                  </Button>
+                </div>
               </div>
               
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onCreateCanvas('image')}
-                  className="flex flex-col h-16 text-xs"
+                  className="flex flex-col h-14 text-xs"
                 >
                   <Image className="h-4 w-4 mb-1" />
                   Image
@@ -260,7 +279,7 @@ export function LeftSidebar({
                   variant="outline"
                   size="sm"
                   onClick={() => onCreateCanvas('video')}
-                  className="flex flex-col h-16 text-xs"
+                  className="flex flex-col h-14 text-xs"
                 >
                   <Video className="h-4 w-4 mb-1" />
                   Video
@@ -269,12 +288,38 @@ export function LeftSidebar({
                   variant="outline"
                   size="sm"
                   onClick={() => onCreateCanvas('audio')}
-                  className="flex flex-col h-16 text-xs"
+                  className="flex flex-col h-14 text-xs"
                 >
                   <Music className="h-4 w-4 mb-1" />
                   Audio
                 </Button>
               </div>
+              
+              {/* Sprite Slicer Collapsible */}
+              <Collapsible open={showSplicer} onOpenChange={setShowSplicer}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-between text-xs"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Scissors className="h-3.5 w-3.5" />
+                      Sprite Sheet Slicer
+                    </span>
+                    <ChevronDown className={cn(
+                      "h-3.5 w-3.5 transition-transform",
+                      showSplicer && "rotate-180"
+                    )} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <SpriteSheetSlicer 
+                    onClose={() => setShowSplicer(false)} 
+                    className="border-0 shadow-none"
+                  />
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             {/* Active Canvases */}
@@ -508,6 +553,23 @@ export function LeftSidebar({
         onNewProject={onClearWorkspace || (() => {})}
         onProjectLoad={onLoadProject || (() => {})}
       />
+      
+      {/* Enhanced Asset Library Modal */}
+      {showLibrary && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <EnhancedAssetLibrary 
+            onClose={() => setShowLibrary(false)}
+            onSelectAsset={(asset) => {
+              if (onLoadAssetToCanvas) {
+                onLoadAssetToCanvas(asset);
+              }
+              setShowLibrary(false);
+            }}
+            selectable
+            className="w-full max-w-2xl max-h-[80vh]"
+          />
+        </div>
+      )}
     </div>
   );
 }
