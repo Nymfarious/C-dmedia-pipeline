@@ -10,6 +10,11 @@ import { TemplateGallery } from '@/components/TemplateGallery';
 import { TemplateEditor } from '@/components/TemplateEditor';
 import { TemplateCanvas } from '@/components/Canvas/TemplateCanvas';
 import { TutorialOverlay } from '@/components/TutorialOverlay';
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from '@/components/ui/resizable';
 
 import useAppStore from '@/store/appStore';
 import { useTemplateStore } from '@/store/templateStore';
@@ -116,52 +121,77 @@ export function Dashboard() {
         toggleRightPanel={() => {}}
       />
       
-      {/* Main Content */}
+      {/* Main Content with Resizable Panels */}
       <div className="flex-1 flex overflow-hidden">
         {/* Gallery Sidebar - Conditional */}
         {showGallery && (
-          <div className="w-80 border-r border-border bg-card">
+          <div className="w-80 border-r border-border bg-card flex-shrink-0">
             <Gallery />
           </div>
         )}
         
-        {/* Left Sidebar */}
-        <LeftSidebar
-          canvases={canvases}
-          activeCanvas={activeCanvas}
-          onCreateCanvas={(type) => {
-            const canvasId = createCanvas(type);
-            setActiveCanvas(canvasId);
-          }}
-          onSelectCanvas={setActiveCanvas}
-          onLoadAssetToCanvas={loadAssetToCanvas}
-          onClearWorkspace={clearWorkspace}
-          onLoadProject={loadProjectData}
-          isCollapsed={isSidebarCollapsed}
-        />
-        
-        {/* Template Canvas or Regular Canvas */}
-        {isTemplateMode ? (
-          <TemplateCanvas onExitTemplate={exitTemplateMode} />
-        ) : (
-          <>
-            {/* Center Workspace */}
-            <CenterWorkspace 
-              currentCanvas={currentCanvas}
-              onCanvasAssetUpdate={updateCanvasAsset}
+        {/* Resizable Panel Layout */}
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {/* Left Sidebar Panel */}
+          <ResizablePanel 
+            defaultSize={isSidebarCollapsed ? 5 : 18} 
+            minSize={isSidebarCollapsed ? 4 : 12} 
+            maxSize={30}
+            className="hidden md:block"
+          >
+            <LeftSidebar
+              canvases={canvases}
+              activeCanvas={activeCanvas}
               onCreateCanvas={(type) => {
                 const canvasId = createCanvas(type);
                 setActiveCanvas(canvasId);
               }}
+              onSelectCanvas={setActiveCanvas}
+              onLoadAssetToCanvas={loadAssetToCanvas}
+              onClearWorkspace={clearWorkspace}
+              onLoadProject={loadProjectData}
+              isCollapsed={isSidebarCollapsed}
             />
-            
-            {/* Right Sidebar */}
-            <RightSidebar 
-              selectedAsset={currentCanvas?.asset}
-              onEditComplete={handleEditComplete}
-            />
-          </>
-        )}
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle className="hidden md:flex" />
+          
+          {/* Template Canvas or Regular Canvas */}
+          {isTemplateMode ? (
+            <ResizablePanel defaultSize={82} minSize={40}>
+              <TemplateCanvas onExitTemplate={exitTemplateMode} />
+            </ResizablePanel>
+          ) : (
+            <>
+              {/* Center Workspace Panel */}
+              <ResizablePanel defaultSize={62} minSize={30}>
+                <CenterWorkspace 
+                  currentCanvas={currentCanvas}
+                  onCanvasAssetUpdate={updateCanvasAsset}
+                  onCreateCanvas={(type) => {
+                    const canvasId = createCanvas(type);
+                    setActiveCanvas(canvasId);
+                  }}
+                />
+              </ResizablePanel>
+              
+              <ResizableHandle withHandle className="hidden lg:flex" />
+              
+              {/* Right Sidebar Panel */}
+              <ResizablePanel 
+                defaultSize={20} 
+                minSize={15} 
+                maxSize={35}
+                className="hidden lg:block"
+              >
+                <RightSidebar 
+                  selectedAsset={currentCanvas?.asset}
+                  onEditComplete={handleEditComplete}
+                />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
 
       {/* Template Gallery Modal */}

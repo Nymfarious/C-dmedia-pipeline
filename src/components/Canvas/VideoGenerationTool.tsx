@@ -237,7 +237,12 @@ export const VideoGenerationTool: React.FC<VideoGenerationToolProps> = ({ isActi
       onClose();
     } catch (error) {
       console.error('Video generation error:', error);
-      toast.error('Failed to generate video. Please try again.');
+      // Show detailed error message to user
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate video';
+      toast.error(errorMessage, { 
+        duration: 6000,
+        description: 'Check the console for more details'
+      });
     } finally {
       setIsGenerating(false);
     }
