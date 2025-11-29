@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, Plus, Sparkles, Layers } from 'lucide-react';
+import { Wand2, Plus, Sparkles } from 'lucide-react';
 import { ImageCanvas } from '@/components/Canvas/ImageCanvas';
 import { VideoCanvas } from '@/components/Canvas/VideoCanvas';
 import { CanvasAIGeneration } from '@/components/Canvas/CanvasAIGeneration';
@@ -9,7 +9,6 @@ import { VideoCanvasManager } from '@/components/Canvas/VideoCanvasManager';
 import { LocalFileImport } from '@/components/workspace/LocalFileImport';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
-import { useNavigate } from 'react-router-dom';
 
 interface Canvas {
   id: string;
@@ -27,7 +26,6 @@ interface CenterWorkspaceProps {
 
 export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCanvas }: CenterWorkspaceProps) {
   const { assets, createCanvas, setActiveCanvas } = useAppStore();
-  const navigate = useNavigate();
   
   
   // Get recent generated assets (from both assets and gallery)
@@ -70,14 +68,6 @@ export function CenterWorkspace({ currentCanvas, onCanvasAssetUpdate, onCreateCa
                     maxFiles={7}
                   />
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full border-border hover:bg-muted"
-                  onClick={() => navigate('/workspace')}
-                >
-                  <Layers className="h-4 w-4 mr-2" />
-                  Timeline Mode
-                </Button>
               </div>
             </div>
           </Card>

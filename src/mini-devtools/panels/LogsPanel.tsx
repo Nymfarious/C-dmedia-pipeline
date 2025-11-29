@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useDevLogsStore, LogLevel } from '../stores/devLogsStore';
+import { useDevLogsStore, LogLevel, DevLog } from '../stores/devLogsStore';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2, Copy, Download, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 export function LogsPanel() {
   const { logs, clearLogs, markAllRead } = useDevLogsStore();
@@ -42,12 +43,48 @@ export function LogsPanel() {
     }
   };
 
+  const [copied, setCopied] = useState(false);
+
   const getLevelColor = (level: LogLevel) => {
     switch (level) {
       case 'error': return 'text-red-400';
       case 'warn': return 'text-yellow-400';
       case 'info': return 'text-blue-400';
     }
+  };
+
+  const formatLogForExport = (log: DevLog) => {
+    const timestamp = format(log.timestamp, 'yyyy-MM-dd HH:mm:ss.SSS');
+    const context = log.context ? `\n  Context: ${JSON.stringify(log.context, null, 2)}` : '';
+    return `[${timestamp}] [${log.level.toUpperCase()}] ${log.message}${context}`;
+  };
+
+  const copyAllLogs = async () => {
+    const logsText = filteredLogs.map(formatLogForExport).join('\n\n');
+    await navigator.clipboard.writeText(logsText);
+    setCopied(true);
+    toast.success('Logs copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadLogs = () => {
+    const logsText = filteredLogs.map(formatLogForExport).join('\n\n');
+    const header = `=== DevTools Logs Export ===\nGenerated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}\nFilter: ${filter}\nTotal logs: ${filteredLogs.length}\n${'='.repeat(30)}\n\n`;
+    const blob = new Blob([header + logsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `devtools-logs-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Logs downloaded');
+  };
+
+  const copySingleLog = async (log: DevLog) => {
+    await navigator.clipboard.writeText(formatLogForExport(log));
+    toast.success('Log entry copied');
   };
 
   return (
@@ -71,15 +108,37 @@ export function LogsPanel() {
           </TabsList>
         </Tabs>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearLogs}
-          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 w-full md:w-auto"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Clear
-        </Button>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyAllLogs}
+            className="flex-1 md:flex-none"
+            disabled={filteredLogs.length === 0}
+          >
+            {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+            {copied ? 'Copied!' : 'Copy All'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadLogs}
+            className="flex-1 md:flex-none"
+            disabled={filteredLogs.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Save
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearLogs}
+            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 flex-1 md:flex-none"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
+        </div>
       </div>
 
       {/* Log entries - constrained height for mobile */}
@@ -97,19 +156,33 @@ export function LogsPanel() {
             return (
               <Card key={log.id} className="bg-secondary/50 border-border">
                 <CardContent className="py-2 md:py-3 px-3 md:px-4">
-                  <div
-                    className="flex items-start gap-2 md:gap-3 cursor-pointer touch-manipulation min-h-[44px]"
-                    onClick={() => toggleExpand(log.id)}
-                  >
-                    {log.context ? (
-                      isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                    <div className="flex items-start gap-2 md:gap-3 min-h-[44px]">
+                      {/* Copy single log button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0 opacity-50 hover:opacity-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copySingleLog(log);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      {log.context ? (
+                        <button
+                          className="flex-shrink-0 hover:bg-muted rounded p-0.5"
+                          onClick={() => toggleExpand(log.id)}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
-                      )
-                    ) : (
-                      <div className="w-4 flex-shrink-0" />
-                    )}
+                        <div className="w-4 flex-shrink-0" />
+                      )}
                     
                     <div className="flex-1 min-w-0 overflow-hidden">
                       {/* Mobile: Stack vertically */}
