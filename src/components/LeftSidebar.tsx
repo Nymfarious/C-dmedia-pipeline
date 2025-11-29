@@ -20,11 +20,13 @@ import {
   MoreVertical,
   Trash2,
   Eye,
-  Clock
+  Clock,
+  GripVertical
 } from 'lucide-react';
 import { Asset } from '@/types/media';
 import useAppStore from '@/store/appStore';
 import { ProjectManagementModal } from './ProjectManagementModal';
+import { LocalFileImport } from './workspace/LocalFileImport';
 import { cn } from '@/lib/utils';
 
 interface LeftSidebarProps {
@@ -316,17 +318,44 @@ export function LeftSidebar({
               </ScrollArea>
             </div>
 
-            {/* Recent Assets Quick Load */}
+            {/* Recent Assets Quick Load - Draggable to Timeline */}
             {recentAssets.length > 0 && (
               <div className="p-4 border-t border-border">
-                <h3 className="text-sm font-medium text-foreground mb-3">Recent Assets</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-foreground">Recent Assets</h3>
+                  <LocalFileImport
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    maxFiles={7}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Import
+                  </LocalFileImport>
+                </div>
                 <div className="space-y-2">
                   {recentAssets.slice(0, 3).map((asset) => (
                     <div
                       key={asset.id}
-                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                      draggable
+                      onDragStart={(e) => {
+                        const dragData = JSON.stringify({
+                          id: asset.id,
+                          name: asset.name,
+                          type: asset.type,
+                          url: asset.src,
+                          thumbnail: asset.src,
+                          duration: 5,
+                        });
+                        e.dataTransfer.setData('application/json', dragData);
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
+                      className="flex items-center space-x-2 p-2 rounded-lg hover:bg-muted cursor-grab active:cursor-grabbing transition-colors group"
                       onClick={() => onLoadAssetToCanvas?.(asset)}
                     >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <GripVertical className="h-3 w-3 text-muted-foreground" />
+                      </div>
                       <div className="w-8 h-8 rounded bg-muted flex-shrink-0 overflow-hidden">
                         <img
                           src={asset.src}
@@ -339,7 +368,7 @@ export function LeftSidebar({
                           {asset.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {asset.type}
+                          {asset.type} • Drag to timeline
                         </p>
                       </div>
                     </div>

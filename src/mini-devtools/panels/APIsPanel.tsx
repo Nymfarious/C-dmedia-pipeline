@@ -8,7 +8,7 @@ import { CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
 import { logDevEvent } from '../stores/devLogsStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-type ApiStatus = 'live' | 'testing' | 'planned' | 'deprecated';
+type ApiStatus = 'live' | 'testing' | 'planned' | 'deprecated' | 'stub';
 type ApiCategory = 'AI Generation' | 'Storage' | 'Auth' | 'Analytics' | 'Audio';
 
 interface ApiEntry {
@@ -37,7 +37,7 @@ const mockApiRegistry: ApiEntry[] = [
     vendor: 'Adobe',
     category: 'AI Generation',
     purpose: 'Creative asset generation',
-    status: 'live',
+    status: 'stub',
     auth_type: 'OAuth',
   },
   {
@@ -55,7 +55,7 @@ const mockApiRegistry: ApiEntry[] = [
     vendor: 'Google',
     category: 'Audio',
     purpose: 'Text-to-speech synthesis',
-    status: 'live',
+    status: 'stub',
     auth_type: 'API Key',
   },
   {
@@ -76,13 +76,34 @@ const mockApiRegistry: ApiEntry[] = [
     status: 'live',
     auth_type: 'Built-in',
   },
+  {
+    id: '7',
+    name: 'Kling AI',
+    vendor: 'Kuaishou',
+    category: 'AI Generation',
+    purpose: 'Video generation',
+    status: 'stub',
+    auth_type: 'API Key',
+  },
+  {
+    id: '8',
+    name: 'Runway ML',
+    vendor: 'Runway',
+    category: 'AI Generation',
+    purpose: 'Video generation & editing',
+    status: 'stub',
+    auth_type: 'API Key',
+  },
 ];
 
-const statusConfig: Record<ApiStatus, { color: string; label: string }> = {
+type ApiStatusExtended = ApiStatus | 'stub';
+
+const statusConfig: Record<ApiStatusExtended, { color: string; label: string; icon?: string }> = {
   live: { color: 'bg-green-500/20 text-green-400 border-green-500/30', label: 'Live' },
   testing: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', label: 'Testing' },
   planned: { color: 'bg-muted/50 text-muted-foreground border-muted', label: 'Planned' },
   deprecated: { color: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Deprecated' },
+  stub: { color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: '✿ Stub', icon: '✿' },
 };
 
 export function APIsPanel() {
