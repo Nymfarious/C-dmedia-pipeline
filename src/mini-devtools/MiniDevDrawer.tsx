@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, Suspense, useTransition } from 'react';
-import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Palette, AlertCircle, Shield, Activity, Loader2, Download } from 'lucide-react';
+import { useEffect, useRef, useState, Suspense, useTransition, useCallback } from 'react';
+import { X, Eye, Volume2, Film, FileText, Code, Network, Bot, TestTube, Map, Palette, AlertCircle, Shield, Activity, Loader2, Download, GripVertical } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,6 +65,10 @@ function PanelLoadingSkeleton() {
   );
 }
 
+const MIN_DRAWER_WIDTH = 380;
+const MAX_DRAWER_WIDTH = 900;
+const DEFAULT_DRAWER_WIDTH = 420;
+
 export function MiniDevDrawer() {
   const { config } = useMiniDevContext();
   const { isOpen, activeSection, setActiveSection, closeDrawer } = useDevToolsStore();
@@ -82,6 +86,50 @@ export function MiniDevDrawer() {
   // Ref for active tab auto-scroll
   const activeTabRef = useRef<HTMLButtonElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
+  
+  // Resizable drawer state
+  const [drawerWidth, setDrawerWidth] = useState(DEFAULT_DRAWER_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<number | null>(null);
+  
+  // Handle resize drag
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return;
+    e.preventDefault();
+    setIsResizing(true);
+    resizeRef.current = e.clientX;
+  }, [isMobile]);
+  
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || resizeRef.current === null) return;
+    
+    const delta = resizeRef.current - e.clientX;
+    const newWidth = Math.min(MAX_DRAWER_WIDTH, Math.max(MIN_DRAWER_WIDTH, drawerWidth + delta));
+    setDrawerWidth(newWidth);
+    resizeRef.current = e.clientX;
+  }, [isResizing, drawerWidth]);
+  
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    resizeRef.current = null;
+  }, []);
+  
+  // Attach global mouse events for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
   
   // Handle section change with transition
   const handleSectionChange = (sectionId: string) => {
@@ -287,13 +335,23 @@ export function MiniDevDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Developer Tools"
-        className={`fixed right-0 top-0 h-full w-full md:w-[420px] max-w-full bg-background/98 backdrop-blur-xl border-l border-border/50 z-50 overflow-x-hidden safe-area-bottom touch-manipulation shadow-2xl transition-all duration-200 ease-out ${
+        className={`fixed right-0 top-0 h-full max-w-full bg-background/98 backdrop-blur-xl border-l border-border/50 z-50 overflow-x-hidden safe-area-bottom touch-manipulation shadow-2xl transition-all duration-200 ease-out ${
           isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
         }`}
+        style={{ width: isMobile ? '100%' : `${drawerWidth}px` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Resize Handle */}
+        {!isMobile && (
+          <div
+            className={`absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-primary/20 transition-colors flex items-center justify-center group ${isResizing ? 'bg-primary/30' : ''}`}
+            onMouseDown={handleResizeStart}
+          >
+            <div className={`w-1 h-16 rounded-full transition-colors ${isResizing ? 'bg-primary' : 'bg-border group-hover:bg-primary/50'}`} />
+          </div>
+        )}
         <div className="flex flex-col md:flex-row h-full">
           {/* Mobile: Horizontal tab bar at top */}
           {renderMobileTabBar()}
