@@ -27,7 +27,7 @@ export interface PipelineEvent {
   timestamp: Date;
 }
 
-interface PipelineStore {
+export interface PipelineStore {
   events: PipelineEvent[];
   addEvent: (event: Omit<PipelineEvent, 'id' | 'timestamp'>) => void;
   clearEvents: () => void;
